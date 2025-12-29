@@ -1998,7 +1998,8 @@ class ProxyLanguageDescriptor(AbstractLanguageDescriptor):
 
 @define
 class StringStoreProxy(AttrSignal):
-	_cache: dict
+	engine: EngineProxy
+	_cache: dict[str, str] = field(factory=dict)
 	_language: str = "eng"
 	_store: ClassVar = "strings"
 	language: ClassVar = ProxyLanguageDescriptor()
