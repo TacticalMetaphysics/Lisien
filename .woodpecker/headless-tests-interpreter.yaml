@@ -32,7 +32,6 @@ steps:
       - python -m venv .venv
       - . .venv/bin/activate
       - python -m pip install --upgrade pip
-      - python -m pip install lisien/
       - python -m pip install pytest
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
@@ -42,6 +41,7 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
+      - python -m pip install lisien/
       - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
@@ -55,7 +55,6 @@ steps:
       - . .venv${PYTHON_VERSION}/bin/activate
       - python -m pip install --upgrade pip
       - python -m pip install pytest
-      - python -m pip install lisien/
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
@@ -64,6 +63,7 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
+      - python -m pip install lisien/
       - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
