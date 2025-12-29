@@ -501,12 +501,13 @@ class Batch(list):
 		rett = sig.return_annotation
 		if isinstance(rett, str):
 			rett = eval(rett)
-		if hasattr(rett, "evaluate_value"):
-			rett = rett.evaluate_value()
-		if root_type(rett) is tuple:
-			rett = get_args(rett)
+		if hasattr(rett, "__value__"):
+			rett = rett.__value__
+		rett = get_args(rett)
 		if len(rett) != len(args):
-			raise TypeError("Wrong record length", rett, args)
+			raise TypeError(
+				"Wrong record length", sig.return_annotation, rett, args
+			)
 		pack = self.connector.pack
 		out = []
 		for arg, typ in zip(args, rett):
