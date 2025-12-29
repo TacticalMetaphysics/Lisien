@@ -1231,27 +1231,10 @@ class Edge(AbstractEntityMapping, ABC):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
+@define(slots=True)
 class AttrSignal(Signal):
-	is_muted: bool = field(default=False, kw_only=True)
-	receivers: dict[
-		Any, weakref.ref[Callable[..., Any]] | Callable[..., Any]
-	] = field(factory=dict, kw_only=True)
-
-	@staticmethod
-	def _make_defaultdict_set_class(self: AttrSignal):
-		return defaultdict(self.set_class)
-
-	_sender_receiver_factory = Factory(
-		_make_defaultdict_set_class, takes_self=True
-	)
-	_by_receiver: dict[Any, set] = field(
-		default=_sender_receiver_factory,
-		kw_only=True,
-	)
-	_by_sender: dict[Any, set] = field(
-		default=_sender_receiver_factory,
-		kw_only=True,
-	)
+	def __attrs_pre_init__(self):
+		super().__init__()
 
 
 @define(eq=False)
