@@ -1113,6 +1113,7 @@ class CharPredecessorsMappingProxy(MutableMapping, Signal):
 			self.engine.del_portal(self.name, v, k)
 
 
+@define(eq=False)
 class CharStatProxy(CachingEntityProxy, AttrSignal):
 	@property
 	def _cache(self):
