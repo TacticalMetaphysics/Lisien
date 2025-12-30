@@ -4,7 +4,7 @@ Lisien is a tool for developing life simulation games.
 
 [Discuss on Gamemaking Tools Forum](https://gamemaking.tools/forum/categories/lisien)
 
-[Read Documentation](https://clayote.codeberg.page/lisien/manual.html)
+[Read Documentation](https://clayote.codeberg.page/lisien/docs/manual.html)
 
 
 <a rel="me" href="https://peoplemaking.games/@clayote">Follow on Mastodon</a>
