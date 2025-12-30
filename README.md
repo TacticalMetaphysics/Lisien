@@ -23,7 +23,7 @@ it, because so much of it seems to operate independently of you.
 Existing games that Lisien seeks to imitate include:
 
 * The Sims
-* SimLife (1992)
+* SimLife: The Genetic Playground (1992)
 * Redshirt
 * Rimworld
 * Princess Maker
