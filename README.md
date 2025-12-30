@@ -1,8 +1,6 @@
 Lisien is a tool for developing life simulation games.
 
-[Download on Itch](https://clayote.itch.io/Lisien)
-
-[Discuss on Gamemaking Tools Forum](https://gamemaking.tools/forum/categories/lisien)
+[Download and Discuss on Itch](https://clayote.itch.io/Lisien)
 
 [Read Documentation](https://clayote.codeberg.page/lisien/docs/manual.html)
 
