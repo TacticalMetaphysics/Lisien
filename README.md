@@ -34,6 +34,8 @@ Existing games that Lisien seeks to imitate include:
 * The King of Dragon Pass
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
+* [TinyLife](https://ellpeck.itch.io/tiny-life)
+* [Half-Earth Socialism](https://frnsys.itch.io/half-earth-socialism)
 
 # Why should I use Lisien for this purpose?
 
