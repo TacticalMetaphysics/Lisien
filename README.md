@@ -39,15 +39,12 @@ Existing games that Lisien seeks to imitate include:
 
 # Why should I use Lisien for this purpose?
 
-Lisien assumes
-that there are certain problems any designer of life simulators will
-have, and provides powerful tools specialized to those
-problems. Though you will still need to write some Python code for
+Lisien assumes that you'll have problems keeping track of the game world's state
+and the game's rules. Though you will still need to write some Python code for
 your game, it should only be the code that describes how your game's
 world works. If you don't want to worry about the data structure that
-represents the world, Lisien gives you one that will work. And if you
-don't want to write a user interface, you can play the game in the
-IDE.
+represents the world, Lisien gives you one that will work, and takes care of
+saving and loading the game.
 
 The Lisien data model has been designed from the ground up to support
 debugging of complex simulations. It remembers everything that ever
