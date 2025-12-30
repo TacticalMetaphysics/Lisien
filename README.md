@@ -1,10 +1,8 @@
 Lisien is a tool for developing life simulation games.
 
-[Download on Itch](https://clayote.itch.io/Lisien)
+[Download and Discuss on Itch](https://clayote.itch.io/Lisien)
 
-[Discuss on Gamemaking Tools Forum](https://gamemaking.tools/forum/categories/lisien)
-
-[Read Documentation](https://clayote.codeberg.page/lisien/manual.html)
+[Read Documentation](https://clayote.codeberg.page/lisien/docs/manual.html)
 
 
 <a rel="me" href="https://peoplemaking.games/@clayote">Follow on Mastodon</a>
@@ -23,7 +21,7 @@ it, because so much of it seems to operate independently of you.
 Existing games that Lisien seeks to imitate include:
 
 * The Sims
-* SimLife (1992)
+* SimLife: The Genetic Playground (1992)
 * Redshirt
 * Rimworld
 * Princess Maker
@@ -34,18 +32,17 @@ Existing games that Lisien seeks to imitate include:
 * The King of Dragon Pass
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
+* [TinyLife](https://ellpeck.itch.io/tiny-life)
+* [Half-Earth Socialism](https://frnsys.itch.io/half-earth-socialism)
 
 # Why should I use Lisien for this purpose?
 
-Lisien assumes
-that there are certain problems any designer of life simulators will
-have, and provides powerful tools specialized to those
-problems. Though you will still need to write some Python code for
+Lisien assumes that you'll have problems keeping track of the game world's state
+and the game's rules. Though you will still need to write some Python code for
 your game, it should only be the code that describes how your game's
 world works. If you don't want to worry about the data structure that
-represents the world, Lisien gives you one that will work. And if you
-don't want to write a user interface, you can play the game in the
-IDE.
+represents the world, Lisien gives you one that will work, and takes care of
+saving and loading the game.
 
 The Lisien data model has been designed from the ground up to support
 debugging of complex simulations. It remembers everything that ever
@@ -59,6 +56,10 @@ tester knew to look for it.
 ## Core
 
 * *Multiverse time travel*, rendering traditional save files obsolete.
+  Lisien remembers everything that ever happened while you were playing, and
+  will let you set the state of the game back to any earlier state whenever
+  you want, whether or not you remembered to "save your game". Alternate
+  branches of time are available.
 * Integration with [NetworkX](http://networkx.github.io) for
   convenient access to various *graph algorithms*, particularly
   pathfinding.
@@ -70,8 +71,9 @@ tester knew to look for it.
 
 ## IDE
 
-* *Instant replay*: go back to previous world states whenever you feel
-  like it, with minimal loading.
+* *Instant replay*: Time travel that works like the game is a video.
+  Rewind whenever you want, and play differently on a new branch of the
+  timestream.
 * *Rule constructor*: Build rules out of short functions representing
   triggers and actions.
 * *Rule stepper*: view the world state in the middle of a turn, just
@@ -84,7 +86,7 @@ tester knew to look for it.
 Lisien is available [on PyPI](https://pypi.org/project/Lisien/), so
 `pip install lisien elide` will work, but won't always have the latest experimental
 code. If you want that, then in a command line, with [Python](https://python.org)
-(preferably [version 3.12](https://www.python.org/downloads/release/python-3129/)) already installed, run:
+(at least [version 3.12](https://www.python.org/downloads/latest/python3.12/)) already installed, run:
 
 ```
 python -m pip install --user --upgrade https://codeberg.org/clayote/Lisien/archive/main.zip

@@ -8,24 +8,24 @@ packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack
 
 [project]
 name = "elide"
-version = "0.22.5"
+version = "0.23.1"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Extensible Life Simulator Engine Development Environment"
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = "~=3.10"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = "~=3.12"
 classifiers = [
 	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: GNU Affero General Public License v3",
 	"Operating System :: OS Independent",
-	"Development Status :: 2 - Pre-Alpha"
+	"Development Status :: 3 - Alpha",
+	"Intended Audience :: Developers"
 ]
 dependencies = [
-	"lisien==0.22.5",
-	"kivy>=2.0.0,<3",
-	"kivy_garden.collider",
+	"lisien==0.23.1",
+	"kivy>=2.0.0",
 	"kivy-deps.glew ; sys_platform == 'win32'",
 	"kivy-deps.sdl2 ; sys_platform == 'win32'",
 	"pygments>=2.7.4"

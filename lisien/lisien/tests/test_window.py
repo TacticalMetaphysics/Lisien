@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from itertools import cycle
 
 import pytest
@@ -142,7 +156,7 @@ def test_del(windd):
 		windd[1]
 
 
-def test_set(tmp_path):
+def test_set(tmp_path, random_seed):
 	wd = WindowDict()
 	assert 0 not in wd
 	wd[0] = "foo"
@@ -165,11 +179,13 @@ def test_set(tmp_path):
 	wd[0] = "off"
 	assert wd[0] == "off"
 	assert 4 not in wd
-	wd[4] = WindowDict({"spam": "eggs"})
+	wd[4] = {"spam": "eggs"}
 	assert 4 in wd
 	assert wd[4] == {"spam": "eggs"}
 	assert 5 not in wd
-	with make_test_engine(tmp_path, "serial", "sqlite") as orm:
+	with make_test_engine(
+		tmp_path, "serial", "sqlite", random_seed, workers=0
+	) as orm:
 		g = orm.new_character("g")
 		g.node[5] = {"ham": {"spam": "beans"}}
 		wd[5] = g.node[5]["ham"]

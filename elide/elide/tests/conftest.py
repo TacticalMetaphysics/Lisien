@@ -93,10 +93,17 @@ def kivy():
 		stopTouchApp()
 
 
-def make_elide_app(play_dir, **kwargs):
+def make_elide_app(
+	play_dir, immediate_start=True, character_name="physical", **kwargs
+):
 	Builder.load_file(resource_find("elide.kv"))
 	return ElideApp(
-		prefix=play_dir, games_dir="games", game_name="test", **kwargs
+		prefix=play_dir,
+		games_dir="games",
+		game_name="test",
+		character_name=character_name,
+		immediate_start=immediate_start,
+		**kwargs,
 	)
 
 
@@ -117,7 +124,7 @@ def elide_app(kivy, prefix):
 
 @pytest.fixture(scope="function")
 def elide_app_main_menu(kivy, prefix):
-	app = make_elide_app(prefix, workers=0)
+	app = make_elide_app(prefix, workers=0, immediate_start=False)
 	app.config = ConfigParser(None)
 	app.build_config(app.config)
 	Window.add_widget(app.build())
@@ -145,7 +152,7 @@ def elide_app_main_menu(kivy, prefix):
 
 @pytest.fixture
 def line_shaped_graphs(prefix):
-	with Engine(os.path.join(prefix, "test")) as eng:
+	with Engine(os.path.join(prefix, "test"), workers=0) as eng:
 		eng.add_character("physical", nx.grid_2d_graph(10, 1))
 		eng.add_character("tall", nx.grid_2d_graph(1, 10))
 

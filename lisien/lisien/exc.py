@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Exception classes for use in lisien."""
 
+from __future__ import annotations
+
 
 class GraphNameError(KeyError):
 	"""For errors involving graphs' names"""
@@ -184,3 +186,15 @@ class TotalKeyError(KeyError):
 	And was not, for instance, set at one point, then deleted later.
 
 	"""
+
+
+class BadTimeException(Exception):
+	"""You tried to do something that would make sense at a different game-time
+
+	But doesn't make sense now
+
+	"""
+
+
+class EntityCollisionError(ValueError):
+	"""For when there's a discrepancy between the kind of entity you're creating and the one by the same name"""

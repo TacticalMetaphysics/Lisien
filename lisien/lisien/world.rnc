@@ -5,6 +5,7 @@ start =
         attribute action { xsd:base64Binary },
         attribute branch { xsd:NCName },
         attribute db-schema-version { xsd:integer },
+        attribute xml-schema-version { "2" },
         attribute function { xsd:base64Binary },
         attribute language { xsd:NCName },
         attribute method { xsd:base64Binary },
@@ -27,14 +28,31 @@ start =
                     attribute end-tick { xsd:nonNegativeInteger },
                     attribute number { xsd:nonNegativeInteger },
                     attribute plan-end-tick { xsd:nonNegativeInteger },
-                    (element node {
+                    (
+    element rule {
+		attribute end-tick { xsd:integer },
+		attribute type { "character" | "unit" | "character-thing" | "character-place" | "character-portal" | "node" | "portal" },
+		attribute character { repr },
+		attribute graph { repr }?,
+		attribute node { repr }?,
+		attribute unit { repr }?,
+		attribute origin { repr }?,
+		attribute destination { repr }?,
+		attribute rulebook { repr }?,
+		attribute rule { text },
+		update*
+    } | update)*
+                }+
+            }
+        }
+    }
+update = (element node {
         attribute character { text },
         attribute exists { xsd:boolean },
         attribute name { text },
         attribute rulebook { text }?,
         tick,
-        element dict-item { attribute key { repr },
-        value}*
+        dict-item*
     } | element edge {
 		attribute dest { text },
 		attribute orig { text },
@@ -59,10 +77,7 @@ start =
                      | element keyframe {
                            tick,
                            element universal {
-                           element dict-item {
-                           attribute key {repr},
-                           value
-                           }*
+                           dict-item*
                            },
                            element character {
                                attribute character-place-rulebook { repr }?,
@@ -71,27 +86,18 @@ start =
                                attribute character-thing-rulebook { repr }?,
                                attribute name { repr },
                                attribute unit-rulebook { repr }?,
-                               element dict-item {
-        attribute key { repr },
-        value
-    }*,
+                               dict-item*,
                                element node {
-                               attribute name { repr },
-                               attribute rulebook { repr }?,
-                               element dict-item {
-                               attribute key { repr },
-                               value
-                               }*
-                               }*,
+								   attribute name { repr },
+								   attribute rulebook { repr }?,
+								   dict-item*
+								}*,
                                element edge {
-                               attribute orig { repr },
-                               attribute dest { repr },
-                               attribute rulebook { repr }?,
-                               element dict-item {
-                               attribute key { repr },
-                               value
-                               }*
-                               }*
+									attribute orig { repr },
+									attribute dest { repr },
+									attribute rulebook { repr }?,
+									dict-item*
+								}*
                            }*
                        }
                      | element location {
@@ -158,19 +164,16 @@ start =
                            element rule {
                                attribute name { xsd:NCName }
                            }*
-                       })*
-                }+
-            }
-        }
-    }
+                       })
+dict-item = element dict-item {
+	attribute key { repr },
+	value
+}
 float = element float {
 	attribute value { xsd:decimal }
 }
 key = attribute key { repr }
-dict = element dict { element dict-item {
-        attribute key { repr },
-        value
-    }* }
+dict = element dict { dict-item* }
 none = element None { empty }
 ellipsis = element Ellipsis { empty }
 int = element int { attribute value { xsd:integer } }

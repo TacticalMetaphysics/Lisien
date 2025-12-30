@@ -1,3 +1,17 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from itertools import product
 
 import networkx as nx
@@ -22,6 +36,7 @@ def test_sim_start(three3):
 			place["it_ran"] = True
 
 	eng = three3.engine
+	assert eng.action.get_source("did_it_run")
 	eng.next_turn()
 	assert three3.place[1, 1]["it_ran"]
 	assert "it_ran" not in three3.stat

@@ -30,3 +30,11 @@ for fn in filenames:
 				stdout=subprocess.PIPE,
 			).stdout
 		)
+
+lisien_log = subprocess.run(
+	["adb", "shell", "run-as org.tacmeta.elide cat files/app/lisien.log"],
+	stdout=subprocess.PIPE,
+).stdout
+if lisien_log:
+	with open(os.path.join("kivylogs", "lisien.log"), "wb") as outf:
+		outf.write(lisien_log)

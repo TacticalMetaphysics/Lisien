@@ -19,20 +19,20 @@ ordinary method calls.
 
 from __future__ import annotations
 
-import os
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
+from types import EllipsisType
 from typing import Any, Callable, Iterable, Optional
 
-import msgpack
 import networkx as nx
 import tblib
 
-from ..exc import HistoricKeyError, OutOfTimelineError
+from ..exc import BadTimeException, HistoricKeyError, OutOfTimelineError
 from ..node import Node
 from ..portal import Portal
 from ..types import (
+	AbstractCharacter,
 	ActionFuncName,
 	Branch,
 	CharDelta,
@@ -69,6 +69,7 @@ from ..util import (
 	ELLIPSIS,
 	EMPTY_MAPPING,
 	ETERNAL,
+	ILLEGAL_CHARACTER_NAMES,
 	NODE_VAL,
 	NODES,
 	NONE,
@@ -77,8 +78,7 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	AbstractCharacter,
-	BadTimeException,
+	msgpack_map_header,
 	timer,
 )
 
@@ -94,7 +94,7 @@ FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
 
 def concat_d(r: dict[bytes, bytes]) -> bytes:
 	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack.Packer().pack_map_header(len(r))
+	resp = msgpack_map_header(len(r))
 	for k, v in r.items():
 		resp += k + v
 	return resp
@@ -154,6 +154,7 @@ class EngineHandle:
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
+		self.debug("started engine in a handle")
 		self.pack = pack = self._real.pack
 
 		def pack_pair(pair):
@@ -164,21 +165,35 @@ class EngineHandle:
 		self.unpack = self._real.unpack
 
 		if do_game_start:
+			self.debug("starting game...")
 			self.do_game_start()
+			self.debug("game started")
 
 	@classmethod
-	def from_archive(cls, b: bytes | dict) -> EngineHandle:
+	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
+		try:
+			from msgpack import unpackb
+
+			if not unpackb.__module__.endswith("cmsgpack"):
+				from umsgpack import unpackb
+		except ImportError:
+			from umsgpack import unpackb
+
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = msgpack.unpackb(b)
+			kwargs: dict = unpackb(b)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
 			raise TypeError("No archive path")
 		if "prefix" not in kwargs:
 			raise TypeError("No prefix")
-		do_game_start = kwargs.pop("do_game_start")
+		if log_queue:
+			logger = kwargs["logger"] = Logger("lisien")
+			handler = EngineHandleLogHandler(0, log_queue)
+			logger.addHandler(handler)
+		do_game_start = kwargs.pop("do_game_start", False)
 
 		new = cls.__new__(cls)
 		new._real = Engine.from_archive(
@@ -196,8 +211,12 @@ class EngineHandle:
 			new.do_game_start()
 		return new
 
-	def export(self, name: str | None, path: str | None):
-		return self._real.export(name, path)
+	def get_time(self) -> Time:
+		branch, turn, tick = self._real.time
+		return branch, turn, tick
+
+	def export(self, name: str | None, path: str | None, indent: bool):
+		return self._real.export(name, path, indent=indent)
 
 	def log(self, level: str | int, message: str) -> None:
 		if isinstance(level, str):
@@ -239,11 +258,15 @@ class EngineHandle:
 		slightly_packed_delta = {}
 		mostly_packed_delta = {}
 		for char, chardelta in delta.items():
+			if char in ILLEGAL_CHARACTER_NAMES:
+				pchar = pack(char)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = {
+					pack(k): pack(v) for (k, v) in chardelta.items()
+				}
+				continue
 			if chardelta is ...:
 				pchar = pack(char)
-				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = (
-					None
-				)
+				slightly_packed_delta[pchar] = mostly_packed_delta[pchar] = ...
 				continue
 			chardelta = chardelta.copy()
 			pchar = pack(char)
@@ -311,7 +334,7 @@ class EngineHandle:
 			packd.update(todo)
 		return slightly_packed_delta, concat_d(
 			{
-				charn: (concat_d(stuff) if stuff is not None else NONE)
+				charn: (concat_d(stuff) if stuff is not ... else NONE)
 				for charn, stuff in mostly_packed_delta.items()
 			}
 		)
@@ -369,9 +392,7 @@ class EngineHandle:
 	def next_turn(self) -> tuple[bytes, bytes]:
 		"""Simulate a turn. Return whatever result, as well as a delta"""
 		pack = self.pack
-		self.debug(
-			"calling next_turn at {}, {}, {}".format(*self._real._btt())
-		)
+		self.debug("calling next_turn at {}, {}, {}".format(*self._real.time))
 		ret, delta = self._real.next_turn()
 		slightly_packed_delta, packed_delta = self._pack_delta(delta)
 		return pack(ret), packed_delta
@@ -384,7 +405,7 @@ class EngineHandle:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
 	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
-		return list(self._real.query.bookmark_items())
+		return list(self._real.database.bookmarks_dump())
 
 	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
 		if time is None:
@@ -436,10 +457,10 @@ class EngineHandle:
 		return self._plan_ctx.__enter__()
 
 	def end_plan(self) -> tuple[None, DeltaDict]:
-		time_was = self._real._btt()
+		time_was = tuple(self._real.time)
 		self._plan_ctx.__exit__(None, None, None)
 		del self._plan_ctx
-		return None, self._real.get_delta(time_was, self._real._btt())
+		return None, self._real.get_delta(time_was, tuple(self._real.time))
 
 	@prepacked
 	def time_travel(
@@ -455,7 +476,7 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real._enforce_end_of_time:
+			if self._real.enforce_end_of_time:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)
@@ -468,28 +489,30 @@ class EngineHandle:
 						turn_end,
 						tick_end,
 					)
+			if tick is None:
+				if self._real._planning:
+					tick = self._real.turn_end_plan(branch, turn)
+				else:
+					tick = self._real.turn_end(branch, turn)
+			if LinearTime(turn, tick) < self._real._branch_start(branch):
+				raise OutOfTimelineError(
+					"Not traveling to before the beginning of the branch",
+					branch,
+					turn,
+					tick,
+					*self._real._branch_start(branch),
+				)
 			self._real.load_at(branch, turn, tick)
-		branch_from, turn_from, tick_from = self._real._btt()
-		if tick is None:
-			if (
-				branch,
-				turn,
-				self._real.turn_end(branch, turn),
-			) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, self._real.turn_end(branch, turn))
-		else:
-			if (branch, turn, tick) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, tick)
+		elif tick is None:
+			tick = 0
+		branch_from, turn_from, tick_from = self._real.time
+		if (branch, turn, tick) == (
+			branch_from,
+			turn_from,
+			tick_from,
+		):
+			return NONE, EMPTY_MAPPING
+		self._real.time = (branch, turn, tick)
 		if turn_from != turn and (
 			branch_from != branch
 			or None in (turn_from, turn)
@@ -497,7 +520,7 @@ class EngineHandle:
 		):
 			# This branch avoids unpacking and re-packing the delta
 			slightly: SlightlyPackedDeltaType = self._real._get_slow_delta(
-				(branch_from, turn_from, tick_from), self._real._btt()
+				(branch_from, turn_from, tick_from), tuple(self._real.time)
 			)
 			mostly = {}
 			if UNIVERSAL in slightly:
@@ -519,7 +542,7 @@ class EngineHandle:
 			return NONE, concat_d(mostly)
 		return NONE, self._pack_delta(
 			self._real.get_delta(
-				(branch_from, turn_from, tick_from), self._real._btt()
+				(branch_from, turn_from, tick_from), tuple(self._real.time)
 			)
 		)[1]
 
@@ -570,7 +593,7 @@ class EngineHandle:
 		self._real.close()
 
 	def get_btt(self) -> Time:
-		return self._real._btt()
+		return tuple(self._real.time)
 
 	def get_language(self) -> str:
 		return str(self._real.string.language)
@@ -635,7 +658,7 @@ class EngineHandle:
 
 	def _get_btt(self, btt: Time | None = None) -> Time:
 		if btt is None:
-			return self._real._btt()
+			return tuple(self._real.time)
 		return btt
 
 	def node_exists(self, char: CharName, node: NodeName) -> bool:
@@ -694,14 +717,18 @@ class EngineHandle:
 		char: CharName,
 		thing: NodeName,
 		path: list[NodeName],
-		weight: Stat,
+		weight: Stat | EllipsisType,
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].follow_path(path, weight)
 		)
 
 	def thing_go_to_place(
-		self, char: CharName, thing: NodeName, place: NodeName, weight: Stat
+		self,
+		char: CharName,
+		thing: NodeName,
+		place: NodeName,
+		weight: Stat | EllipsisType,
 	) -> int:
 		return (
 			self._real.character[char].thing[thing].go_to_place(place, weight)
@@ -712,8 +739,8 @@ class EngineHandle:
 		char: CharName,
 		thing: NodeName,
 		dest: NodeName,
-		weight: Stat | None = None,
-		graph: nx.DiGraph | None = None,
+		weight: Stat | EllipsisType = ...,
+		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
 		"""Make something find a path to ``dest`` and follow it.
 
@@ -922,13 +949,37 @@ class EngineHandle:
 	) -> None:
 		getattr(self._real, store).store_source(v, name)
 
+	def save_code(
+		self, store: FuncStoreName | None = None, reimport: bool = True
+	):
+		if store is None:
+			for store in self._real.stores:
+				if hasattr(store, "reimport"):
+					store.save(reimport=reimport)
+			return
+		getattr(self._real, store).save(reimport=reimport)
+
+	def reimport_code(
+		self, store: FuncStoreName | list[FuncStoreName] | None = None
+	):
+		if store is None:
+			for store in self._real.stores:
+				if hasattr(store, "reimport"):
+					store.reimport()
+			return
+		elif isinstance(store, list):
+			for stor in store:
+				getattr(self._real, stor).reimport()
+			return
+		getattr(self._real, store).reimport()
+
 	def del_source(self, store: FuncStoreName, k: FuncName) -> None:
 		delattr(getattr(self._real, store), k)
 
 	def call_stored_function(
 		self, store: FuncStoreName, func: FuncName, args: tuple, kwargs: dict
 	) -> Any:
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		if store == "method":
 			args = (self._real,) + tuple(args)
 		store = getattr(self._real, store)
@@ -936,7 +987,7 @@ class EngineHandle:
 			raise ValueError("{} is not a function store".format(store))
 		callme = getattr(store, func)
 		res = callme(*args, **kwargs)
-		_, turn_now, tick_now = self._real._btt()
+		_, turn_now, tick_now = self._real.time
 		delta = self._real._get_branch_delta(
 			branch, turn, tick, turn_now, tick_now
 		)
@@ -949,7 +1000,7 @@ class EngineHandle:
 		import_module(module).install(self._real)
 
 	def do_game_start(self):
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		self._real.game_start()
 		return [], self._real._get_branch_delta(
 			branch, turn, tick, self._real.turn, self._real.tick
@@ -1053,7 +1104,7 @@ class EngineHandle:
 		dict[PrereqFuncName, str],
 		dict[ActionFuncName, str],
 	]:
-		branch, turn, tick = self._real._btt()
+		branch, turn, tick = self._real.time
 		if (turn, tick) != (0, 0):
 			raise BadTimeException(
 				"You tried to start a game when it wasn't the start of time"

@@ -1,5 +1,5 @@
-# This file is part of allegedb, an object relational mapper for versioned graphs.
-# Copyright (C) Zachary Spector. public@zacharyspector.com
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -12,10 +12,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Wrapper classes to let you store mutable data types in the allegedb ORM
+"""Wrapper classes to let you store mutable data types in Lisien
 
 The wrapper objects act like regular mutable objects, but write a new copy
-of themselves to allegedb every time they are changed.
+of themselves to Lisien every time they are changed.
 
 """
 
@@ -23,384 +23,538 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import (
-	Container,
 	Iterable,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
 	Sequence,
-	Sized,
+	Collection,
+	Container,
+	MutableSet,
+	Set,
 )
-from functools import partial
-from itertools import chain, zip_longest
-from typing import TYPE_CHECKING, Any, Callable, Hashable, Set
+from functools import partial, wraps
+from itertools import chain, zip_longest, filterfalse
+from threading import RLock
+from typing import Callable, Hashable, TypeVar, Self, Iterator
 
-from blinker import Signal
-
-if TYPE_CHECKING:
-	from .util import AbstractCharacter
+from attrs import define, field
+from more_itertools import unique_everseen
 
 
-class OrderlySet(set):
+def rlocked(f):
+	@wraps(f)
+	def locked(self, *args, **kwargs):
+		with self._lock:
+			return f(self, *args, **kwargs)
+
+	return locked
+
+
+class AbstractOrderlySet[_K](Set[_K]):
+	__slots__ = ()
+
+	@abstractmethod
+	def _get(self) -> tuple[_K, ...]: ...
+
+	@abstractmethod
+	def _set(self, data: tuple[_K, ...]) -> None: ...
+
+	@rlocked
+	def __iter__(self) -> Iterator[_K]:
+		for what in self._get():
+			yield what
+
+	@rlocked
+	def __len__(self) -> int:
+		return len(self._get())
+
+	@rlocked
+	def __contains__(self, item):
+		return item in self._get()
+
+	@rlocked
+	def __eq__(self, other):
+		return frozenset(self._get()) == other
+
+	@rlocked
+	def __ne__(self, other):
+		return frozenset(self._get()) != other
+
+	@rlocked
+	def __gt__(self, other):
+		return frozenset(self._get()) > other
+
+	@rlocked
+	def __ge__(self, other):
+		return frozenset(self._get()) >= other
+
+	@rlocked
+	def __lt__(self, other):
+		return frozenset(self._get()) < other
+
+	@rlocked
+	def __le__(self, other):
+		return frozenset(self._get()) <= other
+
+	@rlocked
+	def copy(self) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(self._get())
+
+	def __copy__(self) -> OrderlyFrozenSet[_K]:
+		return self.copy()
+
+	@rlocked
+	def __and__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(filter(other.__contains__, self._get()))
+
+	@rlocked
+	def __or__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(chain(self, other))
+
+	@rlocked
+	def __sub__(self, other) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(filterfalse(other.__contains__, self._get()))
+
+	@rlocked
+	def __xor__(self, other) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = frozenset(this)
+		excluded = that ^ other
+		return OrderlyFrozenSet(
+			filter(excluded.__contains__, chain(this, other))
+		)
+
+	@rlocked
+	def difference(self, *others) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			for what in it:
+				that.discard(what)
+		return OrderlyFrozenSet(filter(that.__contains__, this))
+
+	@rlocked
+	def intersection(self, *others) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		return OrderlyFrozenSet(filter(that.__contains__, this))
+
+	@rlocked
+	def issubset(self, other) -> bool:
+		for k in self._get():
+			if k not in other:
+				return False
+		return True
+
+	@rlocked
+	def issuperset(self, other) -> bool:
+		this = self._get()
+		for k in other:
+			if k not in this:
+				return False
+		return True
+
+	@rlocked
+	def symmetric_difference(self, other, /) -> OrderlyFrozenSet[_K]:
+		this = self._get()
+		if not isinstance(other, Container):
+			other = set(other)
+		return OrderlyFrozenSet(filter(other.__contains__, this))
+
+	@rlocked
+	def union(self, *others) -> OrderlyFrozenSet[_K]:
+		return OrderlyFrozenSet(chain(self._get(), *others))
+
+	@rlocked
+	def isdisjoint(self, other) -> bool:
+		return set(self._get()).isdisjoint(other)
+
+
+class AbstractOrderlyMutableSet[_K](AbstractOrderlySet[_K], MutableSet[_K]):
 	"""A set with deterministic order of iteration
 
 	Order is not regarded as significant for the purposes of equality.
 
 	"""
 
-	def __init__(self, data: Iterable[Hashable] = ()):
-		super().__init__()
-		self._data = {}
-		for k in data:
-			self._data[k] = True
+	__slots__ = ()
 
-	def copy(self):
-		return OrderlySet(self._data.copy())
+	@abstractmethod
+	def _get(self) -> dict[_K, bool]: ...
 
-	def difference(self, *s):
-		dat = self._data.copy()
-		for subtracted in dat.keys() - s:
-			del dat[subtracted]
-		ret = OrderlySet()
-		ret._data = dat
-		return ret
+	@abstractmethod
+	def _set(self, data: dict[_K, bool]) -> None: ...
 
-	def difference_update(self, *s):
-		for k in s:
-			if k in self._data:
-				del self._data[k]
+	@rlocked
+	def add(self, item: Hashable) -> None:
+		this = self._get()
+		this[item] = True
+		self._set(this)
 
-	def intersection(self, *s):
-		return OrderlySet(self._data.keys() & s)
+	@rlocked
+	def discard(self, value):
+		this = self._get()
+		if value in this:
+			del this[value]
+		self._set(this)
 
-	def intersection_update(self, *s):
-		for k in list(self._data.keys()):
-			if k not in s:
-				del self._data[k]
-
-	def issubset(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return self._data.keys() <= __s
-
-	def issuperset(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return self._data.keys() >= __s
-
-	def symmetric_difference(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		return OrderlySet(self._data.keys() ^ __s)
-
-	def symmetric_difference_update(self, __s):
-		if not isinstance(__s, Set):
-			__s = set(__s)
-		self._data = {k: True for k in self._data.keys() ^ __s}
-
-	def union(self, *s):
-		for k in s:
-			self._data[k] = True
-
-	def __repr__(self):
-		return repr(set(self))
-
-	def __iter__(self):
-		return iter(self._data.keys())
-
-	def __len__(self):
-		return len(self._data)
-
-	def __contains__(self, item):
-		return item in self._data
-
-	def __eq__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if len(self) != len(other):
-			return False
-		return self._data.keys() == other
-
-	def __ne__(self, other):
-		if not isinstance(other, Set):
-			return True
-		return self._data.keys() != other
-
-	def __isub__(self, it):
-		for item in it:
-			self.discard(item)
-
-	def __ixor__(self, it):
-		for item in list(self):
-			if item in it:
-				self.remove(item)
-		for item in it:
-			if item in self:
-				self.remove(item)
-			else:
-				self.add(item)
-
-	def __iand__(self, it):
-		for item in list(self):
-			if item not in it:
-				self.remove(item)
-
-	def __ior__(self, it):
-		self.update(it)
-
+	@rlocked
 	def remove(self, value):
-		del self._data[value]
+		this = self._get()
+		del this[value]
+		self._set(this)
 
-	def pop(self):
-		k, _ = self._data.popitem()
+	@rlocked
+	def pop(self) -> _K:
+		this = self._get()
+		k, _ = this.popitem()
 		return k
 
-	def clear(self):
-		self._data.clear()
+	@rlocked
+	def clear(self) -> None:
+		self._set({})
 
-	def add(self, item):
-		self._data[item] = True
-
-	def discard(self, value):
-		if value in self._data:
-			del self._data[value]
-
-	def update(self, it):
-		for item in it:
-			self.add(item)
+	@rlocked
+	def copy(self):
+		return OrderlySet(self._get())
 
 	def __copy__(self):
 		return self.copy()
 
-	def __le__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() <= other._data.keys()
-		return self._data.keys() <= other
+	@rlocked
+	def __eq__(self, other) -> bool:
+		return self._this_keys() == other
 
-	def __lt__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() < other._data.keys()
-		return self._data.keys() < other
+	@rlocked
+	def __ne__(self, other) -> bool:
+		return self._this_keys() != other
 
-	def __gt__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() > other._data.keys()
-		return self._data.keys() > other
+	@rlocked
+	def __le__(self, other) -> bool:
+		return self._this_keys() <= other
 
-	def __ge__(self, other):
-		if not isinstance(other, Set):
-			return False
-		if isinstance(other, OrderlySet):
-			return self._data.keys() >= other._data.keys()
-		return self._data.keys() >= other
+	@rlocked
+	def __lt__(self, other) -> bool:
+		return self._this_keys() < other
 
-	def __and__(self, other):
-		if isinstance(other, Set):
-			if isinstance(other, OrderlySet):
-				other = other._data.keys()
-			intersection = self._data.keys() & other
-			return OrderlySet(
-				datum for datum in self._data.keys() if datum in intersection
-			)
-		return OrderlySet(
-			datum for datum in self._data.keys() if datum in other
-		)
+	@rlocked
+	def __gt__(self, other) -> bool:
+		return self._this_keys() > other
 
-	def __or__(self, other):
-		if isinstance(other, OrderlySet):
-			ret = OrderlySet()
-			ret._data = {**self._data, **other._data}
-			return ret
+	@rlocked
+	def __ge__(self, other) -> bool:
+		return self._this_keys() >= other
+
+	@rlocked
+	def difference(self, *others) -> OrderlySet[_K]:
+		this = self._this_keys()
+		that = set(this)
+		for it in others:
+			for what in it:
+				that.discard(what)
+		return OrderlySet(filter(that.__contains__, this))
+
+	@rlocked
+	def difference_update(self, *others) -> None:
+		this = self._this_keys()
+		that = set(this)
+		for it in others:
+			that.difference_update(it)
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+
+	@rlocked
+	def intersection(self, *others) -> OrderlySet[_K]:
+		this = self._this_keys()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		return OrderlySet(filter(that.__contains__, this))
+
+	@rlocked
+	def intersection_update(self, *others) -> None:
+		this = self._this_keys()
+		that = set(this)
+		for it in others:
+			that.intersection_update(it)
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+
+	@rlocked
+	def issubset(self, __s) -> bool:
+		this = self._this_keys()
+		if isinstance(__s, Set):
+			return this <= __s
+		for k in this:
+			if k not in __s:
+				return False
+		return True
+
+	@rlocked
+	def issuperset(self, __s) -> bool:
+		this = self._this_keys()
+		if isinstance(__s, Set):
+			return this >= __s
+		for k in __s:
+			if k not in this:
+				return False
+		return True
+
+	@rlocked
+	def symmetric_difference(self, s, /) -> OrderlySet[_K]:
+		this = self._this_keys()
+		if not isinstance(s, Container):
+			s = set(s)
+		elif not isinstance(s, Set):
+			return OrderlySet(filter(s.__contains__, this))
+		that = this.keys() ^ s
+		return OrderlySet(filter(that.__contains__, this))
+
+	@rlocked
+	def symmetric_difference_update(self, s, /):
+		this = self._this_keys()
+		if not isinstance(s, Container):
+			s = set(s)
+		elif not isinstance(s, Set):
+			return self._set(dict.fromkeys(filter(s.__contains__, this), True))
+		that = this ^ s
+		self._set(dict.fromkeys(filter(that.__contains, this), True))
+
+	@rlocked
+	def union(self, *others) -> OrderlySet[_K]:
+		return OrderlySet(chain(self._get(), *others))
+
+	@rlocked
+	def update(self, *others) -> None:
+		this = self._get()
+		this.update(dict.fromkeys(chain(others), True))
+		self._set(this)
+
+	@rlocked
+	def isdisjoint(self, other) -> bool:
+		this = self._this_keys()
+		if isinstance(other, AbstractOrderlyMutableSet):
+			return this.isdisjoint(other._get().keys())
+		return this.isdisjoint(other)
+
+	@rlocked
+	def __iter__(self) -> Iterator[_K]:
+		for what in self._get():
+			yield what
+
+	def _this_keys(self) -> Set[_K]:
+		this = self._get()
+		if hasattr(this, "keys"):
+			return this.keys()
+		if not isinstance(this, set):
+			raise TypeError("Not a set", this)
+		return this
+
+	@rlocked
+	def __isub__(self, other) -> Self:
+		this = self._this_keys()
+		that = this.keys() - other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	@rlocked
+	def __ixor__(self, other) -> Self:
+		this = self._this_keys()
+		that = this ^ other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	@rlocked
+	def __iand__(self, other) -> Self:
+		this = self._this_keys()
+		that = this & other
+		self._set(dict.fromkeys(filter(that.__contains__, this), True))
+		return self
+
+	@rlocked
+	def __ior__(self, other) -> Self:
+		self.update(other)
+		return self
+
+	@rlocked
+	def __and__(self, other) -> OrderlySet[_K]:
+		return OrderlySet(filter(other.__contains__, self._this_keys()))
+
+	@rlocked
+	def __or__(self, other) -> OrderlySet[_K]:
 		return OrderlySet(chain(self, other))
 
-	def __sub__(self, other):
-		return OrderlySet(k for k in self if k not in other)
+	@rlocked
+	def __sub__(self, other) -> OrderlySet[_K]:
+		return OrderlySet(filterfalse(other.__contains__, self._get()))
 
-	def __xor__(self, other):
-		if isinstance(other, Set):
-			if isinstance(other, OrderlySet):
-				other = other._data.keys()
-			split = self._data.keys() ^ other
-			return OrderlySet(
-				chain(
-					(k for k in self._data if k in split),
-					(k for k in other if k in split),
-				)
-			)
-		return OrderlySet(
-			chain(
-				(k for k in self if k not in other),
-				(k for k in other if k not in self),
-			)
-		)
-
-	def isdisjoint(self, other):
+	@rlocked
+	def __xor__(self, other) -> OrderlySet[_K]:
 		if isinstance(other, OrderlySet):
-			return self._data.keys().isdisjoint(other._data.keys())
-		return super().isdisjoint(other)
+			this = self._this_keys()
+			that = other._this_keys()
+			excluded = this ^ that
+			return OrderlySet(filter(excluded.__contains__, chain(this, that)))
+		elif isinstance(other, Set):
+			this = self._this_keys()
+			excluded = this ^ other
+			return OrderlySet(
+				filter(excluded.__contains__, chain(this, other))
+			)
+		this = self._this_keys()
+		that = set(other)
+		excluded = this ^ that
+		return OrderlySet(filter(excluded.__contains__, chain(this, that)))
 
 
-class OrderlyFrozenSet(frozenset):
-	"""A frozenset with deterministic order of iteration
+class OrderlySet[_K](AbstractOrderlyMutableSet[_K], set[_K]):
+	"""A set with deterministic order of iteration
+
+	Iterates in insertion order.
 
 	Order is not considered significant for the purpose of determining
 	equality.
 
 	"""
 
-	def __init__(self, data):
-		self._data = tuple(data)
-		super().__init__(data)
+	__slots__ = ("_data", "_lock")
 
-	def __iter__(self):
-		return iter(self._data)
+	_data: dict[_K, bool]
+
+	def __new__(cls, data: Iterable[_K] = ()):
+		data = dict.fromkeys(data)
+		me = set.__new__(cls, data)
+		me._data = data
+		me._lock = RLock()
+		return me
+
+	def __init__(self, data: Iterable[_K] = ()):
+		super().__init__()
 
 	def __repr__(self):
-		return repr(frozenset(self))
+		return f"OrderlySet({list(self._data)})"
 
-	def copy(self):
-		return OrderlyFrozenSet(self._data)
+	def _get(self) -> dict[_K, bool]:
+		return self._data
 
-	def difference(self, *s):
-		diffed = super().difference(s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in diffed
-		)
-
-	def intersection(self, *s):
-		intersected = super().intersection(s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in intersected
-		)
-
-	def union(self, *s):
-		unified = super().union(*s)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in unified
-		)
-
-	def __xor__(self, __value):
-		return OrderlyFrozenSet(
-			*(datum for datum in self._data if datum not in __value),
-			*(datum for datum in __value if datum not in self),
-		)
-
-	def __and__(self, __value):
-		intersected = super().__and__(__value)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in intersected
-		)
-
-	def __or__(self, __value):
-		return OrderlyFrozenSet(
-			(
-				*self._data,
-				*(datum for datum in __value if datum not in self),
-			)
-		)
-
-	def __sub__(self, __value):
-		subtracted = super().__sub__(__value)
-		return OrderlyFrozenSet(
-			datum for datum in self._data if datum in subtracted
-		)
-
-	def symmetric_difference(self, __s):
-		return OrderlyFrozenSet(
-			*(datum for datum in self._data if datum not in __s),
-			*(datum for datum in __s if datum not in self),
-		)
+	def _set(self, data: dict[_K, bool]):
+		set.clear(self)
+		set.update(self, data)
+		self._data = data
 
 
-class SpecialMapping(Mapping, Signal, ABC):
-	@abstractmethod
-	def __init__(self, character: AbstractCharacter): ...
+class OrderlyFrozenSet[_K](AbstractOrderlySet[_K], frozenset):
+	"""A frozenset with deterministic order of iteration
+
+	Iterates in the same order as the data it was constructed with.
+	(Repeated elements are discarded.)
+
+	Order is not considered significant for the purpose of determining
+	equality.
+
+	"""
+
+	__slots__ = ("_data", "_lock")
+
+	_data: tuple[_K, ...]
+
+	def __new__(cls, data: Iterable[_K] = ()):
+		data = tuple(unique_everseen(data))
+		me = frozenset.__new__(cls, data)
+		me._data = data
+		me._lock = RLock()
+		return me
+
+	def __init__(self, data: Iterable[_K] = ()):
+		super().__init__()
+
+	def __repr__(self):
+		return f"OrderlyFrozenSet({self._data})"
+
+	def _get(self) -> tuple[_K, ...]:
+		return self._data
+
+	def _set(self, data: tuple[_K, ...]) -> None:
+		raise TypeError("Tried to set data of a frozen set", self, data)
 
 
-class MutableWrapper(ABC):
+class MutableWrapper[_K: Hashable, _V](Collection, ABC):
 	__slots__ = ()
 
 	def __iter__(self):
-		return iter(self._getter())
+		return iter(self._get())
 
 	def __len__(self):
-		return len(self._getter())
+		return len(self._get())
 
 	def __contains__(self, item):
-		return item in self._getter()
-
-	def __repr__(self):
-		return "<{} instance at {}, wrapping {}>".format(
-			self.__class__.__name__, id(self), self._getter()
-		)
+		return item in self._get()
 
 	def __str__(self):
-		return str(self._getter())
+		return str(self._get())
 
 	@abstractmethod
-	def _getter(self):
+	def __copy__(self):
 		raise NotImplementedError
+
+	def copy(self):
+		return self.__copy__()
 
 	@abstractmethod
-	def _copy(self):
-		raise NotImplementedError
+	def _get(
+		self,
+	) -> MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]: ...
 
 	@abstractmethod
-	def _set(self, v):
-		raise NotImplementedError
+	def _set(
+		self, v: MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]
+	): ...
 
 	@abstractmethod
-	def unwrap(self):
-		raise NotImplementedError
+	def unwrap(
+		self,
+	) -> MutableMapping[_K, _V] | MutableSequence[_V] | MutableSet[_K]: ...
 
 
-Iterable.register(MutableWrapper)
-Sized.register(MutableWrapper)
-Container.register(MutableWrapper)
-
-
-class MutableWrapperDictList(MutableWrapper, ABC):
+class MutableWrapperDictList[_K, _V](MutableWrapper[_K, _V], ABC):
 	__slots__ = ()
 
-	def _subset(self, k, v):
-		new = self._copy()
+	def _subset(self, k: _K, v: _V) -> None:
+		new = self.__copy__()
 		new[k] = v
 		self._set(new)
 
-	def __getitem__(self, k):
-		ret = self._getter()[k]
+	def __getitem__(
+		self, k: _K
+	) -> _V | SubDictWrapper[_K, _V] | SubListWrapper[_V] | SubSetWrapper[_V]:
+		ret = self._get()[k]
 		if isinstance(ret, dict):
 			return SubDictWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		if isinstance(ret, list):
 			return SubListWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		if isinstance(ret, set):
 			return SubSetWrapper(
-				lambda: self._getter()[k], partial(self._subset, k)
+				lambda: self._get()[k], partial(self._subset, k)
 			)
 		return ret
 
-	def __setitem__(self, key, value):
-		me = self._copy()
+	def __setitem__(self, key: _K, value: _V) -> None:
+		me = self.__copy__()
 		me[key] = value
 		self._set(me)
 
-	def __delitem__(self, key):
-		me = self._copy()
+	def __delitem__(self, key: _K) -> None:
+		me = self.__copy__()
 		del me[key]
 		self._set(me)
 
 
-class MutableMappingUnwrapper(MutableMapping, ABC):
+class MappingUnwrapper[_K, _V](Mapping[_K, _V], ABC):
 	__slots__ = ()
 
 	def __eq__(self, other):
@@ -422,40 +576,45 @@ class MutableMappingUnwrapper(MutableMapping, ABC):
 		else:
 			return True
 
-	def __repr__(self):
-		return f"<{type(self).__name__} {unwrap_items(self.items())}>"
-
-
-class MutableMappingWrapper(
-	MutableWrapperDictList, MutableMappingUnwrapper, ABC
-):
-	def __eq__(self, other):
-		return MutableMappingUnwrapper.__eq__(self, other)
-
 	def unwrap(self):
 		return unwrap_items(self.items())
 
 
-class SubDictWrapper(MutableMappingWrapper, dict):
-	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
+class MutableMappingWrapper[_K, _V](
+	MappingUnwrapper[_K, _V],
+	MutableWrapperDictList[_K, _V],
+	MutableMapping[_K, _V],
+	ABC,
+):
+	__slots__ = ()
 
-	def __init__(self, getter, setter):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
 
-	def _copy(self):
-		return dict(self._getter())
+@define(eq=False)
+class SubDictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
+	__slots__ = ("_rlock",)
+	_getter: Callable[[], dict[_K, _V]]
+	_setter: Callable[[dict[_K, _V]], None]
 
-	def _subset(self, k, v):
-		new = dict(self._getter())
+	def _get(self) -> dict[_K, _V]:
+		return self._getter()
+
+	def _set(self, v: dict[_K, _V]):
+		self._setter(v)
+
+	def __copy__(self):
+		return dict(self._get())
+
+	def _subset(self, k: _K, v: _V) -> None:
+		new = dict(self._get())
 		new[k] = v
 		self._set(new)
 
 
-class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
+class MutableSequenceWrapper[_T](
+	MutableWrapperDictList[int, _T], MutableSequence[_T], ABC
+):
+	__slots__ = ()
+
 	def __eq__(self, other):
 		if self is other:
 			return True
@@ -476,60 +635,40 @@ class MutableSequenceWrapper(MutableWrapperDictList, MutableSequence, ABC):
 		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
 
-class SubListWrapper(MutableSequenceWrapper, list):
-	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
+@define(eq=False)
+class SubListWrapper[_T](MutableSequenceWrapper[_T], list[_T]):
+	_getter: Callable[[], list[_T]]
+	_setter: Callable[[list[_T]], None]
 
-	def __init__(self, getter, setter):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
+	def _get(self) -> list[_T]:
+		return self._getter()
 
-	def _copy(self):
-		return list(self._getter())
+	def _set(self, v: list[_T]) -> None:
+		self._setter(v)
 
-	def insert(self, index, object):
-		me = self._copy()
+	def __copy__(self) -> list[_T]:
+		return list(self._get())
+
+	def insert(self, index: int, object) -> None:
+		me = self.__copy__()
 		me.insert(index, object)
 		self._set(me)
 
-	def append(self, object):
-		me = self._copy()
+	def append(self, object) -> None:
+		me = self.__copy__()
 		me.append(object)
 		self._set(me)
 
+	def unwrap(self) -> list[_T]:
+		return [v.unwrap() if hasattr(v, "unwrap") else v for v in self]
 
-class MutableWrapperSet(MutableWrapper, set):
+
+class MutableWrapperSet[_T](
+	MutableWrapper, AbstractOrderlyMutableSet[_T], ABC
+):
 	__slots__ = ()
-	_getter: Callable
-	_set: Callable
 
-	def _copy(self):
-		return OrderlySet(self._getter())
-
-	def pop(self):
-		me = self._copy()
-		yours = me.pop()
-		self._set(me)
-		return yours
-
-	def discard(self, element):
-		me = self._copy()
-		me.discard(element)
-		self._set(me)
-
-	def remove(self, element):
-		me = self._copy()
-		me.remove(element)
-		self._set(me)
-
-	def add(self, element):
-		me = self._copy()
-		me.add(element)
-		self._set(me)
-
-	def unwrap(self):
+	def unwrap(self) -> OrderlySet[_T]:
 		"""Deep copy myself as a set, all contents unwrapped"""
 		unwrapped = OrderlySet()
 		for v in self:
@@ -539,78 +678,40 @@ class MutableWrapperSet(MutableWrapper, set):
 				unwrapped.add(v)
 		return unwrapped
 
-	def clear(self):
+	def clear(self) -> None:
 		self._set(OrderlySet())
 
 	def __repr__(self):
-		return f"<{type(self).__name__} containing {set(self._getter())}>"
+		strs = map(repr, self)
+		return (
+			"<"
+			+ self.__class__.__name__
+			+ " containing {"
+			+ ", ".join(strs)
+			+ "}>"
+		)
 
-	def __ior__(self, it):
-		me = self._copy()
-		me |= it
-		self._set(me)
+@define(repr=False, eq=False, order=False)
+class SubSetWrapper[_T](MutableWrapperSet[_T]):
+	_getter: Callable[[], MutableSet[_T]]
+	_setter: Callable[[MutableSet[_T]], None]
+	_lock: RLock = field(init=False, factory=RLock)
 
-	def __iand__(self, it):
-		me = self._copy()
-		me &= it
-		self._set(me)
+	def _get(self) -> dict[_T, bool]:
+		return dict.fromkeys(self._getter())
 
-	def __ixor__(self, it):
-		me = self._copy()
-		me ^= it
-		self._set(me)
+	def _set(self, data: dict[_T, bool]):
+		self._setter(OrderlySet(data.keys()))
 
-	def __isub__(self, it):
-		me = self._copy()
-		me -= it
-		self._set(me)
-
-	def __le__(self, other):
-		return self._getter() <= other
-
-	def __lt__(self, other):
-		return self._getter() < other
-
-	def __gt__(self, other):
-		return self._getter() > other
-
-	def __ge__(self, other):
-		return self._getter() >= other
-
-	def __and__(self, other):
-		return OrderlySet(self._getter() & other)
-
-	def __or__(self, other):
-		return OrderlySet(self._getter() | other)
-
-	def __sub__(self, other):
-		return OrderlySet(self._getter() - other)
-
-	def __xor__(self, other):
-		return OrderlySet(self._getter() ^ other)
-
-	def __eq__(self, other):
-		return self._getter() == other
-
-	def isdisjoint(self, other):
-		return self._getter().isdisjoint(other)
-
-
-class SubSetWrapper(MutableWrapperSet):
-	__slots__ = ("_getter", "_set")
-	_getter: Callable
-	_set: Callable
-
-	def __init__(self, getter, setter):
-		super().__init__()
-		self._getter = getter
-		self._set = setter
-
-	def _copy(self):
+	def __copy__(self):
 		return OrderlySet(self._getter())
 
 
-def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:
+_U = TypeVar("_U")
+_V = TypeVar("_V")
+
+
+def unwrap_items(it: Iterable[tuple[_U, _V]]) -> dict[_U, _V]:
 	ret = {}
 	for k, v in it:
 		if hasattr(v, "unwrap") and not hasattr(v, "no_unwrap"):
@@ -620,46 +721,54 @@ def unwrap_items(it: Iterable[tuple[Any, Any]]) -> dict:
 	return ret
 
 
-class DictWrapper(MutableMappingWrapper, dict):
+@define(eq=False, order=False)
+class DictWrapper[_K, _V](MutableMappingWrapper[_K, _V], dict[_K, _V]):
 	"""A dictionary synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a dictionary in them.
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
-	_getter: Callable
+	__slots__ = ()
+	_getter: Callable[[], dict[_K, _V]]
+	_outer: MutableMapping[_K, _V]
+	_key: _K
 
-	def __init__(self, getter, outer, key):
-		super().__init__()
-		self._getter = getter
-		self._outer = outer
-		self._key = key
-
-	def _copy(self):
+	def __copy__(self):
 		return dict(self._getter())
+
+	def _get(
+		self,
+	) -> dict[_K, _V]:
+		return self.unwrap()
 
 	def _set(self, v):
 		self._outer[self._key] = v
 
+	def unwrap(self):
+		return {
+			k: v.unwrap() if hasattr(v, "unwrap") else v
+			for (k, v) in self._getter().items()
+		}
 
-class ListWrapper(MutableWrapperDictList, MutableSequence):
+
+@define(eq=False)
+class ListWrapper[_T](MutableWrapperDictList[int, _T], MutableSequence[_T]):
 	"""A list synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a list in them.
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
+	__slots__ = ()
 
-	def __init__(self, getter, outer, key):
-		self._outer = outer
-		self._key = key
-		self._getter = getter
+	_getter: Callable[[], list[_T]]
+	_outer: MutableMapping
+	_key: Hashable
 
-	def __eq__(self, other):
+	def __eq__(self, other: Sequence) -> bool:
 		if self is other:
 			return True
 		if not isinstance(other, Sequence):
@@ -674,23 +783,28 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		else:
 			return True
 
-	def _copy(self):
+	def __copy__(self) -> list[_T]:
 		return list(self._getter())
 
-	def _set(self, v):
+	def _get(
+		self,
+	) -> list[_T]:
+		return self._getter()
+
+	def _set(self, v: list[_T]) -> None:
 		self._outer[self._key] = v
 
-	def insert(self, i, v):
-		new = self._copy()
+	def insert(self, i: int, v: _T) -> None:
+		new = self.__copy__()
 		new.insert(i, v)
 		self._set(new)
 
-	def append(self, v):
-		new = self._copy()
+	def append(self, v: _T) -> None:
+		new = self.__copy__()
 		new.append(v)
 		self._set(new)
 
-	def unwrap(self):
+	def unwrap(self) -> list[_T]:
 		"""Deep copy myself as a list, with all contents unwrapped"""
 		return [
 			v.unwrap()
@@ -700,35 +814,42 @@ class ListWrapper(MutableWrapperDictList, MutableSequence):
 		]
 
 
-class SetWrapper(MutableWrapperSet):
+@define(eq=False, order=False, repr=False)
+class SetWrapper[_T](MutableWrapperSet[_T]):
 	"""A set synchronized with a serialized field.
 
-	This is meant to be used in allegedb entities (graph, node, or
+	This is meant to be used in Lisien entities (graph, node, or
 	edge), for when the user stores a set in them.
 
 	"""
 
-	__slots__ = ("_getter", "_outer", "_key")
-	_getter: Callable
+	_getter: Callable[[], MutableSet[_T]]
+	_outer: MutableMapping
+	_key: Hashable
+	_lock: RLock = field(init=False, factory=RLock)
 
-	def __init__(self, getter, outer, key):
-		super().__init__()
-		self._getter = getter
-		self._outer = outer
-		self._key = key
+	def _get(self) -> dict[_T, bool]:
+		return dict.fromkeys(self._getter())
 
-	def _set(self, v):
-		self._outer[self._key] = v
+	def _set(self, v: dict[_T, bool]) -> None:
+		self._outer[self._key] = OrderlySet(v.keys())
+
+	def __copy__(self):
+		ret = OrderlySet()
+		ret._data = self._get()
+		return ret
 
 
-class UnwrappingDict(dict):
+class UnwrappingDict[_K, _V](dict[_K, _V]):
 	"""Dict that stores the data from the wrapper classes
 
 	Won't store those objects themselves.
 
 	"""
 
-	def __setitem__(self, key, value):
+	__slots__ = ()
+
+	def __setitem__(self, key: _K, value: _V) -> None:
 		if isinstance(value, MutableWrapper):
 			value = value.unwrap()
 		super(UnwrappingDict, self).__setitem__(key, value)

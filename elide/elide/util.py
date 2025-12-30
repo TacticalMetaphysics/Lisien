@@ -21,7 +21,7 @@ from kivy.uix.behaviors import FocusBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 
-from lisien.util import repr_call_sig
+from lisien.util import format_call_sig
 
 
 class SelectableRecycleBoxLayout(
@@ -64,7 +64,7 @@ def logwrap(func=None, *, section="ElideApp"):
 
 	@wraps(func)
 	def fn(*args, **kwargs):
-		Logger.debug(section + ": " + repr_call_sig(func, *args, **kwargs))
+		Logger.debug(section + ": " + format_call_sig(func, *args, **kwargs))
 		try:
 			ret = func(*args, **kwargs)
 		finally:

@@ -1,0 +1,71 @@
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+    repo: clayote/Lisien
+
+matrix:
+  PYTHON_VERSION:
+    - 3.12
+    - 3.13
+  DATABASE:
+    - not parquetdb and not sqlite
+    - sqlite
+    - parquetdb
+    - prerelease-parquetdb
+  EXECUTION:
+    - thread
+    - process
+    - not thread and not process
+
+variables:
+  - &python_image python:${PYTHON_VERSION}
+  - &headless_name headless_${PYTHON_VERSION}
+  - &slow_headless_name slow_headless_${PYTHON_VERSION}
+
+steps:
+  - name: *headless_name
+    image: *python_image
+    pull: true
+    commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - python -m venv .venv
+      - . .venv/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install pytest
+      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
+      - DATABASE=parquetdb
+      - export DATABASE
+      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - else
+      - DATABASE="${DATABASE}"
+      - export DATABASE
+      - fi
+      - python -m pip install lisien/
+      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
+      - echo "will run $PYTEST_MARKS"
+      - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+  - name: *slow_headless_name
+    image: *python_image
+    commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - python -m venv .venv${PYTHON_VERSION}
+      - . .venv${PYTHON_VERSION}/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install pytest
+      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
+      - DATABASE=parquetdb
+      - export DATABASE
+      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - else
+      - DATABASE="${DATABASE}"
+      - export DATABASE
+      - fi
+      - python -m pip install lisien/
+      - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
+      - echo "will run $PYTEST_MARKS"
+      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests

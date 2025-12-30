@@ -14,22 +14,38 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from collections import defaultdict
-from functools import reduce
+from functools import reduce, partial
 
 import pytest
 
+from .util import college_engine, untar_cache
 from .. import Engine
 from ..query import windows_intersection
+from ..sql import SQLAlchemyDatabaseConnector
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]
 
 
-def roommate_collisions(college24_premade):
+@pytest.fixture
+def college24_sql(tmp_path, college24_sql_tar):
+	with untar_cache(
+		college24_sql_tar,
+		tmp_path,
+		partial(
+			SQLAlchemyDatabaseConnector,
+			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+		),
+		None,
+	) as eng:
+		yield eng
+
+
+def roommate_collisions(college24_sql):
 	"""Test queries' ability to tell that all of the students that share
 	rooms have been in the same place.
 
 	"""
-	engine = college24_premade
+	engine = college24_sql
 	done = set()
 	for chara in engine.character.values():
 		if chara.name in done:
@@ -46,7 +62,7 @@ def roommate_collisions(college24_premade):
 		cond = student.unit.only.historical(
 			"location"
 		) == other_student.unit.only.historical("location")
-		same_loc_turns = {turn for (branch, turn) in cond._iter_times()}
+		same_loc_turns = {turn for (branch, turn) in cond._list_times()}
 		assert same_loc_turns, "{} and {} don't seem to share a room".format(
 			student.name, other_student.name
 		)
@@ -56,20 +72,14 @@ def roommate_collisions(college24_premade):
 			)
 		)
 
-		# *BOTH* _iter_times *AND* turns_when are inconsistent about whether
-		# to include the present turn. Fix later...
 		assert same_loc_turns - {24} == set(engine.turns_when(cond)) - {24}
 
 		done.add(student.name)
 		done.add(other_student.name)
 
 
-@pytest.mark.skip(
-	"I think the underlying sim is not doing what I expect, "
-	"so this test doesn't tell me anything"
-)
-def test_roomie_collisions_premade(college24_premade):
-	roommate_collisions(college24_premade)
+def test_roomie_collisions_premade(college24_sql):
+	roommate_collisions(college24_sql)
 
 
 def sober_collisions(college24_premade):
@@ -117,12 +127,8 @@ def sober_collisions(college24_premade):
 	reduce(sameClasstime, students)
 
 
-@pytest.mark.skip(
-	"I think the underlying sim is not doing what I expect, "
-	"so this test doesn't tell me anything"
-)
-def test_sober_collisions_premade(college24_premade):
-	sober_collisions(college24_premade)
+def test_sober_collisions_premade(college24_sql):
+	sober_collisions(college24_sql)
 
 
 def noncollision(college24_premade):
@@ -168,8 +174,8 @@ def noncollision(college24_premade):
 							)
 
 
-def test_noncollision_premade(college24_premade):
-	noncollision(college24_premade)
+def test_noncollision_premade(college24_sql):
+	noncollision(college24_sql)
 
 
 def test_windows_intersection():
@@ -178,12 +184,11 @@ def test_windows_intersection():
 
 
 @pytest.fixture
-def qryeng(request, tmp_path, execution):
+def qryeng(request, tmp_path):
 	with Engine(
 		tmp_path,
 		random_seed=69105,
 		enforce_end_of_time=False,
-		workers=0 if execution == "serial" else 2,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
