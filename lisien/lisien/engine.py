@@ -25,30 +25,49 @@ import io
 import os
 import pickle
 import shutil
-import signal
 import sys
-import zlib
 from abc import ABC, abstractmethod
 from collections import UserDict, defaultdict
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
+from copy import copy
 from functools import cached_property, partial, wraps
+from hashlib import blake2b
 from io import TextIOWrapper
 from itertools import chain, pairwise
-from logging import DEBUG, Formatter, Logger, LogRecord, StreamHandler
+from logging import (
+	DEBUG,
+	Formatter,
+	getLogger,
+	Logger,
+	LogRecord,
+	StreamHandler,
+)
+from multiprocessing import get_all_start_methods
 from operator import itemgetter, lt
 from os import PathLike
-from queue import Empty, SimpleQueue
+from pathlib import Path
 from random import Random
-from threading import Lock, RLock, Thread
-from time import sleep
+from threading import RLock, Thread
 from types import FunctionType, MethodType, ModuleType
-from typing import Any, Callable, Iterable, Iterator, Literal, Optional, Type
+from typing import (
+	Any,
+	Callable,
+	Iterable,
+	Iterator,
+	Literal,
+	Optional,
+	Type,
+	TypeGuard,
+	ClassVar,
+	IO,
+)
+from xml.etree.ElementTree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import networkx as nx
-import numpy as np
+from attrs import define, field, Factory, Converter
 from blinker import Signal
 from networkx import (
 	Graph,
@@ -57,9 +76,11 @@ from networkx import (
 	from_dict_of_lists,
 	spring_layout,
 )
+from zict import LRU
 
 from . import exc
 from .cache import (
+	ActionListCache,
 	BignessCache,
 	CharacterPlaceRulesHandledCache,
 	CharacterPortalRulesHandledCache,
@@ -68,8 +89,7 @@ from .cache import (
 	CharacterThingRulesHandledCache,
 	EdgesCache,
 	EdgeValCache,
-	EntitylessCache,
-	FuncListCache,
+	UniversalCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -78,12 +98,12 @@ from .cache import (
 	NodesCache,
 	NodesRulebooksCache,
 	NodeValCache,
-	PickyDefaultDict,
 	PortalRulesHandledCache,
 	PortalsRulebooksCache,
+	PrereqListCache,
 	RulebooksCache,
-	StructuredDefaultDict,
 	ThingsCache,
+	TriggerListCache,
 	TurnEndDict,
 	TurnEndPlanDict,
 	UnitnessCache,
@@ -91,16 +111,19 @@ from .cache import (
 )
 from .character import Character
 from .collections import (
+	ActionStore,
 	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,
+	PrereqStore,
 	StringStore,
+	TriggerStore,
 	UniversalMapping,
 )
 from .db import (
+	AbstractDatabaseConnector,
 	NullDatabaseConnector,
-	ParquetDatabaseConnector,
-	SQLAlchemyDatabaseConnector,
+	PythonDatabaseConnector,
 )
 from .exc import (
 	GraphNameError,
@@ -109,35 +132,39 @@ from .exc import (
 	OutOfTimelineError,
 	RedundantRuleError,
 )
-from .exporter import Exporter
-from .facade import CharacterFacade
-from .importer import xml_to_pqdb, xml_to_sqlite
+from .facade import CharacterFacade, EngineFacade
+from .futures import (
+	LisienExecutor,
+	LisienThreadExecutor,
+	LisienProcessExecutor,
+	LisienInterpreterExecutor,
+)
 from .node import Place, Thing
 from .portal import Portal
-from .proxy import worker_subprocess
-from .query import (
+from .proxy.manager import Sub
+from .query import _make_side_sel
+from .rule import AllRuleBooks, AllRules, Rule
+from .types import (
+	AbstractBookmarkMapping,
+	AbstractCharacter,
+	AbstractEngine,
+	ActionFuncName,
+	Branch,
+	CharacterRulebookTypeStr,
 	CharacterStatAccessor,
+	CharDelta,
+	CharName,
 	CombinedQueryResult,
 	ComparisonQuery,
 	CompoundQuery,
-	EntityStatAccessor,
-	Query,
-	QueryResult,
-	QueryResultEndTurn,
-	QueryResultMidTurn,
-	_make_side_sel,
-)
-from .rule import AllRuleBooks, AllRules, Rule
-from .types import (
-	Branch,
-	CharacterRulebookTypeStr,
-	CharDelta,
-	CharName,
 	DeltaDict,
 	DiGraph,
+	EdgeKeyframe,
 	EdgesDict,
 	EdgeValDict,
 	EntityKey,
+	EntityStatAccessor,
+	FakeFuture,
 	GraphEdgesKeyframe,
 	GraphEdgeValKeyframe,
 	GraphNodesKeyframe,
@@ -145,12 +172,18 @@ from .types import (
 	GraphValKeyframe,
 	Key,
 	Keyframe,
-	KeyframeTuple,
+	KeyframeGraphRowType,
 	LinearTime,
+	NodeKeyframe,
 	NodeName,
 	NodesDict,
 	NodeValDict,
 	Plan,
+	PrereqFuncName,
+	Query,
+	QueryResult,
+	QueryResultEndTurn,
+	QueryResultMidTurn,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
@@ -162,9 +195,15 @@ from .types import (
 	StatDict,
 	Tick,
 	Time,
+	TimeSignal,
+	TriggerFuncName,
 	Turn,
 	UniversalKey,
 	Value,
+	sort_set,
+	validate_time,
+	PickyDefaultDict,
+	StructuredDefaultDict,
 )
 from .util import (
 	ACTIONS,
@@ -174,6 +213,7 @@ from .util import (
 	ELLIPSIS,
 	ETERNAL,
 	FALSE,
+	ILLEGAL_CHARACTER_NAMES,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
@@ -185,15 +225,8 @@ from .util import (
 	TRUE,
 	UNITS,
 	UNIVERSAL,
-	AbstractBookmarkMapping,
-	AbstractCharacter,
-	AbstractEngine,
-	SizedDict,
-	TimeSignalDescriptor,
-	fake_submit,
 	garbage,
 	normalize_layout,
-	sort_set,
 	timer,
 	world_locked,
 )
@@ -204,16 +237,6 @@ from .window import (
 	update_window,
 )
 from .wrap import OrderlyFrozenSet, OrderlySet
-
-SUBPROCESS_TIMEOUT = 30
-if "LISIEN_SUBPROCESS_TIMEOUT" in os.environ:
-	try:
-		SUBPROCESS_TIMEOUT = int(os.environ["LISIEN_SUBPROCESS_TIMEOUT"])
-	except ValueError:
-		SUBPROCESS_TIMEOUT = None
-KILL_SUBPROCESS = False
-if "LISIEN_KILL_SUBPROCESS" in os.environ:
-	KILL_SUBPROCESS = bool(os.environ["LISIEN_KILL_SUBPROCESS"])
 
 
 class InnerStopIteration(StopIteration):
@@ -252,7 +275,7 @@ class PlanningContext(ContextDecorator):
 	def __init__(self, orm: "Engine", reset=True):
 		self.orm = orm
 		if reset:
-			self.reset = orm._btt()
+			self.reset = tuple(orm.time)
 		else:
 			self.reset = None
 
@@ -261,20 +284,20 @@ class PlanningContext(ContextDecorator):
 		if orm._planning:
 			raise ValueError("Already planning")
 		orm._planning = True
-		branch, turn, tick = orm._btt()
+		branch, turn, tick = orm.time
 		self.id = myid = orm._last_plan = orm._last_plan + 1
 		self.forward = orm._forward
 		if orm._forward:
 			orm._forward = False
 		orm._plans[myid] = branch, turn, tick
-		orm.query.plans_insert(myid, branch, turn, tick)
+		orm.database.plans_insert(myid, branch, turn, tick)
 		orm._branches_plans[branch].add(myid)
 		return myid
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
 		self.orm._planning = False
 		if self.reset is not None:
-			self.orm._set_btt(*self.reset)
+			self.orm.time = self.reset
 		if self.forward:
 			self.orm._forward = True
 
@@ -296,12 +319,18 @@ class NextTurn(Signal):
 
 	def __call__(self) -> tuple[list, DeltaDict]:
 		engine = self.engine
+		stores_to_reimport = set()
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
-				store.save()
-		if hasattr(engine, "_worker_processes"):
-			engine._update_all_worker_process_states()
-		start_branch, start_turn, start_tick = engine._btt()
+				stores_to_reimport.add(store.__name__)
+				store.save(reimport=False)
+		if hasattr(engine, "_worker_processes") or hasattr(
+			engine, "_worker_interpreters"
+		):
+			engine._update_all_worker_process_states(
+				stores_to_reimport=stores_to_reimport
+			)
+		start_branch, start_turn, start_tick = engine.time
 		latest_turn = engine._get_last_completed_turn(start_branch)
 		if latest_turn is None or start_turn == latest_turn:
 			# Pre-emptively nudge the loadedness and branch tracking,
@@ -348,7 +377,7 @@ class NextTurn(Signal):
 					if isinstance(res, tuple) and res[0] == "stop":
 						engine.universal["last_result"] = res
 						engine.universal["last_result_idx"] = 0
-						branch, turn, tick = engine._btt()
+						branch, turn, tick = engine.time
 						self.send(engine, branch=branch, turn=turn, tick=tick)
 						return list(res), engine._get_branch_delta(
 							branch=start_branch,
@@ -445,7 +474,7 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 	def __init__(self, eng: Engine):
 		self.eng = eng
-		super().__init__(eng.query.bookmark_items())
+		super().__init__(eng.database.bookmarks_dump())
 
 	def __setitem__(self, key, value):
 		if not (
@@ -457,11 +486,11 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 		):
 			raise TypeError("Not a valid time", value)
 		super().__setitem__(key, value)
-		self.eng.query.set_bookmark(key, *value)
+		self.eng.database.set_bookmark(key, *value)
 
 	def __delitem__(self, key):
 		super().__delitem__(key)
-		self.eng.query.del_bookmark(key)
+		self.eng.database.del_bookmark(key)
 
 	def __call__(self, key: Key):
 		if key in self:
@@ -470,110 +499,721 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 			self[key] = tuple(self.eng.time)
 
 
+@define
 class Engine(AbstractEngine, Executor):
-	"""Lisien, the Life Simulator Engine.
+	"""Lisien, the Life Simulator Engine."""
 
-	:param prefix: directory containing the simulation and its code;
-		defaults to the working directory. If ``None``, Lisien won't save
-		any rules code to disk, and won't save world data unless you supply
-		:param connect_string:. This is the only positional argument;
-		all others require keywords.
-	:param string: module storing strings to be used in the game; if absent,
-		we'll use a :class:`lisien.xcollections.StringStore` to keep them in a
-		JSON file in the ``prefix``.
-	:param function: module containing utility functions; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
-		file in the ``prefix``
-	:param method: module containing functions taking this engine as
-		first arg; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
-		file in the ``prefix``.
-	:param trigger: module containing trigger functions, taking a lisien
-		entity and returning a boolean for whether to run a rule; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
-		file in the ``prefix``.
-	:param prereq: module containing prereq functions, taking a lisien entity and
-		returning a boolean for whether to permit a rule to run; if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
-		file in the ``prefix``.
-	:param action: module containing action functions, taking a lisien entity and
-		mutating it (and possibly the rest of the world); if absent, we'll
-		use a :class:`lisien.xcollections.FunctionStore` to keep them in a .py
-		file in the ``prefix``.
-	:param trunk: the string name of the branch to start games from. Defaults
-		to "trunk" if not set in some prior session. You should only change
-		this if your game generated a new initial world state for a new
-		playthrough.
-	:param connect_string: a URL for a database to connect to. Leave
-		it as the default, ``None``, to use the ParquetDB database in the
-		``prefix``. This uses SQLAlchemy's URL structure:
-		https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls
-	:param connect_args: Dictionary of keyword arguments for the
-		database connection. Only meaningful when combined with
-		``connect_string``. For details, see:
-		https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args
-	:param schema: A Schema class that determines which changes to allow to
-		the world; used when a player should not be able to change just
-		anything. Defaults to :class:`NullSchema`, which allows all changes.
-	:param flush_interval: Lisien will put pending changes into the database
-		transaction every ``flush_interval`` turns. If ``None``, only flush
-		on commit. Default ``None``.
-	:param keyframe_interval: How many records to let through before automatically
-		snapping a keyframe, default ``1000``. If ``None``, you'll need
-		to call ``snap_keyframe`` yourself.
-	:param commit_interval: Lisien will commit changes to disk every
-		``commit_interval`` turns. If ``None`` (the default), only commit
-		on close or manual call to ``commit``.
-	:param random_seed: A number to initialize the randomizer. Lisien saves
-		the state of the randomizer, so you only need to supply this when
-		starting a game for the first time.
-	:param clear: Whether to delete *any and all* existing data
-		and code in ``prefix`` and the database. Use with caution!
-	:param keep_rules_journal: Boolean; if ``True`` (the default), keep
-		information on the behavior of the rules engine in the database.
-		Makes the database rather large, but useful for debugging.
-	:param keyframe_on_close: Whether to snap a keyframe when closing the
-		engine, default ``True``. This is usually what you want, as it will
-		make future startups faster, but could cause database bloat if
-		your game runs few turns per session.
-	:param enforce_end_of_time: Whether to raise an exception when
-		time travelling to a point after the time that's been simulated.
-		Default ``True``. You normally want this, but it could cause problems
-		if you use something other than Lisien's rules engine for game
-		logic.
-	:param workers: How many subprocesses to use as workers for
-		parallel processing. When ``None`` (the default), use as many
-		subprocesses as we have CPU cores. When ``0``, parallel processing
-		is disabled. Note that ``workers=0`` implies that trigger
-		functions operate on bare lisien objects, and can therefore have
-		side effects. If you don't want this, instead use
-		``workers=1``, which *does* disable parallelism in the case
-		of trigger functions.
+	is_proxy: ClassVar = False
+	_planning: bool = field(init=False, default=False)
+	_forward: bool = field(init=False, default=False)
+	_no_kc: bool = field(init=False, default=False)
+	_top_uid: int = field(init=False, default=0)
+
+	@staticmethod
+	def _convert_prefix(prefix: Path | PathLike[str] | None):
+		if prefix is None:
+			return None
+		ret = Path(prefix)
+		ret.mkdir(parents=True, exist_ok=True)
+		return ret
+
+	_prefix: Path | None = field(
+		default=None,
+		converter=_convert_prefix,
+	)
+	"""Directory containing the simulation and its code. If ``None`` (the 
+	default), Lisien won't save any rules code to disk, and won't save world 
+	data unless you supply :param connect_string:. Make sure to call 
+	:meth:`export` when you're done."""
+
+	@_prefix.validator
+	def _validate_prefix(self, attr, prefix):
+		if prefix is None:
+			return
+		if not isinstance(prefix, Path):
+			raise TypeError("Prefix is not a path", prefix)
+		if not prefix.exists():
+			raise FileNotFoundError(f"Prefix doesn't exist: {prefix}")
+		if not prefix.is_dir():
+			raise NotADirectoryError(f"Prefix is not a directory: {prefix}")
+
+	clear: bool = field(default=False, kw_only=True)
+	"""Whether to delete *any and all* existing data and code in ``prefix`` 
+	and the database. Use with caution!"""
+
+	@staticmethod
+	def _convert_func_store(
+		store_type: type[FunctionStore],
+		module_s: str,
+		store: ModuleType | FunctionStore | None,
+		self,
+	) -> ModuleType | FunctionStore:
+		if isinstance(store, (ModuleType, FunctionStore)):
+			return store
+		elif self._prefix is None:
+			return store_type(None, module=module_s)
+		else:
+			assert self._prefix.exists()
+			py_fn: Path = self._prefix.joinpath(module_s + ".py")
+			if self.clear and py_fn.exists():
+				py_fn.unlink()
+			return store_type(py_fn, module=module_s)
+
+	function: ModuleType | FunctionStore = field(
+		kw_only=True,
+		converter=Converter(
+			partial(_convert_func_store, FunctionStore, "function"),
+			takes_self=True,
+		),
+		default=None,
+	)
+	"""Module containing utility functions; if absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
+	method: ModuleType | FunctionStore = field(
+		kw_only=True,
+		converter=Converter(
+			partial(_convert_func_store, FunctionStore, "method"),
+			takes_self=True,
+		),
+		default=None,
+	)
+	"""Module containing functions taking this engine as first argument. If 
+	absent, we'll use a :class:`lisien.collections.FunctionStore` to keep 
+	them in a .py file in the ``prefix``."""
+	trigger: ModuleType | TriggerStore = field(
+		kw_only=True,
+		converter=Converter(
+			partial(_convert_func_store, TriggerStore, "trigger"),
+			takes_self=True,
+		),
+		default=None,
+	)
+	"""Module containing trigger functions, taking a Lisien entity and 
+	returning a boolean for whether to run a rule. If absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
+	prereq: ModuleType | FunctionStore = field(
+		kw_only=True,
+		converter=Converter(
+			partial(_convert_func_store, PrereqStore, "prereq"),
+			takes_self=True,
+		),
+		default=None,
+	)
+	"""Module containing prereq functions, taking a lisien entity and 
+	returning a boolean for whether to permit a rule to run. If absent, 
+	we'll use a :class:`lisien.collections.FunctionStore` to keep them in a 
+	.py file in the ``prefix``."""
+	action: ModuleType | FunctionStore = field(
+		kw_only=True,
+		converter=Converter(
+			partial(_convert_func_store, ActionStore, "action"),
+			takes_self=True,
+		),
+		default=None,
+	)
+	"""Module containing action functions, taking a Lisien entity and 
+	mutating it (and possibly the rest of the world). If absent, we'll use a 
+	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	the ``prefix``."""
+	random_seed: int | None = field(kw_only=True, default=None)
+	"""An integer to initialize the randomizer. Lisien saves the state of the 
+	randomizer, so you only need to supply this when starting a game for the 
+	first time."""
+	flush_interval: int | None = field(kw_only=True, default=None)
+	"""Lisien will put pending changes into the database transaction every 
+	``flush_interval`` turns. If ``None``, only flush on commit. Default 
+	``None``."""
+	keyframe_interval: int | None = field(kw_only=True, default=1000)
+	"""How many records to let through before automatically snapping a 
+	keyframe, default ``1000``. If ``None``, you'll need to call 
+	``snap_keyframe`` yourself."""
+	commit_interval: int | None = field(kw_only=True, default=None)
+	"""Lisien will commit changes to disk every ``commit_interval`` turns. If 
+	``None`` (the default), only commit on close or manual call to 
+	``commit``."""
+	keep_rules_journal: bool = field(kw_only=True, default=True)
+	"""Boolean; if ``True`` (the default), keep information on the behavior 
+	of the rules engine in the database. Makes the database rather large, 
+	but useful for debugging."""
+	connect_string: str | None = field(kw_only=True, default=None)
+	"""URL for a database to connect to. Leave it as the default, ``None``, 
+	to use the ParquetDB database in the ``prefix``, if supplied. This uses 
+	SQLAlchemy's URL structure: 
+	https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls"""
+	connect_args: dict[str, str] | None = field(kw_only=True, default=None)
+	"""Dictionary of keyword arguments for the database connection. Only 
+	meaningful when combined with ``connect_string``. For details, see:
+	https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args"""
+
+	def _database_factory(self):
+		if self._prefix is None:
+			if self.connect_string is None:
+				return PythonDatabaseConnector()
+			else:
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return SQLAlchemyDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self.connect_string,
+					self.connect_args or {},
+					clear=self.clear,
+				)
+		else:
+			if self.connect_string is None:
+				from .pqdb import ParquetDatabaseConnector
+
+				return ParquetDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self._prefix.joinpath("world"),
+					clear=self.clear,
+				)
+			else:
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return SQLAlchemyDatabaseConnector(
+					self.pack,
+					self.unpack,
+					self.connect_string,
+					self.connect_args or {},
+					clear=self.clear,
+				)
+
+	@staticmethod
+	def _convert_database(database, self):
+		if callable(database):
+			return database(self.pack, self.unpack)
+		elif database is None:
+			return self._database_factory()
+		else:
+			return database  # hope you know what you're doing
+
+	database: AbstractDatabaseConnector = field(
+		kw_only=True,
+		default=Factory(_database_factory, takes_self=True),
+		converter=Converter(_convert_database, takes_self=True),
+	)
+	"""The database connector to use. If left ``None``, Lisien will construct 
+	a database connector based on the other arguments: SQLAlchemy if a 
+	``connect_string`` is provided; if not, but a ``prefix`` is provided, 
+	then ParquetDB; or, if ``prefix`` is ``None``, then an in-memory 
+	database. You may use the class of the connector, rather than an
+	instance."""
+
+	@database.validator
+	@garbage
+	@world_locked
+	def _init_load(self, attribute, database):
+		"""Load the current state of the game
+
+		``snap_keyframe`` and ``kf_interval_override`` get assigned to the
+		database after load, because it's a bad idea to snap keyframes during
+		the initial load.
+
+		"""
+		database.keyframe_interval = self.keyframe_interval
+		keyframes_dict = self._keyframes_dict
+		keyframes_times = self._keyframes_times
+		for branch, turn, tick in database.keyframes_dump():
+			if branch in keyframes_dict:
+				keyframes_dict_branch = keyframes_dict[branch]
+				if turn in keyframes_dict_branch:
+					keyframes_dict_branch[turn].add(tick)
+				else:
+					keyframes_dict_branch[turn] = {tick}
+			else:
+				keyframes_dict[branch] = WindowDict({turn: {tick}})
+			keyframes_times.add((branch, turn, tick))
+		if "trunk" in database.eternal:
+			trunk = database.eternal["trunk"]
+		else:
+			trunk = database.eternal["trunk"] = Branch("trunk")
+		if "branch" in database.eternal:
+			self._obranch = Branch(database.eternal["branch"])
+		else:
+			self._obranch = database.eternal["branch"] = Branch("trunk")
+		if "turn" in database.eternal:
+			self._oturn = Turn(database.eternal["turn"])
+		else:
+			self._oturn = database.eternal["turn"] = Turn(0)
+		if "tick" in database.eternal:
+			self._otick = Tick(database.eternal["tick"])
+		else:
+			self._otick = database.eternal["tick"] = Tick(0)
+		for (
+			branch,
+			parent,
+			parent_turn,
+			parent_tick,
+			end_turn,
+			end_tick,
+		) in database.branches_dump():
+			self._branches_d[branch] = (
+				parent,
+				parent_turn,
+				parent_tick,
+				end_turn,
+				end_tick,
+			)
+			self._upd_branch_parentage(parent, branch)
+		if trunk not in self._branches_d:
+			self._branches_d[trunk] = (
+				None,
+				Turn(0),
+				Tick(0),
+				Turn(0),
+				Tick(0),
+			)
+		for branch, turn, end_tick, plan_end_tick in database.turns_dump():
+			self._turn_end[branch, turn] = max(
+				(self._turn_end[branch, turn], end_tick)
+			)
+			self._turn_end_plan[branch, turn] = max(
+				(self._turn_end_plan[branch, turn], plan_end_tick)
+			)
+		if not self._turn_end or not self._turn_end_plan:
+			database.set_turn(
+				Branch("trunk"),
+				Turn(0),
+				self._turn_end.setdefault((Branch("trunk"), Turn(0)), Tick(0)),
+				self._turn_end_plan.setdefault(
+					(Branch("trunk"), Turn(0)), Tick(0)
+				),
+			)
+		##### Load plans
+		last_plan = -1
+		plans = self._plans
+		branches_plans = self._branches_plans
+		plan_ticks = self._plan_ticks
+		time_plan = self._time_plan
+		turn_end_plan = self._turn_end_plan
+		for plan, branch, turn, tick in database.plan_ticks_dump():
+			plans[plan] = branch, turn, tick
+			branches_plans[branch].add(plan)
+			if plan > last_plan:
+				last_plan = plan
+			ticks = plan_ticks[plan][branch][turn]
+			ticks.append(tick)
+			plan_ticks[plan][branch][turn] = ticks
+			turn_end_plan[branch, turn] = max(
+				(turn_end_plan[branch, turn], tick)
+			)
+			time_plan[branch, turn, tick] = plan
+		self._last_plan = last_plan
+		###### Load rules handled
+		store_crh = self._character_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			character,
+			rulebook,
+			rule,
+			tick,
+		) in database.character_rules_handled_dump():
+			store_crh(
+				character, rulebook, rule, branch, turn, tick, loading=True
+			)
+		store_arh = self._unit_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			character,
+			graph,
+			unit,
+			rulebook,
+			rule,
+			tick,
+		) in database.unit_rules_handled_dump():
+			store_arh(
+				character,
+				graph,
+				unit,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
+		store_ctrh = self._character_thing_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			character,
+			thing,
+			rulebook,
+			rule,
+			tick,
+		) in database.character_thing_rules_handled_dump():
+			store_ctrh(
+				character,
+				thing,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
+		store_cprh = self._character_place_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			character,
+			place,
+			rulebook,
+			rule,
+			tick,
+		) in database.character_place_rules_handled_dump():
+			store_cprh(
+				character,
+				place,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
+		store_cporh = self._character_portal_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			char,
+			orig,
+			dest,
+			rulebook,
+			rule,
+			tick,
+		) in database.character_portal_rules_handled_dump():
+			store_cporh(
+				char,
+				orig,
+				dest,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
+		store_cnrh = self._node_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			char,
+			node,
+			rulebook,
+			rule,
+			tick,
+		) in database.node_rules_handled_dump():
+			store_cnrh(
+				char, node, rulebook, rule, branch, turn, tick, loading=True
+			)
+		store_porh = self._portal_rules_handled_cache.store
+		for (
+			branch,
+			turn,
+			char,
+			orig,
+			dest,
+			rulebook,
+			rule,
+			tick,
+		) in database.portal_rules_handled_dump():
+			store_porh(
+				char,
+				orig,
+				dest,
+				rulebook,
+				rule,
+				branch,
+				turn,
+				tick,
+				loading=True,
+			)
+		##### Load turns completed
+		self._turns_completed_d.update(database.turns_completed_dump())
+		##### Load actual game state
+		self._load(*self._read_at(*self.time))
+		database.snap_keyframe = self.snap_keyframe
+		database.kf_interval_override = self._detect_kf_interval_override
+		rando = self._rando
+
+		try:
+			rando_state = database.universal_get(
+				UniversalKey(Key("rando_state")), *self.time
+			)
+			if not isinstance(rando_state, tuple):
+				raise TypeError("Invalid randomizer state", rando_state)
+			rando.setstate(rando_state)
+		except KeyError:
+			if self.random_seed is not None:
+				rando.seed(self.random_seed)
+			# Not setting self.universal['rando_state'] because that
+			# would advance time
+			branch, turn, tick = self.time
+			key = UniversalKey(Key("rando_state"))
+			state = Value(rando.getstate())
+			database.universal_set(key, branch, turn, tick, state)
+			self._universal_cache.store(key, branch, turn, tick, state)
+
+	@staticmethod
+	def _convert_string_store(string, self):
+		if isinstance(string, dict):
+			return StringStore(
+				string,
+				None,
+				self.database.eternal.setdefault("language", "eng"),
+			)
+		elif isinstance(string, StringStore):
+			return string
+		elif string is not None:
+			raise TypeError(f"Can't make a StringStore out of {type(string)}")
+		elif self._prefix is None:
+			return StringStore(
+				self, None, self.database.eternal.setdefault("language", "eng")
+			)
+		else:
+			string_prefix: Path = self._prefix.joinpath("strings")
+			if self.clear and string_prefix.is_dir():
+				shutil.rmtree(string_prefix)
+			string_prefix.mkdir(parents=True, exist_ok=True)
+			return StringStore(
+				self,
+				string_prefix,
+				self.database.eternal.setdefault("language", "eng"),
+			)
+
+	string: dict[str, str] | StringStore = field(
+		kw_only=True,
+		converter=Converter(_convert_string_store, takes_self=True),
+		default=None,
+	)
+	"""Dictionary of strings to be used in the game; if absent, we'll use a 
+	:class:`lisien.collections.StringStore` to keep them in a JSON file in 
+	the ``prefix``."""
+	_trunk: str = field(kw_only=True, default="trunk")
+	"""The string name of the branch to start games from. Defaults to "trunk" 
+	if not set in some prior session. You should only change this if your 
+	game generated a new initial world state for a new playthrough."""
+
+	_schema: type[AbstractSchema] = field(
+		kw_only=True,
+		default=NullSchema,
+	)
+	"""A :class:`Schema` class that determines which changes to allow to the 
+	world; used when a player should not be able to change just anything. 
+	Defaults to :class:`NullSchema`, which allows all changes."""
+	keyframe_on_close: bool = field(kw_only=True, default=True)
+	"""Whether to snap a keyframe when closing the engine, default ``True``. 
+	This is usually what you want, as it will make future startups faster, 
+	but could cause database bloat if your game runs few turns per session."""
+	enforce_end_of_time: bool = field(kw_only=True, default=True)
+	"""Whether to raise an exception when time travelling to a point after 
+	the time that's been simulated. Default ``True``. You normally want this, 
+	but it could cause problems if you use something other than Lisien's 
+	rules engine for game logic."""
+	workers: int = field(kw_only=True, default=os.cpu_count())
+	"""How many processes, interpreters, or threads to use as workers for 
+	parallel processing. By default, Lisien will use as many subprocesses as 
+	we have CPU cores. When ``0``, parallel processing is disabled. Note that 
+	``workers=0`` implies that trigger functions operate on bare Lisien 
+	objects, and can therefore have side effects. If you don't want this, 
+	instead use ``workers=1``, which *does* disable parallelism in the case 
+	of trigger functions."""
+
+	@staticmethod
+	def _convert_sub_mode(sub_mode):
+		if sub_mode is not None:
+			return Sub(sub_mode)
+		return None
+
+	sub_mode: Sub | None = field(
+		kw_only=True, default=None, converter=_convert_sub_mode
+	)
+	"""What kind of parallelism to use. Options are ``"process"``, 
+	``"interpreter"``, and ``"thread"``. If left ``None``, defaults to 
+	``"interpreter"``, which only works on Python 3.14 or above, 
+	so ``"process"`` if it's unavailable, or, if we can't launch processes (
+	perhaps because we're on Android or in a web browser), ``"thread"``. 
+	Irrelevant when ``workers=0``, and ignored if ``executor`` is supplied; 
+	we'll use whatever parallelism the ``executor`` does. ``"thread"`` only 
+	has performance benefits if you're using a free-threaded build of Python, 
+	or the threads do their work in a library like Numpy that releases 
+	Python's Global Interpreter Lock."""
+
+	@staticmethod
+	def _logger_factory() -> Logger:
+		logger = getLogger("lisien")
+		if not logger.handlers:
+			handler = StreamHandler()
+			handler.addFilter(lambda rec: not hasattr(rec, "worker_idx"))
+			handler.setLevel(DEBUG)
+			logger.addHandler(handler)
+			worker_handler = StreamHandler()
+			worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
+			worker_handler.setLevel(DEBUG)
+			worker_handler.setFormatter(WorkerFormatter())
+			logger.addHandler(worker_handler)
+		return logger
+
+	logger: Logger = field(
+		kw_only=True,
+		factory=_logger_factory,
+	)
+	"""Logger object that we'll write records to."""
+
+	@logger.validator
+	def _validate_logger(self, attr, logger):
+		if logger is None:
+			raise ValueError("Need a logger")
+		if not isinstance(logger, Logger):
+			raise TypeError("Not a logger", logger)
+
+	_shutdown_executor: bool = field(init=False, default=False)
+
+	@staticmethod
+	def _convert_executor(
+		executor: LisienExecutor | None, self
+	) -> LisienExecutor | None:
+		if executor:
+			self._shutdown_executor = False
+			executor.prefix = self._prefix
+			executor.logger = self.logger
+			executor.eternal = eternal = self.eternal.copy()
+			executor.time = eternal["branch"], eternal["turn"], eternal["tick"]
+			return executor
+		elif self.workers > 0:
+			for store in self.stores:
+				if hasattr(store, "save"):
+					store.save(reimport=False)
+			self._shutdown_executor = True
+			time = (
+				Branch(self.eternal.get("branch", "trunk")),
+				Turn(self.eternal.get("turn", 0)),
+				Tick(self.eternal.get("tick", 0)),
+			)
+			try:
+				rando_state = self.database.universal_get("rando_state", *time)
+			except KeyError:
+				rando_state = self.random_seed
+			executor_args = (
+				self._prefix,
+				self.logger,
+				time,
+				dict(self.eternal),
+				dict(self._branches_d),
+				self.workers,
+				rando_state,
+			)
+			match self.sub_mode:
+				case Sub.interpreter if sys.version_info[1] >= 14:
+					return LisienInterpreterExecutor(*executor_args)
+				case Sub.process:
+					return LisienProcessExecutor(*executor_args)
+				case Sub.thread:
+					return LisienThreadExecutor(*executor_args)
+				case None:
+					if sys.version_info[1] >= 14:
+						try:
+							return LisienInterpreterExecutor(*executor_args)
+						except ModuleNotFoundError:
+							pass
+					if get_all_start_methods():
+						return LisienProcessExecutor(*executor_args)
+					else:
+						return LisienThreadExecutor(*executor_args)
+		return None
+
+	executor: LisienExecutor | None = field(
+		kw_only=True,
+		default=None,
+		converter=Converter(_convert_executor, takes_self=True),
+	)
+	"""A :class:`LisienExecutor` instance we'll use to do
+		work in parallel. We'll make our own if one isn't supplied. Note that
+		:class:`LisienExecutor` is stateful, and must not be used by multiple
+		:class:`Engine` instances at once."""
+
+	@executor.validator
+	def _validate_executor(self, attribute, executor: LisienExecutor | None):
+		if executor:
+			executor.lock.acquire()
+			executor.restart(self._get_worker_kf_payload)
+		elif self.workers > 0:
+			raise RuntimeError(
+				f"Didn't start an executor, though {self.workers} workers were requested"
+			)
+
+	cache_neighbors: int = field(default=1000)
+	"""Number of nodes to cache the neighbors of"""
+
+	@cache_neighbors.validator
+	def _change_neighbors_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._neighbors_cache.n = val
+
+	cache_nodes: int = field(default=1000)
+	"""Number of node objects to cache
+	
+	They may be either :class:`lisien.node.Thing` or :class:`lisien.node.Place`.
+	
 	"""
 
-	char_cls = Character
-	thing_cls = Thing
-	place_cls = node_cls = Place
-	portal_cls = edge_cls = Portal
-	entity_cls = char_cls | thing_cls | place_cls | portal_cls
-	illegal_graph_names = {
-		"global",
-		"eternal",
-		"universal",
-		"rulebooks",
-		"rules",
-	}
-	illegal_node_names = {"nodes", "node_val", "edges", "edge_val", "things"}
-	time = TimeSignalDescriptor()
-	trigger: FunctionStore
-	prereq: FunctionStore
-	action: FunctionStore
-	function: FunctionStore
-	method: FunctionStore
+	@cache_nodes.validator
+	def _change_nodes_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._node_objs.n = val
+
+	cache_portals: int = field(default=1000)
+	"""Number of portal objects to cache"""
+
+	@cache_portals.validator
+	def _change_portals_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		self._edge_objs.n = val
+
+	cache_key_sets: int = field(default=1000)
+	"""Number of sorted key sets to cache
+	
+	When iterating over a stored set of keys--for instance, the set of rules
+	assigned to some entity--Lisien always iterates in the same order.
+	That means it has to sort a lot, which may take a long time. It caches
+	the results of those sorting operations. :attr:`cache_key_sets` controls
+	how big that cache is.
+	
+	"""
+
+	@cache_key_sets.validator
+	def _change_key_sets_cache_size(self, _, val):
+		if not isinstance(val, int):
+			raise TypeError("Integers only", val)
+		if val < 0:
+			raise ValueError("No negatives", val)
+		sort_set.memo.n = val
+
+	char_cls: ClassVar = Character
+	thing_cls: ClassVar = Thing
+	place_cls: ClassVar = Place
+	portal_cls: ClassVar = Portal
+	entity_cls: ClassVar = char_cls | thing_cls | place_cls | portal_cls
 
 	@property
 	def eternal(self):
-		return self.query.eternal
+		return self.database.eternal
 
 	@property
 	def branch(self) -> Branch:
@@ -581,12 +1221,12 @@ class Engine(AbstractEngine, Executor):
 
 	@branch.setter
 	@world_locked
-	def branch(self, v: str):
+	def branch(self, v: str | Branch):
 		if not isinstance(v, str):
 			raise TypeError("branch must be str")
 		if self._planning:
 			raise ValueError("Don't change branches while planning")
-		curbranch, curturn, curtick = self._btt()
+		curbranch, curturn, curtick = self.time
 		if curbranch == v:
 			return
 		# make sure I'll end up within the revision range of the
@@ -608,7 +1248,7 @@ class Engine(AbstractEngine, Executor):
 					self.turn,
 					self.tick,
 				)
-		then = self._btt()
+		then = tuple(self.time)
 		branch_is_new = v not in self.branches()
 		if branch_is_new:
 			# assumes the present turn in the parent branch has
@@ -624,14 +1264,15 @@ class Engine(AbstractEngine, Executor):
 			self.snap_keyframe(silent=True)
 			return
 		self.load_at(v, curturn, tick)
-		self.time.send(self.time, then=then, now=self._btt())
+		self.eternal["branch"] = v
+		self.time.send(self.time, then=then, now=tuple(self.time))
 
 	@property
 	def trunk(self):
-		return self.query.eternal["trunk"]
+		return self.database.eternal["trunk"]
 
 	@trunk.setter
-	def trunk(self, branch: Branch) -> None:
+	def trunk(self, branch: str | Branch) -> None:
 		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			raise AttributeError("Go to the start of time first")
 		if (
@@ -639,9 +1280,9 @@ class Engine(AbstractEngine, Executor):
 			and self.branch_parent(branch) is not None
 		):
 			raise AttributeError("Not a trunk branch")
-		then = self._btt()
-		self.query.eternal["trunk"] = self.branch = branch
-		self.time.send(self, then=then, now=self._btt())
+		then = tuple(self.time)
+		self.database.eternal["trunk"] = self.branch = branch
+		self.time.send(self, then=then, now=tuple(self.time))
 
 	@property
 	def turn(self) -> Turn:
@@ -649,7 +1290,7 @@ class Engine(AbstractEngine, Executor):
 
 	@turn.setter
 	@world_locked
-	def turn(self, v: int):
+	def turn(self, v: int | Turn):
 		if not isinstance(v, int):
 			raise TypeError("Turns must be integers")
 		if v < 0:
@@ -657,16 +1298,16 @@ class Engine(AbstractEngine, Executor):
 		if v == self.turn:
 			return
 		turn_end, tick_end = self._branch_end()
-		if self._enforce_end_of_time and not self._planning and v > turn_end:
+		if self.enforce_end_of_time and not self._planning and v > turn_end:
 			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
 				f"Go to turn {turn_end} and simulate with `next_turn`.",
 				self.branch,
 				self.turn,
 				self.tick,
-				self.branch,
+				turn_end,
+				tick_end,
 				v,
-				self.tick,
 			)
 		# enforce the arrow of time, if it's in effect
 		if self._forward and v < self._oturn:
@@ -680,13 +1321,14 @@ class Engine(AbstractEngine, Executor):
 			tick = self._turn_end[branch, v]
 		self.load_at(branch, v, tick)
 		self._extend_branch(branch, v, tick)
-		then = self._btt()
+		then = tuple(self.time)
 		self._otick = tick
 		self._oturn = v
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
-		self.time.send(self, then=then, now=self._btt())
+		self.eternal["turn"] = v
+		self.time.send(self, then=then, now=tuple(self.time))
 
 	@property
 	def tick(self) -> Tick:
@@ -700,7 +1342,7 @@ class Engine(AbstractEngine, Executor):
 
 	@tick.setter
 	@world_locked
-	def tick(self, v: int):
+	def tick(self, v: int | Tick):
 		if not isinstance(v, int):
 			raise TypeError("Ticks must be integers")
 		if v < 0:
@@ -732,6 +1374,7 @@ class Engine(AbstractEngine, Executor):
 		newrando = self.universal.get("rando_state")
 		if newrando and newrando != oldrando:
 			self._rando.setstate(newrando)
+		self.eternal["tick"] = v
 		self.time.send(
 			self,
 			then=(self.branch, self.turn, old_tick),
@@ -743,17 +1386,25 @@ class Engine(AbstractEngine, Executor):
 		return BookmarkMapping(self)
 
 	@cached_property
-	def _node_objs(self) -> SizedDict:
-		return SizedDict()
+	def schema(self) -> AbstractSchema:
+		return self._schema(self)
 
 	@cached_property
-	def _edge_objs(self) -> SizedDict:
-		return SizedDict()
+	def _rando(self) -> Random:
+		return Random()
+
+	@cached_property
+	def _node_objs(self) -> LRU:
+		return LRU(self.cache_nodes, {})
+
+	@cached_property
+	def _edge_objs(self) -> LRU:
+		return LRU(self.cache_portals, {})
 
 	@cached_property
 	def _nbtt_stuff(self):
 		return (
-			self._btt,
+			self.time,
 			self._turn_end_plan,
 			self._turn_end,
 			self._plan_ticks,
@@ -761,49 +1412,20 @@ class Engine(AbstractEngine, Executor):
 		)
 
 	@cached_property
-	def _node_exists_stuff(
-		self,
-	) -> tuple[
-		Callable[[tuple[CharName, NodeName, Branch, Turn, Tick]], Any],
-		Callable[[], Time],
-	]:
-		return (self._nodes_cache._base_retrieve, self._btt)
+	def _node_exists_stuff(self):
+		return self._nodes_cache._base_retrieve, self.time
 
 	@cached_property
-	def _exist_node_stuff(
-		self,
-	) -> tuple[
-		Callable[[], Time],
-		Callable[[CharName, NodeName, Branch, Turn, Tick, bool], None],
-		Callable[[CharName, NodeName, Branch, Turn, Tick, Any], None],
-	]:
-		return (self._nbtt, self.query.exist_node, self._nodes_cache.store)
+	def _exist_node_stuff(self):
+		return self._nbtt, self.database.exist_node, self._nodes_cache.store
 
 	@cached_property
-	def _edge_exists_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[tuple[CharName, NodeName, NodeName, Branch, Turn, Tick]],
-			bool,
-		],
-		Callable[[], Time],
-	]:
-		return (self._edges_cache._base_retrieve, self._btt)
+	def _edge_exists_stuff(self):
+		return self._edges_cache._base_retrieve, self.time
 
 	@cached_property
-	def _exist_edge_stuff(
-		self,
-	) -> tuple[
-		Callable[[], Time],
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick, bool], None
-		],
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick, Any], None
-		],
-	]:
-		return (self._nbtt, self.query.exist_edge, self._edges_cache.store)
+	def _exist_edge_stuff(self):
+		return self._nbtt, self.database.exist_edge, self._edges_cache.store
 
 	@cached_property
 	def _loaded(
@@ -819,27 +1441,18 @@ class Engine(AbstractEngine, Executor):
 	@cached_property
 	def _get_node_stuff(
 		self,
-	) -> tuple[
-		SizedDict,
-		Callable[[tuple], Any],
-		Callable[[], tuple[Branch, Turn, Tick]],
-		Callable[[Character, NodeName], Thing | Place],
-	]:
+	):
 		return (
 			self._node_objs,
 			self._nodes_cache._base_retrieve,
-			self._btt,
+			self.time,
 			self._make_node,
 		)
 
 	@cached_property
 	def _get_edge_stuff(
 		self,
-	) -> tuple[
-		SizedDict,
-		Callable[[CharName, NodeName, NodeName], bool],
-		Callable[[Character, NodeName, NodeName], Portal],
-	]:
+	):
 		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
@@ -853,7 +1466,7 @@ class Engine(AbstractEngine, Executor):
 	) -> ChangeTrackingDict[
 		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
 	]:
-		"""Parent, start time, and end time of each branch. Plans not included."""
+		"""Parent, start time, and end time of each branch. Plans included."""
 		return ChangeTrackingDict()
 
 	@cached_property
@@ -862,11 +1475,11 @@ class Engine(AbstractEngine, Executor):
 		return defaultdict(set)
 
 	@cached_property
-	def _turn_end(self) -> TurnEndDict[tuple[Branch, Turn], Tick]:
+	def _turn_end(self) -> TurnEndDict:
 		return TurnEndDict(self)
 
 	@cached_property
-	def _turn_end_plan(self) -> TurnEndPlanDict[tuple[Branch, Turn], Tick]:
+	def _turn_end_plan(self) -> TurnEndPlanDict:
 		return TurnEndPlanDict(self)
 
 	@cached_property
@@ -893,165 +1506,155 @@ class Engine(AbstractEngine, Executor):
 
 	@cached_property
 	def _graph_cache(self) -> GraphCache:
-		return GraphCache(self, name="graph cache")
+		return GraphCache(self)
 
 	@cached_property
 	def _graph_val_cache(self) -> GraphValCache:
-		ret = GraphValCache(self, name="graph val cache")
-		ret.setdb = self.query.graph_val_set
-		ret.deldb = self.query.graph_val_del_time
+		ret = GraphValCache(self)
+		ret.setdb = self.database.graph_val_set
+		ret.deldb = self.database.graph_val_del_time
 		return ret
 
 	@cached_property
 	def _nodes_cache(self) -> NodesCache:
-		ret = NodesCache(self, name="nodes cache")
-		ret.setdb = self.query.exist_node
-		ret.deldb = self.query.nodes_del_time
+		ret = NodesCache(self)
+		ret.setdb = self.database.exist_node
+		ret.deldb = self.database.nodes_del_time
 		return ret
 
 	@cached_property
 	def _edges_cache(self) -> EdgesCache:
-		ret = EdgesCache(self, name="edges cache")
-		ret.setdb = self.query.exist_edge
-		ret.deldb = self.query.edges_del_time
+		ret = EdgesCache(self)
+		ret.setdb = self.database.exist_edge
+		ret.deldb = self.database.edges_del_time
 		return ret
 
 	@cached_property
 	def _node_val_cache(self) -> NodeValCache:
-		ret = NodeValCache(self, name="node val cache")
-		ret.setdb = self.query.node_val_set
-		ret.deldb = self.query.node_val_del_time
+		ret = NodeValCache(self)
+		ret.setdb = self.database.node_val_set
+		ret.deldb = self.database.node_val_del_time
 		return ret
 
 	@cached_property
 	def _edge_val_cache(self) -> EdgeValCache:
-		ret = EdgeValCache(self, name="edge val cache")
-		ret.setdb = self.query.edge_val_set
-		ret.deldb = self.query.edge_val_del_time
+		ret = EdgeValCache(self)
+		ret.setdb = self.database.edge_val_set
+		ret.deldb = self.database.edge_val_del_time
 		return ret
 
 	@cached_property
 	def _things_cache(self) -> ThingsCache:
-		ret = ThingsCache(self, name="things cache")
-		ret.setdb = self.query.set_thing_loc
-		ret.deldb = self.query.things_del_time
+		ret = ThingsCache(self)
+		ret.setdb = self.database.set_thing_loc
+		ret.deldb = self.database.things_del_time
 		return ret
 
 	@cached_property
 	def _node_contents_cache(self) -> NodeContentsCache:
-		return NodeContentsCache(self, name="node contents cache")
+		return NodeContentsCache(self)
 
 	@cached_property
-	def _neighbors_cache(self) -> SizedDict:
-		return SizedDict()
+	def _neighbors_cache(self) -> LRU:
+		return LRU(self.cache_neighbors, {})
 
 	@cached_property
-	def _universal_cache(self) -> EntitylessCache:
-		ret = EntitylessCache(self, name="universal cache")
-		ret.setdb = self.query.universal_set
+	def _universal_cache(self) -> UniversalCache:
+		ret = UniversalCache(self)
+		ret.setdb = self.database.universal_set
 		return ret
 
 	@cached_property
 	def _rulebooks_cache(self) -> RulebooksCache:
-		ret = RulebooksCache(self, name="rulebooks cache")
-		ret.setdb = self.query.rulebook_set
+		ret = RulebooksCache(self)
+		ret.setdb = self.database.rulebook_set
 		return ret
 
 	@cached_property
 	def _characters_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(self, name="character_rulebook")
+		return CharactersRulebooksCache(self)
 
 	@cached_property
 	def _units_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(self, name="unit_ulebook")
+		return CharactersRulebooksCache(self)
 
 	@cached_property
 	def _characters_things_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(self, name="character_thing_rulebook")
+		return CharactersRulebooksCache(self)
 
 	@cached_property
 	def _characters_places_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(self, name="character_place_rulebook")
+		return CharactersRulebooksCache(self)
 
 	@cached_property
 	def _characters_portals_rulebooks_cache(self) -> CharactersRulebooksCache:
-		return CharactersRulebooksCache(
-			self, name="character_portals_rulebook"
-		)
+		return CharactersRulebooksCache(self)
 
 	@cached_property
 	def _nodes_rulebooks_cache(self) -> NodesRulebooksCache:
-		return NodesRulebooksCache(self, name="nodes rulebooks cache")
+		return NodesRulebooksCache(self)
 
 	@cached_property
 	def _portals_rulebooks_cache(self) -> PortalsRulebooksCache:
-		return PortalsRulebooksCache(self, name="portals rulebooks cache")
+		return PortalsRulebooksCache(self)
 
 	@cached_property
-	def _triggers_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="triggers cache")
+	def _triggers_cache(self) -> TriggerListCache:
+		return TriggerListCache(self)
 
 	@cached_property
-	def _prereqs_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="prereqs cache")
+	def _prereqs_cache(self) -> PrereqListCache:
+		return PrereqListCache(self)
 
 	@cached_property
-	def _actions_cache(self) -> FuncListCache:
-		return FuncListCache(self, name="actions cache")
+	def _actions_cache(self) -> ActionListCache:
+		return ActionListCache(self)
 
 	@cached_property
 	def _neighborhoods_cache(self) -> NeighborhoodsCache:
-		return NeighborhoodsCache(self, name="neighborhoods cache")
+		return NeighborhoodsCache(self)
 
 	@cached_property
 	def _rule_bigness_cache(self) -> BignessCache:
-		return BignessCache(self, name="rule bigness cache")
+		return BignessCache(self)
 
 	@cached_property
 	def _node_rules_handled_cache(self) -> NodeRulesHandledCache:
-		return NodeRulesHandledCache(self, name="node rules handled cache")
+		return NodeRulesHandledCache(self)
 
 	@cached_property
 	def _portal_rules_handled_cache(self) -> PortalRulesHandledCache:
-		return PortalRulesHandledCache(self, name="portal rules handled cache")
+		return PortalRulesHandledCache(self)
 
 	@cached_property
 	def _character_rules_handled_cache(self) -> CharacterRulesHandledCache:
-		return CharacterRulesHandledCache(
-			self, name="character rules handled cache"
-		)
+		return CharacterRulesHandledCache(self)
 
 	@cached_property
 	def _unit_rules_handled_cache(self) -> UnitRulesHandledCache:
-		return UnitRulesHandledCache(self, name="unit rules handled cache")
+		return UnitRulesHandledCache(self)
 
 	@cached_property
 	def _character_thing_rules_handled_cache(
 		self,
 	) -> CharacterThingRulesHandledCache:
-		return CharacterThingRulesHandledCache(
-			self, name="character thing rules handled cache"
-		)
+		return CharacterThingRulesHandledCache(self)
 
 	@cached_property
 	def _character_place_rules_handled_cache(
 		self,
 	) -> CharacterPlaceRulesHandledCache:
-		return CharacterPlaceRulesHandledCache(
-			self, name="character place rules handled cache"
-		)
+		return CharacterPlaceRulesHandledCache(self)
 
 	@cached_property
 	def _character_portal_rules_handled_cache(
 		self,
 	) -> CharacterPortalRulesHandledCache:
-		return CharacterPortalRulesHandledCache(
-			self, name="character portal rules handled cache"
-		)
+		return CharacterPortalRulesHandledCache(self)
 
 	@cached_property
 	def _unitness_cache(self) -> UnitnessCache:
-		return UnitnessCache(self, name="unitness cache")
+		return UnitnessCache(self)
 
 	@cached_property
 	def _turns_completed_d(self) -> dict[Branch, Turn]:
@@ -1082,7 +1685,7 @@ class Engine(AbstractEngine, Executor):
 		return set()
 
 	@cached_property
-	def _caches(self) -> tuple[Cache, ...]:
+	def _caches(self):
 		return (
 			self._things_cache,
 			self._node_contents_cache,
@@ -1117,12 +1720,22 @@ class Engine(AbstractEngine, Executor):
 	def character(self) -> CharacterMapping:
 		return CharacterMapping(self)
 
-	def _btt(self) -> Time:
-		"""Return the branch, turn, and tick."""
-		return Branch(self._obranch), Turn(self._oturn), Tick(self._otick)
+	@contextmanager
+	def wayback(self):
+		"""Return to the time at the start of the context once it's done"""
+		now = tuple(self.time)
+		yield
+		self.time = now
 
 	def _set_btt(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, skipping all integrity checks"""
 		(self._obranch, self._oturn, self._otick) = (branch, turn, tick)
+
+	def _time_warp(self, branch: Branch, turn: Turn, tick: Tick):
+		"""Override the current time, in database too, skipping all integrity checks"""
+		self._obranch = self.eternal["branch"] = branch
+		self._oturn = self.eternal["turn"] = turn
+		self._otick = self.eternal["tick"] = tick
 
 	@world_locked
 	def _nbtt(self) -> Time:
@@ -1141,7 +1754,7 @@ class Engine(AbstractEngine, Executor):
 			plan_ticks,
 			time_plan,
 		) = self._nbtt_stuff
-		branch, turn, tick = btt()
+		branch, turn, tick = btt
 		branch_turn = (branch, turn)
 		tick += 1
 		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
@@ -1175,7 +1788,7 @@ class Engine(AbstractEngine, Executor):
 				this_plan[turn] = ticks
 			else:
 				this_plan[turn] = [tick]
-			self.query.plans_insert(last_plan, branch, turn, tick)
+			self.database.plans_insert(last_plan, branch, turn, tick)
 			time_plan[branch, turn, tick] = last_plan
 		else:
 			end_turn, _ = self._branch_end(branch)
@@ -1183,7 +1796,7 @@ class Engine(AbstractEngine, Executor):
 				raise OutOfTimelineError(
 					"You're in the past. Go to turn {} to change things"
 					" -- or start a new branch".format(end_turn),
-					*btt(),
+					*btt,
 					branch,
 					turn,
 					tick,
@@ -1205,12 +1818,16 @@ class Engine(AbstractEngine, Executor):
 		else:
 			loaded[branch] = (turn, tick, turn, tick)
 		self._extend_branch(branch, turn, tick)
-		then = self._btt()
+		then = tuple(self.time)
 		self._otick = tick
-		self.time.send(self, then=then, now=self._btt())
+		self.time.send(self, then=then, now=tuple(self.time))
 		return branch, turn, tick
 
 	def __getattr__(self, item):
+		try:
+			return super().__getattr__(item)
+		except AttributeError:
+			pass
 		try:
 			return MethodType(
 				getattr(super().__getattribute__("method"), item), self
@@ -1218,15 +1835,10 @@ class Engine(AbstractEngine, Executor):
 		except AttributeError:
 			raise AttributeError("No such attribute", item)
 
-	def __hasattr__(self, item):
-		return hasattr(super().__getattribute__("method"), item)
-
 	def _graph_state_hash(
 		self, nodes: NodeValDict, edges: EdgeValDict, vals: StatDict
 	) -> bytes:
-		from hashlib import blake2b
-
-		qpac = self.query.pack
+		qpac = self.database.pack
 
 		if isinstance(qpac(" "), str):
 
@@ -1269,7 +1881,7 @@ class Engine(AbstractEngine, Executor):
 		"""Return a hash digest of a keyframe"""
 		from hashlib import blake2b
 
-		qpac = self.query.pack
+		qpac = self.database.pack
 
 		if isinstance(qpac(" "), str):
 
@@ -1285,9 +1897,9 @@ class Engine(AbstractEngine, Executor):
 		return total_hash.digest()
 
 	def _get_node(
-		self, graph: CharName | Character, node: NodeName
+		self, graph: CharName | DiGraph, node: NodeName
 	) -> place_cls | thing_cls:
-		node_objs, retrieve, btt, make_node = self._get_node_stuff
+		node_objs, retrieve, time, make_node = self._get_node_stuff
 		if hasattr(graph, "name"):
 			graphn = graph.name
 		else:
@@ -1300,7 +1912,7 @@ class Engine(AbstractEngine, Executor):
 				return ret
 			else:
 				del node_objs[key]
-		ex = retrieve((graphn, node, *btt()))
+		ex = retrieve((graphn, node, *time))
 		if isinstance(ex, Exception):
 			raise ex
 		if not ex:
@@ -1310,8 +1922,8 @@ class Engine(AbstractEngine, Executor):
 		return ret
 
 	def _get_edge(
-		self, graph: Character | CharName, orig: NodeName, dest: NodeName
-	):
+		self, graph: DiGraph | CharName, orig: NodeName, dest: NodeName
+	) -> portal_cls:
 		edge_objs, edge_exists, make_edge = self._get_edge_stuff
 		if type(graph) is str:
 			graphn = graph
@@ -1373,7 +1985,7 @@ class Engine(AbstractEngine, Executor):
 				ticks = plan_ticks[self._last_plan][branch][turn]
 				ticks.append(tick)
 				plan_ticks[self._last_plan][branch][turn] = ticks
-				self.query.plans_insert(self._last_plan, branch, turn, tick)
+				self.database.plans_insert(self._last_plan, branch, turn, tick)
 				for cache in self._caches:
 					if not hasattr(cache, "settings"):
 						continue
@@ -1404,7 +2016,9 @@ class Engine(AbstractEngine, Executor):
 		for branch in plan_ticks:
 			plan_times = plan_ticks[branch].iter_times()
 			for start_turn, start_tick in plan_times:
-				if self._branch_end(branch) < (start_turn, start_tick):
+				if self._branch_end(branch) < LinearTime(
+					start_turn, start_tick
+				):
 					break
 			else:
 				continue
@@ -1433,7 +2047,7 @@ class Engine(AbstractEngine, Executor):
 	def _delete_keyframe(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		if (branch, turn, tick) not in self._keyframes_times:
 			raise KeyframeError("No keyframe at that time", branch, turn, tick)
-		self.query.delete_keyframe(branch, turn, tick)
+		self.database.delete_keyframe(branch, turn, tick)
 		self._keyframes_times.remove((branch, turn, tick))
 		self._keyframes_loaded.remove((branch, turn, tick))
 		self._keyframes_dict[branch][turn].remove(tick)
@@ -1688,7 +2302,7 @@ class Engine(AbstractEngine, Executor):
 
 		def setedge(
 			delta: DeltaDict,
-			is_multigraph: callable,
+			is_multigraph: Callable[[], bool],
 			_: Turn,
 			__: Tick,
 			graph: CharName,
@@ -1713,7 +2327,7 @@ class Engine(AbstractEngine, Executor):
 
 		def setedgeval(
 			delta: DeltaDict,
-			is_multigraph: callable,
+			is_multigraph: Callable[[], bool],
 			turn: Turn,
 			tick: Tick,
 			graph: CharName,
@@ -1752,8 +2366,8 @@ class Engine(AbstractEngine, Executor):
 			if not isinstance(arg, int):
 				raise TypeError("turn and tick must be int")
 		self.load_between(branch, turn_from, tick_from, turn_to, tick_to)
-		a: LinearTime = turn_from, tick_from
-		b: LinearTime = turn_to, tick_to
+		a = LinearTime(turn_from, tick_from)
+		b = LinearTime(turn_to, tick_to)
 		if a == b:
 			return {}
 		delta = {}
@@ -2041,377 +2655,18 @@ class Engine(AbstractEngine, Executor):
 	def world_lock(self):
 		return RLock()
 
+	@garbage
 	@world_locked
-	def __init__(
-		self,
-		prefix: PathLike | str | None = ".",
-		*,
-		string: StringStore | dict | None = None,
-		trigger: FunctionStore | ModuleType | None = None,
-		prereq: FunctionStore | ModuleType | None = None,
-		action: FunctionStore | ModuleType | None = None,
-		function: FunctionStore | ModuleType | None = None,
-		method: FunctionStore | ModuleType | None = None,
-		trunk: Branch | None = None,
-		connect_string: str | None = None,
-		connect_args: dict | None = None,
-		schema_cls: Type[AbstractSchema] = NullSchema,
-		flush_interval: int | None = None,
-		keyframe_interval: int | None = 1000,
-		commit_interval: int | None = None,
-		random_seed: int | None = None,
-		clear: bool = False,
-		keep_rules_journal: bool = True,
-		keyframe_on_close: bool = True,
-		enforce_end_of_time: bool = True,
-		logger: Logger | None = None,
-		workers: int | None = None,
-	):
-		if workers is None:
-			workers = os.cpu_count()
-		if prefix:
-			os.makedirs(prefix, exist_ok=True)
-		self._planning = False
-		self._forward = False
-		self._no_kc = False
-		self._enforce_end_of_time = enforce_end_of_time
-		self._keyframe_on_close = keyframe_on_close
-		self._prefix = prefix
-		self.keep_rules_journal = keep_rules_journal
-		self.flush_interval = flush_interval
-		self.commit_interval = commit_interval
-		self.schema = schema_cls(self)
-		# in case this is the first startup
-		self._obranch = trunk or "trunk"
-		self._otick = self._oturn = 0
-		if logger is not None:
-			self._logger = logger
-		worker_handler = StreamHandler()
-		worker_handler.addFilter(lambda rec: hasattr(rec, "worker_idx"))
-		worker_handler.setLevel(DEBUG)
-		worker_handler.setFormatter(WorkerFormatter())
-		self.logger.addHandler(worker_handler)
-		self._init_func_stores(
-			prefix, function, method, trigger, prereq, action, clear
-		)
-		self._init_load(
-			prefix,
-			connect_string,
-			connect_args,
-			keyframe_interval,
-			trunk,
-			clear,
-		)
-		if not self._turn_end or not self._turn_end_plan:
-			self.query.set_turn(
-				"trunk",
-				0,
-				self._turn_end.setdefault(("trunk", 0), 0),
-				self._turn_end_plan.setdefault(("trunk", 0), 0),
+	def __attrs_post_init__(self):
+		branch, turn, tick = self.time
+		if hasattr(self, "_validate_initial_keyframe_load"):
+			self._validate_initial_keyframe_load(
+				self._get_keyframe(
+					*self._build_keyframe_window(branch, turn, tick)[0]
+				)
 			)
-		self._init_random(random_seed)
-		self._init_string(prefix, string, clear)
-		self._top_uid = 0
-		if workers != 0:
-			self._start_worker_processes(prefix, workers)
-
-	def _init_func_stores(
-		self,
-		prefix: str | os.PathLike | None,
-		function: ModuleType | FunctionStore,
-		method: ModuleType | FunctionStore,
-		trigger: ModuleType | FunctionStore,
-		prereq: ModuleType | FunctionStore,
-		action: ModuleType | FunctionStore,
-		clear: bool,
-	):
-		for module, name in (
-			(function, "function"),
-			(method, "method"),
-			(trigger, "trigger"),
-			(prereq, "prereq"),
-			(action, "action"),
-		):
-			if isinstance(module, ModuleType):
-				setattr(self, name, module)
-			elif prefix is None:
-				setattr(self, name, FunctionStore(None, module=name))
-			else:
-				fn = os.path.join(prefix, f"{name}.py")
-				setattr(self, name, FunctionStore(fn, module=name))
-				if clear and os.path.exists(fn):
-					os.remove(fn)
-
-	def _init_load(
-		self,
-		prefix: str | os.PathLike | None,
-		connect_string: str | None,
-		connect_args: dict | None,
-		keyframe_interval: int | None,
-		main_branch: Branch,
-		clear: bool,
-	):
-		if not hasattr(self, "query"):
-			if prefix is None:
-				if connect_string is None:
-					self.query = NullDatabaseConnector()
-				else:
-					self.query = SQLAlchemyDatabaseConnector(
-						connect_string,
-						connect_args or {},
-						self.pack,
-						self.unpack,
-						clear=clear,
-					)
-			else:
-				if not os.path.exists(prefix):
-					os.mkdir(prefix)
-				if not os.path.isdir(prefix):
-					raise FileExistsError("Need a directory")
-				if connect_string is None:
-					self.query = ParquetDatabaseConnector(
-						os.path.join(prefix, "world"),
-						self.pack,
-						self.unpack,
-						clear=clear,
-					)
-				else:
-					self.query = SQLAlchemyDatabaseConnector(
-						connect_string,
-						connect_args or {},
-						self.pack,
-						self.unpack,
-						clear=clear,
-					)
-
-		self.query.keyframe_interval = keyframe_interval
-		self._load_keyframe_times()
-		if main_branch is not None:
-			self.query.eternal["trunk"] = main_branch
-		elif "trunk" not in self.query.eternal:
-			main_branch = self.query.eternal["trunk"] = "trunk"
-		else:
-			main_branch = self.query.eternal["trunk"]
-		assert main_branch is not None
-		assert main_branch == self.query.eternal["trunk"]
-		if "branch" in self.query.eternal:
-			self._obranch = self.query.eternal["branch"]
-		if "turn" in self.query.eternal:
-			self._oturn = self.query.eternal["turn"]
-		if "tick" in self.query.eternal:
-			self._otick = self.query.eternal["tick"]
-		for (
-			branch,
-			parent,
-			parent_turn,
-			parent_tick,
-			end_turn,
-			end_tick,
-		) in self.query.branches_dump():
-			self._branches_d[branch] = (
-				parent,
-				parent_turn,
-				parent_tick,
-				end_turn,
-				end_tick,
-			)
-			self._upd_branch_parentage(parent, branch)
-		for branch, turn, end_tick, plan_end_tick in self.query.turns_dump():
-			self._turn_end[branch, turn] = max(
-				self._turn_end[branch, turn], end_tick
-			)
-			self._turn_end_plan[branch, turn] = max(
-				(self._turn_end_plan[branch, turn], plan_end_tick)
-			)
-		if main_branch not in self._branches_d:
-			self._branches_d[main_branch] = None, 0, 0, 0, 0
-		self._load_plans()
-		self._load_rules_handled()
-		self._turns_completed_d.update(self.query.turns_completed_dump())
-		self._rules_cache = {
-			name: Rule(self, name, create=False)
-			for name in self.query.rules_dump()
-		}
-		with garbage():
-			self._load(*self._read_at(*self._btt()))
-		self.query.snap_keyframe = self.snap_keyframe
-		self.query.kf_interval_override = self._detect_kf_interval_override
 		if not self._keyframes_times:
-			self._snap_keyframe_de_novo(*self._btt())
-
-	def _init_random(self, random_seed: int | None):
-		self._rando = Random()
-		if "rando_state" in self.universal:
-			self._rando.setstate(self.universal["rando_state"])
-		else:
-			self._rando.seed(random_seed)
-			rando_state = self._rando.getstate()
-			if self._oturn == self._otick == 0:
-				now = self._btt()
-				if now in self._keyframes_times:
-					assert now in self._keyframes_loaded
-					kf = self._universal_cache.get_keyframe(*now, copy=False)
-					kf["rando_state"] = rando_state
-				self._universal_cache.store(
-					"rando_state",
-					self.branch,
-					Turn(0),
-					Tick(0),
-					rando_state,
-					loading=True,
-				)
-				self.query.universal_set(
-					"rando_state",
-					self.branch,
-					Turn(0),
-					Tick(0),
-					rando_state,
-				)
-			else:
-				self.universal["rando_state"] = rando_state
-
-	def _init_string(
-		self,
-		prefix: str | os.PathLike | None,
-		string: StringStore | dict | None,
-		clear: bool,
-	):
-		if string:
-			self.string = string
-		elif prefix is None:
-			self.string = StringStore(
-				self,
-				None,
-				self.eternal.setdefault("language", "eng"),
-			)
-		elif isinstance(string, dict):
-			self.string = StringStore(
-				string, None, self.eternal.setdefault("language", "eng")
-			)
-		else:
-			string_prefix = os.path.join(prefix, "strings")
-			if clear and os.path.isdir(string_prefix):
-				shutil.rmtree(string_prefix)
-			if not os.path.exists(string_prefix):
-				os.mkdir(string_prefix)
-			self.string = StringStore(
-				self,
-				string_prefix,
-				self.eternal.setdefault("language", "eng"),
-			)
-
-	def _sync_log_forever(self, q: SimpleQueue[LogRecord]) -> None:
-		while not hasattr(self, "_closed"):
-			recs: list[LogRecord] = []
-			while True:
-				try:
-					recs.append(q.get())
-				except Empty:
-					break
-			for rec in recs:
-				self.logger.handle(rec)
-			sleep(0.5)
-
-	def _start_worker_processes(
-		self, prefix: str | os.PathLike | None, workers: int
-	):
-		from multiprocessing import get_context
-		from multiprocessing.connection import Connection
-		from multiprocessing.process import BaseProcess
-
-		for store in self.stores:
-			if hasattr(store, "save"):
-				store.save(reimport=False)
-
-		self._trigger_pool = ThreadPoolExecutor()
-		self._worker_last_eternal = dict(self.eternal.items())
-		initial_payload = self._get_worker_kf_payload()
-
-		self._worker_processes: list[BaseProcess] = []
-		wp = self._worker_processes
-		self._mp_ctx = ctx = get_context("spawn")
-		self._worker_inputs: list[Connection] = []
-		wi = self._worker_inputs
-		self._worker_outputs: list[Connection] = []
-		wo = self._worker_outputs
-		self._worker_locks: list[Lock] = []
-		wlk = self._worker_locks
-		self._worker_log_queues: list[SimpleQueue] = []
-		wl = self._worker_log_queues
-		self._worker_log_threads: list[Thread] = []
-		wlt = self._worker_log_threads
-		for i in range(workers):
-			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
-			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
-			logq = ctx.SimpleQueue()
-			logthread = Thread(
-				target=self._sync_log_forever, args=(logq,), daemon=True
-			)
-			worker_args = [
-				i,
-				prefix,
-				self._branches_d,
-				dict(self.eternal),
-				inpipe_there,
-				outpipe_there,
-				logq,
-			]
-			for store in (
-				self.function,
-				self.method,
-				self.trigger,
-				self.prereq,
-				self.action,
-			):
-				if hasattr(store, "_locl"):
-					worker_args.append(store._locl)
-				elif hasattr(store, "__dict__"):
-					worker_args.append(
-						{
-							k: v
-							for (k, v) in store.__dict__.items()
-							if callable(v)
-						}
-					)
-				else:
-					funcs = {}
-					for name in dir(store):
-						value = getattr(store, name)
-						if callable(value):
-							funcs[name] = value
-					worker_args.append(funcs)
-			proc = ctx.Process(
-				target=worker_subprocess,
-				args=worker_args,
-			)
-			wi.append(inpipe_here)
-			wo.append(outpipe_here)
-			wl.append(logq)
-			wlk.append(Lock())
-			wlt.append(logthread)
-			wp.append(proc)
-			logthread.start()
-			proc.start()
-			with wlk[-1]:
-				inpipe_here.send_bytes(initial_payload)
-		if hasattr(self.trigger, "connect"):
-			self.trigger.connect(self._reimport_trigger_functions)
-		if hasattr(self.function, "connect"):
-			self.function.connect(self._reimport_worker_functions)
-		if hasattr(self.method, "connect"):
-			self.method.connect(self._reimport_worker_methods)
-		self._setup_fut_manager(workers)
-
-	def _setup_fut_manager(self, workers: int):
-		self._workers = workers
-		self._worker_updated_btts: list[Time] = [self._btt()] * workers
-		self._uid_to_fut: dict[int, Future] = {}
-		self._futs_to_start: SimpleQueue[Future] = SimpleQueue()
-		self._how_many_futs_running = 0
-		self._fut_manager_thread = Thread(
-			target=self._manage_futs, daemon=True
-		)
-		self._fut_manager_thread.start()
+			self._snap_keyframe_de_novo(branch, turn, tick)
 
 	def _start_branch(
 		self, parent: Branch, branch: Branch, turn: Turn, tick: Tick
@@ -2421,7 +2676,9 @@ class Engine(AbstractEngine, Executor):
 			parent
 		]
 		if not (
-			(start_turn, start_tick) <= (turn, tick) <= (end_turn, end_tick)
+			LinearTime(start_turn, start_tick)
+			<= LinearTime(turn, tick)
+			<= LinearTime(end_turn, end_tick)
 		):
 			raise OutOfTimelineError(
 				"The parent branch does not cover that time",
@@ -2433,18 +2690,18 @@ class Engine(AbstractEngine, Executor):
 		self._turn_end[branch, turn] = self._turn_end_plan[branch, turn] = tick
 		self._loaded[branch] = (turn, tick, None, None)
 		self._upd_branch_parentage(parent, branch)
-		self.query.set_branch(branch, parent, turn, tick, turn, tick)
+		self.database.set_branch(branch, parent, turn, tick, turn, tick)
 
 	def _extend_branch(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		"""Record a change in the span of time that a branch includes"""
 		parent, start_turn, start_tick, end_turn, end_tick = self._branches_d[
 			branch
 		]
-		if (turn, tick) < (start_turn, start_tick):
+		if LinearTime(turn, tick) < LinearTime(start_turn, start_tick):
 			raise OutOfTimelineError(
 				"Can't extend branch backwards", branch, turn, tick
 			)
-		if (turn, tick) < (end_turn, end_tick):
+		if LinearTime(turn, tick) < LinearTime(end_turn, end_tick):
 			return
 		if (branch, turn) in self._turn_end_plan:
 			if tick > self._turn_end_plan[branch, turn]:
@@ -2466,6 +2723,22 @@ class Engine(AbstractEngine, Executor):
 			else:
 				self._turn_end[branch, turn] = tick
 
+	@staticmethod
+	def _valid_units_keyframe(
+		kf,
+	) -> TypeGuard[dict[CharName, dict[NodeName, bool]]]:
+		for g, us in kf.items():
+			if not isinstance(g, Key):
+				return False
+			if not isinstance(us, dict):
+				return False
+			for u, x in us.items():
+				if not isinstance(u, Key):
+					return False
+				if not isinstance(x, bool):
+					return False
+		return True
+
 	def _get_keyframe(
 		self,
 		branch: Branch,
@@ -2473,8 +2746,11 @@ class Engine(AbstractEngine, Executor):
 		tick: Tick,
 		rulebooks: bool = True,
 		silent: bool = False,
+		database: AbstractDatabaseConnector | None = None,
 	) -> Keyframe | None:
 		"""Load the keyframe if it's not loaded, and return it"""
+		if database is None:
+			database = self.database
 		if (branch, turn, tick) in self._keyframes_loaded:
 			self.debug(
 				"Keyframe already loaded, returning %s, %d, %d from memory",
@@ -2485,29 +2761,28 @@ class Engine(AbstractEngine, Executor):
 			if silent:
 				return
 			return self._get_kf(branch, turn, tick, rulebooks=rulebooks)
-		univ, rule, rulebook = self.query.get_keyframe_extensions(
+		univ, rule, rulebook = database.get_keyframe_extensions(
 			branch, turn, tick
 		)
 		self._universal_cache.set_keyframe(branch, turn, tick, univ)
-		self._triggers_cache.set_keyframe(
-			branch, turn, tick, rule.get("triggers", {})
+		triggers: dict[RuleName, list[TriggerFuncName]] = rule.get(
+			"triggers", {}
 		)
-		self._prereqs_cache.set_keyframe(
-			branch, turn, tick, rule.get("prereqs", {})
+		self._triggers_cache.set_keyframe(branch, turn, tick, triggers)
+		prereqs: dict[RuleName, list[PrereqFuncName]] = rule.get("prereqs", {})
+		self._prereqs_cache.set_keyframe(branch, turn, tick, prereqs)
+		actions: dict[RuleName, list[ActionFuncName]] = rule.get("actions", {})
+		self._actions_cache.set_keyframe(branch, turn, tick, actions)
+		neighbors: dict[RuleName, RuleNeighborhood] = rule.get(
+			"neighborhood", {}
 		)
-		self._actions_cache.set_keyframe(
-			branch, turn, tick, rule.get("actions", {})
-		)
-		self._neighborhoods_cache.set_keyframe(
-			branch, turn, tick, rule.get("neighborhood", {})
-		)
-		self._rule_bigness_cache.set_keyframe(
-			branch, turn, tick, rule.get("big", {})
-		)
+		self._neighborhoods_cache.set_keyframe(branch, turn, tick, neighbors)
+		bigs: dict[RuleName, RuleBig] = rule.get("big", {})
+		self._rule_bigness_cache.set_keyframe(branch, turn, tick, bigs)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rulebook)
-		keyframe_graphs = list(
-			self.query.get_all_keyframe_graphs(branch, turn, tick)
-		)
+		keyframe_graphs: list[
+			tuple[CharName, NodeKeyframe, EdgeKeyframe, StatDict]
+		] = list(database.get_all_keyframe_graphs(branch, turn, tick))
 		with (
 			self.batch()
 		):  # so that iter_keys doesn't try fetching the kf we're about to make
@@ -2542,7 +2817,7 @@ class Engine(AbstractEngine, Executor):
 			else:
 				self._keyframes_dict[branch][turn] = {tick}
 		else:
-			self._keyframes_dict[branch] = {turn: {tick}}
+			self._keyframes_dict[branch] = WindowDict({turn: {tick}})
 		self._mark_keyframe_loaded(branch, turn, tick)
 		ret = self._get_kf(branch, turn, tick)
 		charrbkf = {}
@@ -2564,14 +2839,17 @@ class Engine(AbstractEngine, Executor):
 			charportrbkf[graph] = graphval.get(
 				"character_portal_rulebook", ("character_portal", graph)
 			)
-			self._unitness_cache.set_keyframe(
-				graph, branch, turn, tick, graphval.get("units", {})
-			)
-			if graph in ret["node_val"]:
+			unity = graphval.get("units", {})
+			assert isinstance(unity, dict)
+			assert self._valid_units_keyframe(unity)
+			units: dict[CharName, dict[NodeName, bool]] = unity
+			self._unitness_cache.set_keyframe(graph, branch, turn, tick, units)
+			nvkf: GraphNodeValKeyframe = ret["node_val"]
+			if graph in nvkf:
 				locs = {}
 				conts = {}
 				noderbkf = {}
-				for node, val in ret["node_val"][graph].items():
+				for node, val in nvkf[graph].items():
 					noderbkf[node] = val.get("rulebook", (graph, node))
 					if "location" not in val:
 						continue
@@ -2633,17 +2911,17 @@ class Engine(AbstractEngine, Executor):
 			branch, turn, tick, charportrbkf
 		)
 		if silent:
-			return  # not that it helps performance any, in this case
+			return None  # not that it helps performance any, in this case
 		return ret
 
 	def _iter_parent_btt(
 		self,
-		branch: str = None,
-		turn: int = None,
-		tick: int = None,
+		branch: Branch | None = None,
+		turn: Turn | None = None,
+		tick: Tick | None = None,
 		*,
-		stoptime: tuple[str, int, int] = None,
-	) -> Iterator[tuple[str, int, int]]:
+		stoptime: Time | None = None,
+	) -> Iterator[Time]:
 		"""Private use.
 
 		Iterate over (branch, turn, tick), where the branch is
@@ -2657,9 +2935,9 @@ class Engine(AbstractEngine, Executor):
 		turn.
 
 		"""
-		branch = branch or self.branch
-		trn = self.turn if turn is None else turn
-		tck = self.tick if tick is None else tick
+		branch: Branch = branch or self.branch
+		trn: Turn = self.turn if turn is None else turn
+		tck: Tick = self.tick if tick is None else tick
 		yield branch, trn, tck
 		branches = self.branches()
 		if stoptime:
@@ -2683,7 +2961,7 @@ class Engine(AbstractEngine, Executor):
 				trn, tck = self._branch_start(branch)
 				branch = self.branch_parent(branch)
 				if branch is None:
-					yield "trunk", 0, 0
+					yield Branch("trunk"), Turn(0), Tick(0)
 					return
 				yield branch, trn, tck
 
@@ -2732,6 +3010,12 @@ class Engine(AbstractEngine, Executor):
 				if (loaded and a in kfl) or (not loaded and a in kfs):
 					yield a
 				return
+		b0: Branch
+		r0: Turn
+		t0: Tick
+		b1: Branch
+		r1: Turn
+		t1: Tick
 		for (b0, r0, t0), (b1, r1, t1) in chain([(a, b)], it):
 			# we're going up the timestream, meaning that b1, r1, t1
 			# is *before* b0, r0, t0
@@ -2778,6 +3062,7 @@ class Engine(AbstractEngine, Executor):
 						for tck in tcks:
 							yield b0, r0, tck
 			else:
+				r_between: Turn
 				for r_between in range(r0 - 1, r1, -1):  # too much iteration?
 					if r_between in kfdb:
 						tcks = sorted(kfdb[r_between], reverse=True)
@@ -2801,10 +3086,13 @@ class Engine(AbstractEngine, Executor):
 						if tck <= t1:
 							break
 						yield b0, r1, tck
+		assert isinstance(b1, str)
+		assert isinstance(r1, int)
+		assert isinstance(t1, int)
 		if b1 in kfd and r1 in kfd[b1]:
 			kfdb = kfd[b1]
 			tcks = sorted(kfdb[r1], reverse=True)
-			while tcks[-1] > t1:
+			while tcks and tcks[-1] > t1:
 				tcks.pop()
 			if not tcks:
 				if with_fork_points:
@@ -2821,21 +3109,6 @@ class Engine(AbstractEngine, Executor):
 				return
 		if with_fork_points:
 			yield b1, r1, t1
-
-	def _has_graph(self, graph, branch=None, turn=None, tick=None):
-		if branch is None:
-			branch = self.branch
-		if turn is None:
-			turn = self.turn
-		if tick is None:
-			tick = self.tick
-		try:
-			return (
-				self._graph_cache.retrieve(graph, branch, turn, tick)
-				!= "Deleted"
-			)
-		except KeyError:
-			return False
 
 	def _get_kf(
 		self,
@@ -2912,7 +3185,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyframeError:
 				locs_kf = {}
 				for thing in list(
-					self._things_cache.iter_entities(k, branch, turn, tick)
+					self._things_cache.iter_things(k, branch, turn, tick)
 				):
 					locs_kf[thing] = self._things_cache.retrieve(
 						k, thing, branch, turn, tick
@@ -3032,23 +3305,8 @@ class Engine(AbstractEngine, Executor):
 		kf["rulebook"] = self._rulebooks_cache.get_keyframe(branch, turn, tick)
 		return kf
 
-	def _load_keyframe_times(self):
-		keyframes_dict = self._keyframes_dict
-		keyframes_times = self._keyframes_times
-		q = self.query
-		for branch, turn, tick in q.keyframes_dump():
-			if branch not in keyframes_dict:
-				keyframes_dict[branch] = {turn: {tick}}
-			else:
-				keyframes_dict_branch = keyframes_dict[branch]
-				if turn not in keyframes_dict_branch:
-					keyframes_dict_branch[turn] = {tick}
-				else:
-					keyframes_dict_branch[turn].add(tick)
-			keyframes_times.add((branch, turn, tick))
-
 	def _load_plans(self) -> None:
-		q = self.query
+		q = self.database
 
 		last_plan = -1
 		plans = self._plans
@@ -3070,31 +3328,9 @@ class Engine(AbstractEngine, Executor):
 			time_plan[branch, turn, tick] = plan
 		self._last_plan = last_plan
 
-	def _load_rules_handled(self):
-		q = self.query
-		store_crh = self._character_rules_handled_cache.store
-		for row in q.character_rules_handled_dump():
-			store_crh(*row, loading=True)
-		store_arh = self._unit_rules_handled_cache.store
-		for row in q.unit_rules_handled_dump():
-			store_arh(*row, loading=True)
-		store_ctrh = self._character_thing_rules_handled_cache.store
-		for row in q.character_thing_rules_handled_dump():
-			store_ctrh(*row, loading=True)
-		store_cprh = self._character_place_rules_handled_cache.store
-		for row in q.character_place_rules_handled_dump():
-			store_cprh(*row, loading=True)
-		store_cporh = self._character_portal_rules_handled_cache.store
-		for row in q.character_portal_rules_handled_dump():
-			store_cporh(*row, loading=True)
-		store_cnrh = self._node_rules_handled_cache.store
-		for row in q.node_rules_handled_dump():
-			store_cnrh(*row, loading=True)
-		store_porh = self._portal_rules_handled_cache.store
-		for row in q.portal_rules_handled_dump():
-			store_porh(*row, loading=True)
-
-	def _upd_branch_parentage(self, parent: Branch, child: Branch) -> None:
+	def _upd_branch_parentage(
+		self, parent: Branch | None, child: Branch
+	) -> None:
 		self._childbranch[parent].add(child)
 		self._branch_parents[child].add(parent)
 		while (parent := self.branch_parent(parent)) is not None:
@@ -3102,7 +3338,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _alias_kf(
 		self, branch_from: Branch, branch_to: Branch, turn: Turn, tick: Tick
-	):
+	) -> None:
 		"""Copy a keyframe from one branch to another
 
 		This aliases the data, rather than really copying. Keyframes don't
@@ -3170,7 +3406,9 @@ class Engine(AbstractEngine, Executor):
 			cache.alias_keyframe(branch_from, branch_to, turn, tick)
 		self._mark_keyframe_loaded(branch_to, turn, tick)
 
-	def _mark_keyframe_loaded(self, branch, turn, tick):
+	def _mark_keyframe_loaded(
+		self, branch: Branch, turn: Turn, tick: Tick
+	) -> None:
 		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
 		if branch in self._keyframes_dict:
@@ -3283,20 +3521,28 @@ class Engine(AbstractEngine, Executor):
 	@staticmethod
 	def _apply_node_delta(
 		charname: CharName,
-		node_val_keyframe: dict,
-		nodes_keyframe: dict,
-		node_rulebook_keyframe: dict,
-		thing_location_keyframe: dict,
-		node_contents_keyframe: dict,
-		node_val_delta: dict,
-		nodes_delta: dict,
+		node_val_keyframe: NodeValDict,
+		nodes_keyframe: dict[NodeName, bool],
+		node_rulebook_keyframe: dict[NodeName, RulebookName],
+		thing_location_keyframe: dict[NodeName, NodeName],
+		node_contents_keyframe: dict[NodeName, set[NodeName]],
+		node_val_delta: dict[
+			NodeName,
+			dict[
+				Stat | Literal["rulebook", "location"],
+				Value | NodeName | RulebookName,
+			],
+		],
+		nodes_delta: dict[NodeName, bool],
 	) -> None:
 		for node, ex in nodes_delta.items():
 			if ex:
 				nodes_keyframe[node] = True
 				if node not in node_val_keyframe:
 					node_val_keyframe[node] = {}
-					node_rulebook_keyframe[node] = (charname, node)
+					node_rulebook_keyframe[node] = RulebookName(
+						(charname, node)
+					)
 			else:
 				if node in nodes_keyframe:
 					del nodes_keyframe[node]
@@ -3356,11 +3602,17 @@ class Engine(AbstractEngine, Executor):
 
 	@staticmethod
 	def _apply_edge_delta(
-		charname: Key,
-		edge_val_keyframe: dict,
-		edges_keyframe: dict,
-		portal_rulebook_keyframe: dict,
-		edge_val_delta: dict,
+		charname: CharName,
+		edge_val_keyframe: EdgeValDict,
+		edges_keyframe: dict[NodeName, dict[NodeName, bool]],
+		portal_rulebook_keyframe: dict[NodeName, dict[NodeName, RulebookName]],
+		edge_val_delta: dict[
+			NodeName,
+			dict[
+				NodeName,
+				dict[Stat | Literal["rulebook"], Value | RulebookName],
+			],
+		],
 		edges_delta: dict,
 	) -> None:
 		for orig, dests in edges_delta.items():
@@ -3369,9 +3621,13 @@ class Engine(AbstractEngine, Executor):
 					edge_val_keyframe.setdefault(orig, {}).setdefault(dest, {})
 					edges_keyframe.setdefault(orig, {})[dest] = True
 					portal_rulebook_keyframe.setdefault(orig, {})[dest] = (
-						charname,
-						orig,
-						dest,
+						RulebookName(
+							(
+								charname,
+								orig,
+								dest,
+							)
+						)
 					)
 				elif orig in edges_keyframe and dest in edges_keyframe[orig]:
 					del edges_keyframe[orig][dest]
@@ -3393,7 +3649,7 @@ class Engine(AbstractEngine, Executor):
 				upd = upd.copy()
 				if "rulebook" in upd:
 					portal_rulebook_keyframe.setdefault(orig, {})[dest] = (
-						upd.pop("rulebook")
+						RulebookName(upd.pop("rulebook"))
 					)
 				elif (
 					orig in edge_val_keyframe
@@ -3401,7 +3657,9 @@ class Engine(AbstractEngine, Executor):
 					and "rulebook" in edge_val_keyframe[orig][dest]
 				):
 					portal_rulebook_keyframe.setdefault(orig, {})[dest] = (
-						edge_val_keyframe[orig][dest].pop("rulebook")
+						RulebookName(
+							edge_val_keyframe[orig][dest].pop("rulebook")
+						)
 					)
 				else:
 					assert (
@@ -3483,7 +3741,7 @@ class Engine(AbstractEngine, Executor):
 				universal_keyframe[k] = v
 		if "rulebooks" in delta:
 			rulebooks_keyframe.update(delta["rulebooks"])
-		for rule, funcs in delta.get("rules", {}).items():
+		for rule, funcs in delta.pop("rules", {}).items():
 			if "triggers" in funcs and funcs["triggers"]:
 				triggers_keyframe[rule] = funcs["triggers"]
 			if "prereqs" in funcs and funcs["prereqs"]:
@@ -3504,7 +3762,7 @@ class Engine(AbstractEngine, Executor):
 		user_set_keyframe = {}
 		graphs: set[CharName] = (
 			set(self._graph_cache.iter_keys(*then)).union(delta.keys())
-			- self.illegal_graph_names
+			- ILLEGAL_CHARACTER_NAMES
 		)
 		for graph in graphs:
 			try:
@@ -3640,7 +3898,7 @@ class Engine(AbstractEngine, Executor):
 		self._neighborhoods_cache.set_keyframe(*now, neighborhoods_keyframe)
 		self._rule_bigness_cache.set_keyframe(*now, bigs)
 		self._rulebooks_cache.set_keyframe(*now, rulebooks_keyframe)
-		self.query.keyframe_extension_insert(
+		self.database.keyframe_extension_insert(
 			*now,
 			universal_keyframe,
 			{
@@ -3657,7 +3915,7 @@ class Engine(AbstractEngine, Executor):
 		kfsl = self._keyframes_loaded
 		kfs.add(now)
 		kfsl.add(now)
-		self.query.keyframe_insert(*now)
+		self.database.keyframe_insert(*now)
 		branch, turn, tick = now
 		if branch not in kfd:
 			kfd[branch] = {
@@ -3671,9 +3929,9 @@ class Engine(AbstractEngine, Executor):
 			}
 		else:
 			kfd[branch][turn].add(tick)
-		inskf = self.query.keyframe_graph_insert
+		inskf = self.database.keyframe_graph_insert
 		graphs_keyframe = {g: "DiGraph" for g in graph_val_keyframe}
-		for graph in graphs_keyframe.keys() - self.illegal_graph_names:
+		for graph in graphs_keyframe.keys() - ILLEGAL_CHARACTER_NAMES:
 			deltg = delta.get(graph, {})
 			if deltg is ...:
 				del graphs_keyframe[graph]
@@ -3835,7 +4093,7 @@ class Engine(AbstractEngine, Executor):
 
 	def _node_exists(self, character: CharName, node: NodeName) -> bool:
 		retrieve, btt = self._node_exists_stuff
-		args = (character, node) + btt()
+		args = (character, node, *btt)
 		retrieved = retrieve(args)
 		return retrieved and not isinstance(retrieved, Exception)
 
@@ -3858,7 +4116,7 @@ class Engine(AbstractEngine, Executor):
 			self._nodes_rulebooks_cache.store(
 				character, node, branch, turn, tick, (character, node)
 			)
-			self.query.set_node_rulebook(
+			self.database.set_node_rulebook(
 				character, node, branch, turn, tick, (character, node)
 			)
 		exist_node(character, node, branch, turn, tick, exist)
@@ -3867,16 +4125,16 @@ class Engine(AbstractEngine, Executor):
 		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
-		args = (character, orig, dest, *btt())
+		args = (character, orig, dest, *btt)
 		retrieved = retrieve(args)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
 	def _exist_edge(
 		self,
-		character: Key,
-		orig: Key,
-		dest: Key,
+		character: CharName,
+		orig: NodeName,
+		dest: NodeName,
 		exist: bool = True,
 		*,
 		now: Optional[Time] = None,
@@ -3887,7 +4145,7 @@ class Engine(AbstractEngine, Executor):
 		else:
 			branch, turn, tick = nbtt()
 		store(character, orig, dest, branch, turn, tick, exist)
-		if (character, orig, dest) in self._edge_objs:
+		if not exist and (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
 		if exist:
 			self._portals_rulebooks_cache.store(
@@ -3899,7 +4157,7 @@ class Engine(AbstractEngine, Executor):
 				tick,
 				(character, orig, dest),
 			)
-			self.query.set_portal_rulebook(
+			self.database.set_portal_rulebook(
 				character,
 				orig,
 				dest,
@@ -3910,7 +4168,7 @@ class Engine(AbstractEngine, Executor):
 			)
 		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
-	def _call_in_subprocess(
+	def _call_in_worker(
 		self,
 		uid,
 		method,
@@ -3921,14 +4179,22 @@ class Engine(AbstractEngine, Executor):
 	):
 		i = uid % len(self._worker_inputs)
 		uidbytes = uid.to_bytes(8, "little")
-		argbytes = zlib.compress(self.pack((method, args, kwargs)))
+		argbytes = self.pack((method, args, kwargs))
 		with self._worker_locks[i]:
 			if update:
 				self._update_worker_process_state(i, lock=False)
-			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
-			output = self._worker_outputs[i].recv_bytes()
-		got_uid = int.from_bytes(output[:8], "little")
-		result = self.unpack(zlib.decompress(output[8:]))
+			input = self._worker_inputs[i]
+			output = self._worker_outputs[i]
+			if hasattr(input, "send_bytes"):
+				input.send_bytes(uidbytes + argbytes)
+			else:
+				input.put(uidbytes + argbytes)
+			if hasattr(output, "recv_bytes"):
+				output_bytes: bytes = output.recv_bytes()
+			else:
+				output_bytes: bytes = output.get()
+		got_uid = int.from_bytes(output_bytes[:8], "little")
+		result = self.unpack(output_bytes[8:])
 		assert got_uid == uid
 		self._how_many_futs_running -= 1
 		del self._uid_to_fut[uid]
@@ -4028,69 +4294,22 @@ class Engine(AbstractEngine, Executor):
 		tick_from: Tick,
 		turn_to: Turn,
 		tick_to: Tick,
-	):
+	) -> None:
 		if self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
-			return
+			return None
 		try:
 			self._get_keyframe(branch, turn_from, tick_from, silent=True)
+			latest_past_keyframe = (branch, turn_from, tick_from)
 		except KeyframeError:
-			self._recurse_delta_keyframes(branch, turn_from, tick_from)
-		noderows = []
-		nodevalrows = []
-		edgerows = []
-		edgevalrows = []
-		graphvalrows = []
-		loaded_graphs = self.query.load_windows(
+			latest_past_keyframe = self._recurse_delta_keyframes(
+				branch, turn_from, tick_from
+			)
+		loaded = self.database.load_windows(
 			[(branch, turn_from, tick_from, turn_to, tick_to)]
 		)
-		for graph, loaded in loaded_graphs.items():
-			match graph:
-				case "graphs":
-					self._graph_cache.load(loaded)
-				case "universals":
-					self._universal_cache.load(loaded)
-				case "rulebooks":
-					self._rulebooks_cache.load(loaded)
-				case "rule_triggers":
-					self._triggers_cache.load(loaded)
-				case "rule_prereqs":
-					self._prereqs_cache.load(loaded)
-				case "rule_actions":
-					self._actions_cache.load(loaded)
-				case "rule_neighborhood":
-					self._neighborhoods_cache.load(loaded)
-				case "rule_big":
-					self._rule_bigness_cache.load(loaded)
-				case _:
-					noderows.extend(loaded["nodes"])
-					edgerows.extend(loaded["edges"])
-					nodevalrows.extend(loaded["node_val"])
-					edgevalrows.extend(loaded["edge_val"])
-					graphvalrows.extend(loaded["graph_val"])
-					if things := loaded.get("things"):
-						self._things_cache.load(things)
-					if crb := loaded.get("character_rulebook"):
-						self._characters_rulebooks_cache.load(crb)
-					if urb := loaded.get("unit_rulebook"):
-						self._units_rulebooks_cache.load(urb)
-					if cthrb := loaded.get("character_thing_rulebook"):
-						self._characters_things_rulebooks_cache.load(cthrb)
-					if cprb := loaded.get("character_place_rulebook"):
-						self._characters_places_rulebooks_cache.load(cprb)
-					if cporb := loaded.get("character_portal_rulebook"):
-						self._characters_portals_rulebooks_cache.load(cporb)
-					if nrb := loaded.get("node_rulebook"):
-						self._nodes_rulebooks_cache.load(nrb)
-					if porb := loaded.get("portal_rulebook"):
-						self._portals_rulebooks_cache.load(porb)
-					loaded_graphs[graph] = loaded
-		self._nodes_cache.load(noderows)
-		self._node_val_cache.load(nodevalrows)
-		self._edges_cache.load(edgerows)
-		self._edge_val_cache.load(edgevalrows)
-		self._graph_val_cache.load(graphvalrows)
+		self._load(latest_past_keyframe, None, [], loaded)
 		if not self._time_is_loaded_between(
 			branch, turn_from, tick_from, turn_to, tick_to
 		):
@@ -4105,7 +4324,6 @@ class Engine(AbstractEngine, Executor):
 			self._extend_loaded_window(
 				branch, turn_from, tick_from, turn_to, tick_to
 			)
-		return loaded_graphs
 
 	def _extend_loaded_window(
 		self,
@@ -4131,10 +4349,12 @@ class Engine(AbstractEngine, Executor):
 		"""Remove everything from memory that can be removed."""
 		# If we're not connected to some database, we can't unload anything
 		# without losing data
-		if isinstance(self.query, NullDatabaseConnector):
+		if isinstance(
+			self.database, (NullDatabaseConnector, PythonDatabaseConnector)
+		):
 			return
 		# find the slices of time that need to stay loaded
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		iter_parent_btt = self._iter_parent_btt
 		kfd = self._keyframes_dict
 		if not kfd:
@@ -4347,7 +4567,6 @@ class Engine(AbstractEngine, Executor):
 		tick_now = tick
 		latest_past_keyframe: Optional[Time] = None
 		earliest_future_keyframe: Optional[Time] = None
-		branch_parents = self._branch_parents
 		cache = self._keyframes_times if loading else self._keyframes_loaded
 		for branch, turn, tick in self._iter_keyframes(
 			branch_now, turn_now, tick_now, loaded=not loading
@@ -4401,7 +4620,7 @@ class Engine(AbstractEngine, Executor):
 		memory.
 
 		"""
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		self.debug("Snapping keyframe at %s, %d, %d", branch, turn, tick)
 		if (branch, turn, tick) in self._keyframes_times:
 			if silent:
@@ -4503,17 +4722,17 @@ class Engine(AbstractEngine, Executor):
 					None,
 					None,
 					list(
-						self.query.graphs_types(
-							self.query.eternal["trunk"], 0, 0
+						self.database.graphs_types(
+							self.database.eternal["trunk"], 0, 0
 						)
 					),
-					self.query.load_windows(
-						[(self.query.eternal["trunk"], 0, 0, None, None)]
+					self.database.load_windows(
+						[(self.database.eternal["trunk"], 0, 0, None, None)]
 					),
 				)
 			else:
 				windows = self._build_loading_windows(
-					self.query.eternal["trunk"], 0, 0, branch, turn, tick
+					self.database.eternal["trunk"], 0, 0, branch, turn, tick
 				)
 		else:
 			past_branch, past_turn, past_tick = latest_past_keyframe
@@ -4542,18 +4761,24 @@ class Engine(AbstractEngine, Executor):
 				)
 		graphs_types = []
 		for window in windows:
-			graphs_types.extend(self.query.graphs_types(*window))
+			graphs_types.extend(self.database.graphs_types(*window))
 		return (
 			latest_past_keyframe,
 			earliest_future_keyframe,
 			graphs_types,
-			self.query.load_windows(windows),
+			self.database.load_windows(windows),
 		)
 
 	@world_locked
 	def load_at(
 		self, branch: Branch, turn: Turn, tick: Tick | None = None
 	) -> None:
+		"""Load history data at the given time
+
+		Will load the keyframe prior to that time, and all history
+		data following, up to (but not including) the keyframe thereafter.
+
+		"""
 		if tick is None:
 			tick = self._turn_end[branch, turn]
 		if self._time_is_loaded(branch, turn, tick):
@@ -4568,84 +4793,229 @@ class Engine(AbstractEngine, Executor):
 		graphs_rows: list,
 		loaded: dict,
 	):
-		"""Load history data at the given time
-
-		Will load the keyframe prior to that time, and all history
-		data following, up to (but not including) the keyframe thereafter.
-
-		"""
 		if latest_past_keyframe:
-			if hasattr(self, "_validate_initial_keyframe_load"):
-				self._validate_initial_keyframe_load(
-					self._get_keyframe(*latest_past_keyframe)
-				)
-			else:
-				self._get_keyframe(*latest_past_keyframe, silent=True)
+			self._get_keyframe(*latest_past_keyframe, silent=True)
 
-		if universals := loaded.pop("universals", None):
-			self._universal_cache.load(universals)
-		if rulebooks := loaded.pop("rulebooks", None):
-			self._rulebooks_cache.load(rulebooks)
-		if rule_triggers := loaded.pop("rule_triggers", None):
-			self._triggers_cache.load(rule_triggers)
-		if rule_prereqs := loaded.pop("rule_prereqs", None):
-			self._prereqs_cache.load(rule_prereqs)
-		if rule_actions := loaded.pop("rule_actions", None):
-			self._actions_cache.load(rule_actions)
-		if rule_neighborhoods := loaded.pop("rule_neighborhood", None):
-			self._neighborhoods_cache.load(rule_neighborhoods)
-		if rule_big := loaded.pop("rule_big", None):
-			self._rule_bigness_cache.load(rule_big)
-		if graphs := loaded.pop("graphs", None):
-			self._graph_cache.load(graphs)
+		if universals := loaded.pop("universals", ()):
+			self._universal_cache.load(
+				(k, b, r, t, v) for (b, r, t, k, v) in universals
+			)
+		if rulebooks := loaded.pop("rulebooks", ()):
+			self._rulebooks_cache.load(
+				(rb, b, r, t, (rs, prio))
+				for (b, r, t, rb, rs, prio) in rulebooks
+			)
+		if rule_triggers := loaded.pop("rule_triggers", ()):
+			self._triggers_cache.load(
+				(rule, b, r, t, trigs)
+				for (b, r, t, rule, trigs) in rule_triggers
+			)
+		if rule_prereqs := loaded.pop("rule_prereqs", ()):
+			self._prereqs_cache.load(
+				(rule, b, r, t, preqs)
+				for (b, r, t, rule, preqs) in rule_prereqs
+			)
+		if rule_actions := loaded.pop("rule_actions", ()):
+			self._actions_cache.load(
+				(rule, b, r, t, acts) for (b, r, t, rule, acts) in rule_actions
+			)
+		if rule_neighborhoods := loaded.pop("rule_neighborhood", ()):
+			self._neighborhoods_cache.load(
+				(rule, b, r, t, nbrs)
+				for (b, r, t, rule, nbrs) in rule_neighborhoods
+			)
+		if rule_big := loaded.pop("rule_big", ()):
+			self._rule_bigness_cache.load(
+				(rule, b, r, t, big) for (b, r, t, rule, big) in rule_big
+			)
+		if graphs := loaded.pop("graphs", ()):
+			self._graph_cache.load(
+				(g, b, r, t, typ) for (b, r, t, g, typ) in graphs
+			)
+		if charrh := loaded.pop("character_rules_handled", ()):
+			self._character_rules_handled_cache.load(
+				(character, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					rulebook,
+					rule,
+					tick,
+				) in charrh
+			)
+		if unitrh := loaded.pop("unit_rules_handled", ()):
+			self._unit_rules_handled_cache.load(
+				(
+					character,
+					graph,
+					unit,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+				for (
+					branch,
+					turn,
+					character,
+					graph,
+					unit,
+					rulebook,
+					rule,
+					tick,
+				) in unitrh
+			)
+		if cthrb := loaded.pop("character_thing_rules_handled", ()):
+			self._character_thing_rules_handled_cache.load(
+				(character, thing, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					thing,
+					rulebook,
+					rule,
+					tick,
+				) in cthrb
+			)
+		if cplrh := loaded.pop("character_place_rules_handled", ()):
+			self._character_place_rules_handled_cache.load(
+				(character, place, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					place,
+					rulebook,
+					rule,
+					tick,
+				) in cplrh
+			)
+		if cporh := loaded.pop("character_portal_rules_handled", ()):
+			self._character_portal_rules_handled_cache.load(
+				(
+					character,
+					origin,
+					destination,
+					rulebook,
+					rule,
+					branch,
+					turn,
+					tick,
+				)
+				for (
+					branch,
+					turn,
+					character,
+					origin,
+					destination,
+					rulebook,
+					rule,
+					tick,
+				) in cporh
+			)
+		if nrh := loaded.pop("node_rules_handled", ()):
+			self._node_rules_handled_cache.load(
+				(character, node, rulebook, rule, branch, turn, tick)
+				for (
+					branch,
+					turn,
+					character,
+					node,
+					rulebook,
+					rule,
+					tick,
+				) in nrh
+			)
+		if porh := loaded.pop("portal_rules_handled", ()):
+			self._portal_rules_handled_cache.load(porh)
 		for loaded_graph, data in loaded.items():
 			assert isinstance(data, dict)
-			if data.get("things"):
-				self._things_cache.load(data["things"])
-			if data.get("character_rulebook"):
-				self._characters_rulebooks_cache.load(
-					data["character_rulebook"]
+			if th := data.get("things"):
+				self._things_cache.load(
+					(character, thing, branch, turn, tick, location)
+					for (branch, turn, tick, character, thing, location) in th
 				)
-			if data.get("unit_rulebook"):
-				self._units_rulebooks_cache.load(data["unit_rulebook"])
-			if data.get("character_thing_rulebook"):
-				self._characters_things_rulebooks_cache.load(
-					data["character_thing_rulebook"]
+			for crbkey, cache in zip(
+				[
+					"character_rulebook",
+					"unit_rulebook",
+					"character_thing_rulebook",
+					"character_place_rulebook",
+					"character_portal_rulebook",
+				],
+				[
+					self._characters_rulebooks_cache,
+					self._units_rulebooks_cache,
+					self._characters_things_rulebooks_cache,
+					self._characters_places_rulebooks_cache,
+					self._characters_portals_rulebooks_cache,
+				],
+			):
+				if crb := data.get(crbkey):
+					cache.load(
+						(character, branch, turn, tick, rulebook)
+						for (branch, turn, tick, character, rulebook) in crb
+					)
+			if nrb := data.get("node_rulebook"):
+				self._nodes_rulebooks_cache.load(
+					(character, node, branch, turn, tick, rulebook)
+					for (branch, turn, tick, character, node, rulebook) in nrb
 				)
-			if data.get("character_place_rulebook"):
-				self._characters_places_rulebooks_cache.load(
-					data["character_place_rulebook"]
+			if porb := data.get("portal_rulebook"):
+				self._portals_rulebooks_cache.load(
+					(char, orig, dest, branch, turn, tick, rb)
+					for (branch, turn, tick, char, orig, dest, rb) in porb
 				)
-			if data.get("character_portal_rulebook"):
-				self._characters_portals_rulebooks_cache.load(
-					data["character_portal_rulebook"]
+			if u := data.get("units"):
+				self._unitness_cache.load(
+					(character, graph, unit, branch, turn, tick, is_unit)
+					for (
+						branch,
+						turn,
+						tick,
+						character,
+						graph,
+						unit,
+						is_unit,
+					) in u
 				)
-			if data.get("node_rulebook"):
-				self._nodes_rulebooks_cache.load(data["node_rulebook"])
-			if data.get("portal_rulebook"):
-				self._portals_rulebooks_cache.load(data["portal_rulebook"])
-			if data.get("units"):
-				self._unitness_cache.load(data["units"])
-
-		self._graph_cache.load(graphs_rows)
-		noderows = []
-		edgerows = []
-		nodevalrows = []
-		edgevalrows = []
-		graphvalrows = []
-		for graph, graph_loaded in loaded.items():
-			noderows.extend(graph_loaded["nodes"])
-			edgerows.extend(graph_loaded["edges"])
-			nodevalrows.extend(graph_loaded["node_val"])
-			edgevalrows.extend(graph_loaded["edge_val"])
-			graphvalrows.extend(graph_loaded["graph_val"])
-
-		self._graph_cache.load(graphs_rows)
-		self._nodes_cache.load(noderows)
-		self._edges_cache.load(edgerows)
-		self._graph_val_cache.load(graphvalrows)
-		self._node_val_cache.load(nodevalrows)
-		self._edge_val_cache.load(edgevalrows)
+			if n := data.get("nodes"):
+				self._nodes_cache.load(
+					(graph, node, branch, turn, tick, x)
+					for (branch, turn, tick, graph, node, x) in n
+				)
+			if nv := data.get("node_val"):
+				self._node_val_cache.load(
+					(graph, node, key, branch, turn, tick, value)
+					for (branch, turn, tick, graph, node, key, value) in nv
+				)
+			if e := data.get("edges"):
+				self._edges_cache.load(
+					(graph, orig, dest, branch, turn, tick, x)
+					for (branch, turn, tick, graph, orig, dest, x) in e
+				)
+			if ev := data.get("edge_val"):
+				self._edge_val_cache.load(
+					(graph, orig, dest, key, branch, turn, tick, value)
+					for (
+						branch,
+						turn,
+						tick,
+						graph,
+						orig,
+						dest,
+						key,
+						value,
+					) in ev
+				)
+			if gv := data.get("graph_val"):
+				self._graph_val_cache.load(
+					(graph, key, branch, turn, tick, value)
+					for (branch, turn, tick, graph, key, value) in gv
+				)
 
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
@@ -4676,10 +5046,12 @@ class Engine(AbstractEngine, Executor):
 				"Use, eg., the engine's attribute `function` to store it."
 			)
 		uid = self._top_uid
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			ret = Future()
 			ret._t = Thread(
-				target=self._call_in_subprocess,
+				target=self._call_in_worker,
 				args=(uid, fn, ret, *args),
 				kwargs=kwargs,
 			)
@@ -4694,7 +5066,7 @@ class Engine(AbstractEngine, Executor):
 				"fake_submit(fn, *args, **kwargs)",
 				globls,
 				{
-					"fake_submit": fake_submit,
+					"fake_submit": FakeFuture,
 					"fn": fn,
 					"args": args,
 					"kwargs": kwargs,
@@ -4704,58 +5076,6 @@ class Engine(AbstractEngine, Executor):
 		self._top_uid += 1
 		return ret
 
-	def _manage_futs(self):
-		while not hasattr(self, "_closed"):
-			while self._how_many_futs_running < self._workers:
-				try:
-					fut = self._futs_to_start.get()
-				except Empty:
-					break
-				if not fut.running() and fut.set_running_or_notify_cancel():
-					fut._t.start()
-					self._how_many_futs_running += 1
-			sleep(0.001)
-
-	def shutdown(self, wait=True, *, cancel_futures=False) -> None:
-		if not hasattr(self, "_worker_processes"):
-			return
-		if cancel_futures:
-			for fut in self._uid_to_fut.values():
-				fut.cancel()
-		if wait:
-			futwait(self._uid_to_fut.values())
-		self._uid_to_fut = {}
-
-		if hasattr(self, "_worker_processes"):
-			for i, (lock, pipein, pipeout, proc) in enumerate(
-				zip(
-					self._worker_locks,
-					self._worker_inputs,
-					self._worker_outputs,
-					self._worker_processes,
-				)
-			):
-				with lock:
-					if not proc.is_alive():
-						continue
-					pipein.send_bytes(b"shutdown")
-					proc.join(timeout=SUBPROCESS_TIMEOUT)
-					if proc.exitcode is None:
-						if KILL_SUBPROCESS:
-							os.kill(proc.pid, signal.SIGKILL)
-						else:
-							raise RuntimeError("Worker process didn't exit", i)
-					if not KILL_SUBPROCESS and proc.exitcode != 0:
-						raise RuntimeError(
-							"Worker process didn't exit normally",
-							i,
-							proc.exitcode,
-						)
-					proc.close()
-					pipein.close()
-					pipeout.close()
-			del self._worker_processes
-
 	def _detect_kf_interval_override(self):
 		if self._planning:
 			return True
@@ -4764,14 +5084,14 @@ class Engine(AbstractEngine, Executor):
 
 	def _reimport_some_functions(self, some):
 		if getattr(self, "_prefix", None) is not None:
-			self._call_every_subprocess(f"_reimport_{some}")
+			self._call_every_worker(f"_reimport_{some}")
 		else:
 			callables = {}
 			for att in dir(getattr(self, some)):
-				v = getattr(getattr(self.some), att)
+				v = getattr(getattr(self, some), att)
 				if callable(v):
 					callables[att] = v
-			self._call_every_subprocess(
+			self._call_every_worker(
 				f"_replace_{some}_pkl", pickle.dumps(callables)
 			)
 
@@ -4805,79 +5125,69 @@ class Engine(AbstractEngine, Executor):
 				plainstored[name] = dict(store.iterplain())
 			else:
 				pklstored[name] = pickle.dumps(store)
-		return uid.to_bytes(8, "little") + zlib.compress(
-			self.pack(
+		return uid.to_bytes(8, "little") + self.pack(
+			(
+				"_upd_from_game_start",
 				(
-					"_upd_from_game_start",
+					None,
+					*self.time,
 					(
-						None,
-						*self._btt(),
-						(
-							self.snap_keyframe(update_worker_processes=False),
-							dict(self.eternal.items()),
-							plainstored,
-							pklstored,
-						),
+						self.snap_keyframe(update_worker_processes=False),
+						dict(self.eternal.items()),
+						plainstored,
+						pklstored,
 					),
-					{},
-				)
+				),
+				{},
 			)
 		)
 
-	def _call_any_subprocess(self, method: str | callable, *args, **kwargs):
+	def _call_any_worker(
+		self, method: str | FunctionType | MethodType, *args, **kwargs
+	):
 		uid = self._top_uid
 		self._top_uid += 1
-		return self._call_in_subprocess(uid, method, *args, **kwargs)
-
-	@contextmanager
-	def _all_worker_locks_ctx(self):
-		for lock in self._worker_locks:
-			lock.acquire()
-		yield
-		for lock in self._worker_locks:
-			lock.release()
+		return self._call_in_worker(uid, method, *args, **kwargs)
 
 	@staticmethod
-	def _all_worker_locks(fn):
+	def _all_code_stores_saved(fn):
 		@wraps(fn)
-		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self._all_worker_locks_ctx():
-				return fn(self, *args, **kwargs)
+		def save_all_code_stores_and_call(self, *args, **kwargs):
+			for store in (
+				self.function,
+				self.method,
+				self.trigger,
+				self.prereq,
+				self.action,
+			):
+				if store._need_save:
+					store.save()
+			return fn(self, *args, **kwargs)
 
-		return call_with_all_worker_locks
+		return save_all_code_stores_and_call
 
-	@_all_worker_locks
-	def _call_every_subprocess(self, method: str, *args, **kwargs):
-		ret = []
-		uids = []
-		for _ in range(len(self._worker_processes)):
-			uids.append(self._top_uid)
-			uidbytes = self._top_uid.to_bytes(8, "little")
-			argbytes = zlib.compress(self.pack((method, args, kwargs)))
-			i = self._top_uid % len(self._worker_processes)
-			self._top_uid += 1
-			self._worker_inputs[i].send_bytes(uidbytes + argbytes)
-		for uid in uids:
-			i = uid % len(self._worker_processes)
-			outbytes = self._worker_outputs[i].recv_bytes()
-			got_uid = int.from_bytes(outbytes[:8], "little")
-			assert got_uid == uid
-			retval = self.unpack(zlib.decompress(outbytes[8:]))
-			if isinstance(retval, Exception):
-				raise retval
-			ret.append(retval)
-		return ret
+	@_all_code_stores_saved
+	def _call_every_worker(self, method: str, *args, **kwargs):
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
+		self._executor.call_every_worker(
+			self.pack(method), self.pack(args), self.pack(kwargs)
+		)
 
 	@world_locked
 	def _init_graph(
 		self,
 		name: CharName,
 		type_s: str = "DiGraph",
-		data: CharacterFacade | Graph | nx.Graph | dict | KeyframeTuple = None,
+		data: CharacterFacade
+		| Graph
+		| nx.Graph
+		| dict
+		| KeyframeGraphRowType = None,
 	) -> None:
-		if name in self.illegal_graph_names:
+		if name in ILLEGAL_CHARACTER_NAMES:
 			raise GraphNameError("Illegal name")
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		if (turn, tick) != (0, 0):
 			branch, turn, tick = self._nbtt()
 		for rbcache, rbname in [
@@ -4908,9 +5218,16 @@ class Engine(AbstractEngine, Executor):
 						kf[ch] = (rbname, ch)
 			kf[name] = (rbname, name)
 			rbcache.set_keyframe(branch, turn, tick, kf)
-		self._graph_cache.store(name, branch, turn, tick, type_s)
+		if (turn, tick) == (0, 0):
+			with self._graph_cache.overwriting():
+				self._graph_cache.store(name, branch, turn, tick, type_s)
+		else:
+			self._graph_cache.store(name, branch, turn, tick, type_s)
+		# You need the following "meaningless" keyframe snap so that the keyframe
+		# you're making isn't missing everything apart from the characters.
+		# Don't delete it.
 		self.snap_keyframe(silent=True, update_worker_processes=False)
-		self.query.graphs_insert(name, branch, turn, tick, type_s)
+		self.database.graphs_insert(name, branch, turn, tick, type_s)
 		self._extend_branch(branch, turn, tick)
 		if isinstance(data, DiGraph):
 			nodes = data._nodes_state()
@@ -4919,7 +5236,7 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, val
 			)
-			self.query.keyframe_graph_insert(
+			self.database.keyframe_graph_insert(
 				name, branch, turn, tick, nodes, edges, val
 			)
 		elif isinstance(data, nx.Graph):
@@ -4930,15 +5247,6 @@ class Engine(AbstractEngine, Executor):
 				for dest, stats in data.adj[orig].items():
 					succs[dest] = stats.copy()
 			self._snap_keyframe_de_novo_graph(
-				name,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				data.graph,
-			)
-			self.query.keyframe_graph_insert(
 				name,
 				branch,
 				turn,
@@ -4961,35 +5269,24 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo_graph(
 				name, branch, turn, tick, nodes, edges, {}
 			)
-			self.query.keyframe_graph_insert(
-				name,
-				branch,
-				turn,
-				tick,
-				nodes,
-				edges,
-				{},
-			)
 		elif data is None:
 			self._snap_keyframe_de_novo_graph(
-				name, branch, turn, tick, {}, {}, {}
-			)
-			self.query.keyframe_graph_insert(
 				name, branch, turn, tick, {}, {}, {}
 			)
 		else:
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
 				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
-			self.query.keyframe_graph_insert(name, branch, turn, tick, *data)
-		if hasattr(self, "_worker_processes"):
-			self._call_every_subprocess("_add_character", name, data)
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
+			self._call_every_worker("_add_character", name, data)
 
 	@world_locked
 	def _complete_turn(self, branch: Branch, turn: Turn) -> None:
 		self._extend_branch(branch, turn, self.turn_end_plan(branch, turn))
 		self._turns_completed_d[branch] = turn
-		self.query.complete_turn(
+		self.database.complete_turn(
 			branch, turn, discard_rules=not self.keep_rules_journal
 		)
 
@@ -5022,7 +5319,7 @@ class Engine(AbstractEngine, Executor):
 		Somewhat imprecise.
 
 		"""
-		kfint = self.query.keyframe_interval
+		kfint = self.database.keyframe_interval
 		if kfint is None:
 			return False
 		if turn_from == turn_to:
@@ -5166,6 +5463,14 @@ class Engine(AbstractEngine, Executor):
 	def _get_slow_delta(
 		self, btt_from: Time, btt_to: Time
 	) -> SlightlyPackedDeltaType:
+		btt_from = validate_time(btt_from)
+		if len(btt_from) != 3:
+			raise TypeError("Not a full time with a branch", btt_from)
+		btt_to = validate_time(btt_to)
+		if len(btt_to) != 3:
+			raise TypeError("Not a full time with a branch", btt_to)
+		import numpy as np
+
 		def newgraph():
 			return {
 				# null mungers mean KeyError, which is correct
@@ -5189,7 +5494,7 @@ class Engine(AbstractEngine, Executor):
 			RULEBOOK: PickyDefaultDict(bytes),
 		}
 		pack = self.pack
-		now = self._btt()
+		now = tuple(self.time)
 		self._set_btt(*btt_from)
 		kf_from = self.snap_keyframe()
 		self._set_btt(*btt_to)
@@ -5386,7 +5691,9 @@ class Engine(AbstractEngine, Executor):
 				for orig in kf_to["edges"][graph]:
 					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
-			values_changed: np.array = np.array(ids_from) != np.array(ids_to)
+			values_changed: np.array[bool] = np.array(ids_from) != np.array(
+				ids_to
+			)
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
@@ -5487,12 +5794,9 @@ class Engine(AbstractEngine, Executor):
 		"""
 		if hasattr(self, "_closed"):
 			raise RuntimeError("Already closed")
-		time_was: tuple[Turn, Tick] = (self.turn, self.tick)
-		if time_was > self._branch_end():
-			(self.turn, self.tick) = self._branch_end()
 		if (
-			self._keyframe_on_close
-			and self._btt() not in self._keyframes_times
+			self.keyframe_on_close
+			and tuple(self.time) not in self._keyframes_times
 		):
 			if hasattr(self, "_validate_final_keyframe"):
 				self._validate_final_keyframe(
@@ -5500,7 +5804,6 @@ class Engine(AbstractEngine, Executor):
 				)
 			else:
 				self.snap_keyframe(silent=True, update_worker_processes=False)
-		(self.turn, self.tick) = time_was
 		for store in self.stores:
 			if hasattr(store, "save"):
 				store.save(reimport=False)
@@ -5512,20 +5815,14 @@ class Engine(AbstractEngine, Executor):
 				del sys.modules[modname]
 		self.commit()
 		self.shutdown()
-		self.query.close()
 		for cache in self._caches:
 			if hasattr(cache, "clear"):
 				cache.clear()
 		gc.collect()
+		self.database.close()
+		if getattr(self, "executor", None):
+			self.executor.lock.release()
 		self._closed = True
-
-	def __enter__(self):
-		"""Return myself. For compatibility with ``with`` semantics."""
-		return self
-
-	def __exit__(self, *args):
-		"""Close on exit."""
-		self.close()
 
 	def _handled_char(
 		self,
@@ -5539,7 +5836,7 @@ class Engine(AbstractEngine, Executor):
 		self._character_rules_handled_cache.store(
 			charn, rulebook, rulen, branch, turn, tick
 		)
-		self.query.handled_character_rule(
+		self.database.handled_character_rule(
 			charn, rulebook, rulen, branch, turn, tick
 		)
 
@@ -5557,7 +5854,7 @@ class Engine(AbstractEngine, Executor):
 		self._unit_rules_handled_cache.store(
 			character, graph, avatar, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_unit_rule(
+		self.database.handled_unit_rule(
 			character, rulebook, rule, graph, avatar, branch, turn, tick
 		)
 
@@ -5574,7 +5871,7 @@ class Engine(AbstractEngine, Executor):
 		self._character_thing_rules_handled_cache.store(
 			character, thing, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_character_thing_rule(
+		self.database.handled_character_thing_rule(
 			character, rulebook, rule, thing, branch, turn, tick
 		)
 
@@ -5591,7 +5888,7 @@ class Engine(AbstractEngine, Executor):
 		self._character_place_rules_handled_cache.store(
 			character, place, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_character_place_rule(
+		self.database.handled_character_place_rule(
 			character, rulebook, rule, place, branch, turn, tick
 		)
 
@@ -5609,7 +5906,7 @@ class Engine(AbstractEngine, Executor):
 		self._character_portal_rules_handled_cache.store(
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_character_portal_rule(
+		self.database.handled_character_portal_rule(
 			character, rulebook, rule, orig, dest, branch, turn, tick
 		)
 
@@ -5626,7 +5923,7 @@ class Engine(AbstractEngine, Executor):
 		self._node_rules_handled_cache.store(
 			character, node, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_node_rule(
+		self.database.handled_node_rule(
 			character, node, rulebook, rule, branch, turn, tick
 		)
 
@@ -5644,22 +5941,51 @@ class Engine(AbstractEngine, Executor):
 		self._portal_rules_handled_cache.store(
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
-		self.query.handled_portal_rule(
+		self.database.handled_portal_rule(
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
 	@world_locked
-	@_all_worker_locks
-	def _update_all_worker_process_states(self, clobber: bool = False):
+	def _update_all_worker_process_states(
+		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
+	):
+		if not hasattr(self, "_executor"):
+			raise RuntimeError("Not parallel")
+		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
-			store.save(reimport=False)
+			if getattr(store, "_need_save", None):
+				if hasattr(store, "reimport"):
+					store.save(reimport=False)
+					stores_to_reimport.add(store.__name__)
+				else:
+					store.save()
 		kf_payload = None
 		deltas = {}
-		for i in range(len(self._worker_processes)):
+		n = self._executor.workers
+		for i in range(n):
 			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-			if (branch_from, turn_from, tick_from) == self._btt():
+			if (
+				not clobber
+				and (branch_from, turn_from, tick_from) == self.time
+			):
 				continue
-			if not clobber and branch_from == self.branch:
+			input = self._worker_inputs[i]
+			if hasattr(input, "send_bytes"):
+				put = input.send_bytes
+			else:
+				put = input.put
+			if stores_to_reimport:
+				put(
+					sys.maxsize.to_bytes(8, "little")
+					+ self.pack(
+						("_reimport_code", (list(stores_to_reimport),), {})
+					)
+				)
+			if clobber or branch_from != self.branch:
+				if kf_payload is None:
+					kf_payload = self._get_worker_kf_payload()
+				put(kf_payload)
+			else:
 				old_eternal = self._worker_last_eternal
 				new_eternal = self._worker_last_eternal = dict(
 					self.eternal.items()
@@ -5701,37 +6027,39 @@ class Engine(AbstractEngine, Executor):
 							continue
 						else:
 							pkl[name] = pickle.dumps(store)
-				argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
-					self.pack(
+				argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
+					(
+						"_upd",
 						(
-							"_upd",
-							(
-								None,
-								self.branch,
-								self.turn,
-								self.tick,
-								(None, delt),
-							),
-							kwargs,
-						)
+							None,
+							self.branch,
+							self.turn,
+							self.tick,
+							(None, delt),
+						),
+						kwargs,
 					)
 				)
-				self._worker_inputs[i].send_bytes(argbytes)
-			else:
-				if kf_payload is None:
-					kf_payload = self._get_worker_kf_payload()
-				self._worker_inputs[i].send_bytes(kf_payload)
-			self._worker_updated_btts[i] = self._btt()
+
+				put(argbytes)
+			self._worker_updated_btts[i] = tuple(self.time)
 			self.debug(
 				"Updated all worker process states at "
 				+ repr(self._worker_updated_btts[i])
 				+ f" ({len(deltas)} distinct deltas)"
 			)
 
+	def shutdown(
+		self, wait: bool = True, *, cancel_futures: bool = False
+	) -> None:
+		if self.executor and self._shutdown_executor:
+			self.executor.shutdown(wait, cancel_futures=cancel_futures)
+			del self.executor
+
 	@world_locked
 	def _update_worker_process_state(self, i, lock=True):
 		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-		if (branch_from, turn_from, tick_from) == self._btt():
+		if (branch_from, turn_from, tick_from) == self.time:
 			return
 		old_eternal = self._worker_last_eternal
 		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
@@ -5745,30 +6073,33 @@ class Engine(AbstractEngine, Executor):
 				branch_from, turn_from, tick_from, self.turn, self.tick
 			)
 			delt["eternal"] = eternal_delta
-			argbytes = sys.maxsize.to_bytes(8, "little") + zlib.compress(
-				self.pack(
+			argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
+				(
+					"_upd",
 					(
-						"_upd",
-						(
-							None,
-							self.branch,
-							self.turn,
-							self.tick,
-							(None, delt),
-						),
-						{},
-					)
+						None,
+						self.branch,
+						self.turn,
+						self.tick,
+						(None, delt),
+					),
+					{},
 				)
 			)
 		else:
 			argbytes = self._get_worker_kf_payload()
+		input = self._worker_inputs[i]
+		if hasattr(input, "send_bytes"):
+			put = input.send_bytes
+		else:
+			put = input.put
 		if lock:
 			with self._worker_locks[i]:
-				self._worker_inputs[i].send_bytes(argbytes)
-				self._worker_updated_btts[i] = self._btt()
+				put(argbytes)
+				self._worker_updated_btts[i] = tuple(self.time)
 		else:
-			self._worker_inputs[i].send_bytes(argbytes)
-			self._worker_updated_btts[i] = self._btt()
+			put(argbytes)
+			self._worker_updated_btts[i] = tuple(self.time)
 		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
@@ -5784,7 +6115,7 @@ class Engine(AbstractEngine, Executor):
 				*entity,
 				0,
 			)
-		branch, turn, _ = self._btt()
+		branch, turn, _ = self.time
 		turn -= 1
 		if turn <= self.branch_start_turn():
 			branch = self.branch_parent(branch)
@@ -5813,7 +6144,7 @@ class Engine(AbstractEngine, Executor):
 		):
 			return
 		if self.trigger.truth in rule.triggers:
-			fut = fake_submit(self.trigger.truth)
+			fut = FakeFuture(self.trigger.truth)
 			fut.rule = rule
 			fut.prio = prio
 			fut.entity = entity
@@ -5862,45 +6193,46 @@ class Engine(AbstractEngine, Executor):
 		mark_handled(self.tick)
 		return actres
 
+	@world_locked
 	def _get_place_neighbors(
 		self, charn: CharName, name: NodeName
 	) -> set[Key]:
 		seen: set[Key] = set()
-		for succ in self._edges_cache.iter_successors(
-			charn, name, *self._btt()
-		):
+		for succ in self._edges_cache.iter_successors(charn, name, *self.time):
 			seen.add(succ)
 		for pred in self._edges_cache.iter_predecessors(
-			charn, name, *self._btt()
+			charn, name, *self.time
 		):
 			seen.add(pred)
 		return seen
 
+	@world_locked
 	def _get_place_contents(self, charn: CharName, name: NodeName) -> set[Key]:
 		try:
-			return self._node_contents_cache.retrieve(
-				charn, name, *self._btt()
-			)
+			return self._node_contents_cache.retrieve(charn, name, *self.time)
 		except KeyError:
 			return set()
 
+	@world_locked
 	def _iter_place_portals(
 		self, charn: CharName, name: NodeName
 	) -> Iterator[tuple[Key, Key]]:
-		now = self._btt()
+		now = tuple(self.time)
 		for dest in self._edges_cache.iter_successors(charn, name, *now):
 			yield (name, dest)
 		for orig in self._edges_cache.iter_predecessors(charn, name, *now):
 			yield (orig, name)
 
+	@world_locked
 	def _get_thing_location_tup(
 		self, charn: CharName, name: NodeName
-	) -> tuple[Key, Key] | ():
+	) -> tuple[Key] | tuple[()]:
 		try:
-			return (self._things_cache.retrieve(charn, name, *self._btt()),)
+			return (self._things_cache.retrieve(charn, name, *self.time),)
 		except KeyError:
 			return ()
 
+	@world_locked
 	def _get_neighbors(
 		self,
 		entity: place_cls | thing_cls | portal_cls,
@@ -5914,7 +6246,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		charn = entity.character.name
-		btt = self._btt()
+		btt = tuple(self.time)
 
 		if neighborhood is None:
 			return None
@@ -5929,13 +6261,14 @@ class Engine(AbstractEngine, Executor):
 			)
 		if cache_key in self._neighbors_cache:
 			return self._neighbors_cache[cache_key]
+		neighbors: list[tuple[NodeName] | tuple[NodeName, NodeName]] = []
 		if hasattr(entity, "name"):
-			neighbors = [(entity.name,)]
+			neighbors.append((entity.name,))
 			while hasattr(entity, "location"):
 				entity = entity.location
 				neighbors.append((entity.name,))
 		else:
-			neighbors = [(entity.origin.name, entity.destination.name)]
+			neighbors.append((entity.origin.name, entity.destination.name))
 		seen = set(neighbors)
 		i = 0
 		for _ in range(neighborhood):
@@ -6003,7 +6336,7 @@ class Engine(AbstractEngine, Executor):
 		if neighborhood is None:
 			return None
 
-		branch_now, turn_now, tick_now = self._btt()
+		branch_now, turn_now, tick_now = self.time
 		if turn_now <= 1:
 			# everything's "created" at the start of the game,
 			# and therefore, there's been a "change" to the neighborhood
@@ -6019,6 +6352,7 @@ class Engine(AbstractEngine, Executor):
 			return None
 		return this_turn_neighbors
 
+	@world_locked
 	def _get_thing(self, graphn: CharName, thingn: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, thingn)
@@ -6026,6 +6360,7 @@ class Engine(AbstractEngine, Executor):
 			node_objs[key] = self.thing_cls(self.character[graphn], thingn)
 		return node_objs[key]
 
+	@world_locked
 	def _get_place(self, graphn: CharName, placen: NodeName):
 		node_objs = self._node_objs
 		key = (graphn, placen)
@@ -6044,7 +6379,7 @@ class Engine(AbstractEngine, Executor):
 	]
 
 	def _eval_triggers(self) -> RulesTodoType:
-		branch, turn, tick = self._btt()
+		branch, turn, tick = self.time
 		charmap = self.character
 		rulemap = self.rule
 		todo: dict[
@@ -6488,7 +6823,7 @@ class Engine(AbstractEngine, Executor):
 		elif isinstance(ent, (cls.place_cls, cls.thing_cls)):
 			return (ent.character.name, ent.name)
 		else:
-			assert isinstance(ent, cls.edge_cls)
+			assert isinstance(ent, cls.portal_cls)
 			return (ent.character.name, ent.orig, ent.dest)
 
 	def _get_entity_from_key(self, ent_key: EntityKey) -> entity_cls:
@@ -6629,9 +6964,11 @@ class Engine(AbstractEngine, Executor):
 		if self.branch != self.trunk or self.turn != 0 or self.tick != 0:
 			self._nbtt()
 		self._init_graph(name, "DiGraph", data)
-		if self._btt() not in self._keyframes_times:
+		if tuple(self.time) not in self._keyframes_times:
 			self.snap_keyframe(silent=True, update_worker_processes=False)
-		if hasattr(self, "_worker_processes"):
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
 			self._update_all_worker_process_states(clobber=True)
 
 	@world_locked
@@ -6653,28 +6990,28 @@ class Engine(AbstractEngine, Executor):
 					now = graph.node[node]._delete(now=now)
 			for stat in set(graph.graph) - {"name", "units"}:
 				self._graph_val_cache.store(name, stat, *now, None)
-				self.query.graph_val_set(name, stat, *now, None)
-			self._graph_cache.store(name, *now, ...)
-			self.query.graphs_insert(name, *now, "Deleted")
+				self.database.graph_val_set(name, stat, *now, None)
+			self._graph_cache.store(name, *now, "Deleted")
+			self.database.graphs_insert(name, *now, "Deleted")
 			self._graph_cache.keycache.clear()
-		if hasattr(self, "_worker_processes"):
-			self._call_every_subprocess("_del_character", name)
+		if hasattr(self, "_worker_processes") or hasattr(
+			self, "_worker_interpreters"
+		):
+			self._call_every_worker("_del_character", name)
 
 	def _is_thing(self, character: CharName, node: NodeName) -> bool:
-		return self._things_cache.contains_entity(
-			character, node, *self._btt()
-		)
+		return self._things_cache.contains_entity(character, node, *self.time)
 
 	@world_locked
 	def _set_thing_loc(
-		self, character: CharName, node: NodeName, loc: NodeName
+		self, character: CharName, node: NodeName, loc: NodeName | type(...)
 	) -> None:
-		if loc is not None:
+		if loc is not ...:
 			# make sure the location really exists now
 			self._nodes_cache.retrieve(character, loc, *self.time)
 		branch, turn, tick = self._nbtt()
 		self._things_cache.store(character, node, branch, turn, tick, loc)
-		self.query.set_thing_loc(character, node, branch, turn, tick, loc)
+		self.database.set_thing_loc(character, node, branch, turn, tick, loc)
 
 	def _snap_keyframe_de_novo(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -6725,7 +7062,7 @@ class Engine(AbstractEngine, Executor):
 			except KeyError:
 				rbs[rbname] = (tuple(), 0.0)
 		self._rulebooks_cache.set_keyframe(branch, turn, tick, rbs)
-		rulenames = list(self._rules_cache)
+		rulenames = list(self.rule)
 		trigs = {}
 		preqs = {}
 		acts = {}
@@ -6822,7 +7159,7 @@ class Engine(AbstractEngine, Executor):
 				except KeyError:
 					kf[ch] = (rbcache.name, ch)
 			rbcache.set_keyframe(branch, turn, tick, kf)
-		self.query.keyframe_extension_insert(
+		self.database.keyframe_extension_insert(
 			branch,
 			turn,
 			tick,
@@ -6839,8 +7176,8 @@ class Engine(AbstractEngine, Executor):
 		kfd = self._keyframes_dict
 		self._keyframes_times.add((branch, turn, tick))
 		self._keyframes_loaded.add((branch, turn, tick))
-		inskf = self.query.keyframe_graph_insert
-		self.query.keyframe_insert(branch, turn, tick)
+		inskf = self.database.keyframe_graph_insert
+		self.database.keyframe_insert(branch, turn, tick)
 		nrbcache = self._nodes_rulebooks_cache
 		porbcache = self._portals_rulebooks_cache
 		for graphn in all_graphs:
@@ -6904,6 +7241,14 @@ class Engine(AbstractEngine, Executor):
 		edges: EdgeValDict,
 		graph_val: StatDict,
 	) -> None:
+		combined_nodes = {node: val.copy() for (node, val) in nodes.items()}
+		combined_edges = {
+			orig: {dest: val.copy() for (dest, val) in dests.items()}
+			for (orig, dests) in edges.items()
+		}
+		combined_graph_val = {}
+		for k, v in graph_val.items():
+			combined_graph_val[k] = copy(v)
 		for rb_kf_type, rb_kf_cache in [
 			("character_rulebook", self._characters_rulebooks_cache),
 			("unit_rulebook", self._units_rulebooks_cache),
@@ -6926,6 +7271,7 @@ class Engine(AbstractEngine, Executor):
 				kf = {}
 			kf[graph] = graph_val.pop(rb_kf_type, (rb_kf_type, graph))
 			rb_kf_cache.set_keyframe(branch, turn, tick, kf)
+			combined_graph_val[rb_kf_type] = kf[graph]
 		units_kf = graph_val.pop("units", {})
 		self._unitness_cache.set_keyframe(graph, branch, turn, tick, units_kf)
 		for char, units in units_kf.items():
@@ -6943,11 +7289,18 @@ class Engine(AbstractEngine, Executor):
 			self._unitness_cache.leader_cache.set_keyframe(
 				char, branch, turn, tick, user_kf
 			)
+		if units_kf:
+			combined_graph_val["units"] = {
+				graph: {unit: bool(exists) for (unit, exists) in units.items()}
+				for (graph, units) in units_kf.items()
+			}
 		node_rb_kf = {}
 		locs_kf = {}
 		conts_kf = {}
 		for unit, val in nodes.items():
-			node_rb_kf[unit] = val.pop("rulebook", (graph, unit))
+			node_rb_kf[unit] = combined_nodes[unit]["rulebook"] = val.pop(
+				"rulebook", (graph, unit)
+			)
 			if "location" not in val:
 				continue
 			locs_kf[unit] = location = val["location"]
@@ -6959,6 +7312,10 @@ class Engine(AbstractEngine, Executor):
 			graph, branch, turn, tick, node_rb_kf
 		)
 		self._things_cache.set_keyframe(graph, branch, turn, tick, locs_kf)
+		assert (graph,) in self._things_cache.keyframe
+		assert branch in self._things_cache.keyframe[graph,]
+		assert turn in self._things_cache.keyframe[graph,][branch]
+		assert tick in self._things_cache.keyframe[graph,][branch][turn]
 		self._node_contents_cache.set_keyframe(
 			graph,
 			branch,
@@ -6972,7 +7329,9 @@ class Engine(AbstractEngine, Executor):
 				continue
 			port_rb_kf[orig] = rbs = {}
 			for dest, port in dests.items():
-				rbs[dest] = port.pop("rulebook", (graph, orig, dest))
+				rbs[dest] = combined_edges[orig][dest]["rulebook"] = port.pop(
+					"rulebook", (graph, orig, dest)
+				)
 		self._portals_rulebooks_cache.set_keyframe(
 			graph,
 			branch,
@@ -7011,6 +7370,16 @@ class Engine(AbstractEngine, Executor):
 		self._graph_val_cache.set_keyframe(
 			graph, branch, turn, tick, graph_val
 		)
+		self.database.keyframe_insert(branch, turn, tick)
+		self.database.keyframe_graph_insert(
+			graph,
+			branch,
+			turn,
+			tick,
+			combined_nodes,
+			combined_edges,
+			combined_graph_val,
+		)
 		if (branch, turn, tick) not in self._keyframes_times:
 			self._keyframes_times.add((branch, turn, tick))
 			self._keyframes_loaded.add((branch, turn, tick))
@@ -7022,12 +7391,6 @@ class Engine(AbstractEngine, Executor):
 					turns[turn] = {tick}
 			else:
 				self._keyframes_dict[branch] = {turn: {tick}}
-		assert (
-			(graph,) in self._things_cache.keyframe
-			and branch in self._things_cache.keyframe[graph,]
-			and turn in self._things_cache.keyframe[graph,][branch]
-			and tick in self._things_cache.keyframe[graph,][branch][turn]
-		)
 
 	def flush(self) -> None:
 		"""Write pending changes to disk.
@@ -7039,7 +7402,7 @@ class Engine(AbstractEngine, Executor):
 
 		"""
 		turn_end = self._turn_end
-		set_turn = self.query.set_turn
+		set_turn = self.database.set_turn
 		if self._turn_end_plan.changed:
 			for (
 				branch,
@@ -7047,7 +7410,7 @@ class Engine(AbstractEngine, Executor):
 			), plan_end_tick in self._turn_end_plan.changed.items():
 				set_turn(branch, turn, turn_end[branch, turn], plan_end_tick)
 			self._turn_end_plan.apply_changes()
-		set_branch = self.query.set_branch
+		set_branch = self.database.set_branch
 		if self._branches_d.changed:
 			for branch, (
 				parent,
@@ -7060,7 +7423,7 @@ class Engine(AbstractEngine, Executor):
 					branch, parent, turn_start, tick_start, turn_end, tick_end
 				)
 			self._branches_d.apply_changes()
-		self.query.flush()
+		self.database.flush()
 
 	@world_locked
 	def commit(self, unload: bool = True) -> None:
@@ -7071,11 +7434,13 @@ class Engine(AbstractEngine, Executor):
 		Call with ``unload=False`` if you want to keep the written state in memory.
 
 		"""
-		self.query.eternal["branch"] = self._obranch
-		self.query.eternal["turn"] = self._oturn
-		self.query.eternal["tick"] = self._otick
+		self.eternal["branch"] = self.branch
+		self.eternal["turn"] = self.turn
+		self.eternal["tick"] = self.tick
 		self.flush()
-		self.query.commit()
+		self.database.commit()
+		if hasattr(self.database, "tree"):
+			del self.database.tree
 		if unload:
 			self.unload()
 
@@ -7094,6 +7459,10 @@ class Engine(AbstractEngine, Executor):
 				  ``historical(..)``
 
 		"""
+		if not hasattr(self.database, "execute"):
+			raise NotImplementedError("turns_when only works with SQL for now")
+		from .sql import meta
+
 		unpack = self.unpack
 		end = self._branch_end()[0] + 1
 
@@ -7125,13 +7494,18 @@ class Engine(AbstractEngine, Executor):
 			left, (EntityStatAccessor, CharacterStatAccessor)
 		) and isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
 			left_sel = _make_side_sel(
-				left.entity, left.stat, branches, self.pack, mid_turn
+				meta,
+				left.entity,
+				left.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
 			right_sel = _make_side_sel(
-				right.entity, right.stat, branches, self.pack, mid_turn
+				meta, right.entity, right.stat, branches, self.pack, mid_turn
 			)
-			left_data = self.query.execute(left_sel)
-			right_data = self.query.execute(right_sel)
+			left_data = self.database.execute(left_sel)
+			right_data = self.database.execute(right_sel)
 			if mid_turn:
 				return QueryResultMidTurn(
 					unpack_data_mid(left_data),
@@ -7148,9 +7522,14 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(left, (EntityStatAccessor, CharacterStatAccessor)):
 			left_sel = _make_side_sel(
-				left.entity, left.stat, branches, self.pack, mid_turn
+				meta,
+				left.entity,
+				left.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
-			left_data = self.query.execute(left_sel)
+			left_data = self.database.execute(left_sel)
 			if mid_turn:
 				return QueryResultMidTurn(
 					unpack_data_mid(left_data),
@@ -7167,9 +7546,14 @@ class Engine(AbstractEngine, Executor):
 				)
 		elif isinstance(right, (EntityStatAccessor, CharacterStatAccessor)):
 			right_sel = _make_side_sel(
-				right.entity, right.stat, branches, self.pack, mid_turn
+				meta,
+				right.entity,
+				right.stat,
+				branches,
+				self.pack,
+				mid_turn,
 			)
-			right_data = self.query.execute(right_sel)
+			right_data = self.database.execute(right_sel)
 			if mid_turn:
 				return QueryResultMidTurn(
 					[(0, 0, None, None, left)],
@@ -7191,9 +7575,7 @@ class Engine(AbstractEngine, Executor):
 				return set()
 
 	def _node_contents(self, character: CharName, node: NodeName) -> set:
-		return self._node_contents_cache.retrieve(
-			character, node, *self._btt()
-		)
+		return self._node_contents_cache.retrieve(character, node, *self.time)
 
 	def apply_choices(
 		self,
@@ -7285,7 +7667,7 @@ class Engine(AbstractEngine, Executor):
 		import importlib.util
 
 		loader = importlib.machinery.SourceFileLoader(
-			"game_start", os.path.join(self._prefix, "game_start.py")
+			"game_start", self._prefix.joinpath("game_start.py")
 		)
 		spec = importlib.util.spec_from_loader("game_start", loader)
 		game_start = importlib.util.module_from_spec(spec)
@@ -7295,45 +7677,213 @@ class Engine(AbstractEngine, Executor):
 	@classmethod
 	def from_archive(
 		cls,
-		archive_path: str | os.PathLike,
-		prefix: str | os.PathLike = ".",
-		**kwargs,
+		archive_path: os.PathLike[str] | Path,
+		prefix: os.PathLike[str] | Path | None = None,
+		*,
+		string: StringStore | dict | None = None,
+		trigger: FunctionStore | ModuleType | None = None,
+		prereq: FunctionStore | ModuleType | None = None,
+		action: FunctionStore | ModuleType | None = None,
+		function: FunctionStore | ModuleType | None = None,
+		method: FunctionStore | ModuleType | None = None,
+		trunk: Branch | None = None,
+		connect_string: str | None = None,
+		connect_args: dict | None = None,
+		schema: Type[AbstractSchema] = NullSchema,
+		flush_interval: int | None = None,
+		keyframe_interval: int | None = 1000,
+		commit_interval: int | None = None,
+		random_seed: int | None = None,
+		clear: bool = False,
+		keep_rules_journal: bool = True,
+		keyframe_on_close: bool = True,
+		enforce_end_of_time: bool = True,
+		logger: Optional[Logger] = None,
+		workers: Optional[int] = None,
+		sub_mode: Sub | None = None,
+		database: AbstractDatabaseConnector | None = None,
+		executor: LisienExecutor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
-		shutil.unpack_archive(archive_path, prefix, "zip")
-		extracted = os.listdir(prefix)
-		if "world.xml" in extracted:
-			xml_path = os.path.join(prefix, "world.xml")
-			if "connect_string" in kwargs and kwargs["connect_string"]:
-				xml_to_sqlite(xml_path, os.path.join(prefix, "world.sqlite3"))
+		if database is None:
+			if prefix:
+				fake = EngineFacade(None)
+				prefix = Path(prefix)
+				try:
+					from .pqdb import ParquetDatabaseConnector
+
+					pq_path = prefix.joinpath("world")
+					pq_path.mkdir(parents=True, exist_ok=True)
+					import_database = database = ParquetDatabaseConnector(
+						fake.pack, fake.unpack, pq_path
+					)
+				except ImportError:
+					from .sql import SQLAlchemyDatabaseConnector
+
+					import_database = database = SQLAlchemyDatabaseConnector(
+						fake.pack,
+						fake.unpack,
+						f"sqlite:///{prefix}/world.sqlite3",
+					)
 			else:
-				os.makedirs(os.path.join(prefix, "world"), exist_ok=True)
-				xml_to_pqdb(xml_path, os.path.join(prefix, "world"))
-		return Engine(prefix, **kwargs)
+				import_database = database = PythonDatabaseConnector()
+		elif callable(database):
+			fake = EngineFacade(None)
+			import_database = database(fake.pack, fake.unpack)
+			if not isinstance(import_database, AbstractDatabaseConnector):
+				raise TypeError("Not a database", import_database)
+		else:
+			raise TypeError("Not a database", database)
+		with ZipFile(archive_path, "r") as zf:
+			import_database.load_xml(zf.open("world.xml"))
+			for fn in set(zf.namelist()) - {"world.xml"}:
+				zf.extract(fn, prefix)
+		if import_database is not database:
+			if hasattr(import_database, "_t"):
+				assert import_database._t.is_alive()
+			import_database.close()
+		if logger is None:
+			logger = getLogger("lisien")
+		return cls(
+			prefix=prefix,
+			string=string,
+			trigger=trigger,
+			prereq=prereq,
+			action=action,
+			function=function,
+			method=method,
+			trunk=trunk,
+			connect_string=connect_string,
+			connect_args=connect_args,
+			schema=schema,
+			flush_interval=flush_interval,
+			keyframe_interval=keyframe_interval,
+			commit_interval=commit_interval,
+			random_seed=random_seed,
+			clear=clear,
+			keep_rules_journal=keep_rules_journal,
+			keyframe_on_close=keyframe_on_close,
+			enforce_end_of_time=enforce_end_of_time,
+			logger=logger,
+			workers=workers,
+			sub_mode=sub_mode,
+			database=database,
+			executor=executor,
+		)
+
+	def to_etree(self, name: str | None = None) -> ElementTree:
+		import json
+		from base64 import b64encode
+
+		from .collections import GROUP_SEP, REC_SEP
+
+		try:
+			from lxml.etree import Element, ElementTree
+		except ModuleNotFoundError:
+			from xml.etree.ElementTree import Element
+
+		if name is None and self._prefix:
+			name = self._prefix.name
+		self.commit()
+		game_history: ElementTree = self.database.to_etree(name)
+		lisien_el = game_history.getroot()
+		if self._prefix:
+			ls = os.listdir(self._prefix)
+			# Take the hash of code and strings--*not* the hash of their *files*--
+			# so that if the file gets reformatted, as often happens as a side effect
+			# of ast.parse and ast.unparse, this does not change its hash.
+			for modname in (
+				"function",
+				"method",
+				"trigger",
+				"prereq",
+				"action",
+			):
+				funcstore = getattr(self, modname)
+				if hasattr(funcstore, "blake2b"):
+					lisien_el.set(modname, funcstore.blake2b())
+			strings_dir = self._prefix.joinpath("strings")
+			if (
+				"strings" in ls
+				and strings_dir.is_dir()
+				and (langfiles := list(strings_dir.iterdir()))
+			):
+				for file in langfiles:
+					langhash = blake2b()
+					with open(strings_dir.joinpath(file), "rb") as inf:
+						langlines = json.load(inf)
+					for k in sort_set(langlines.keys()):
+						langhash.update(k.encode())
+						langhash.update(GROUP_SEP)
+						langhash.update(langlines[k].encode())
+						langhash.update(REC_SEP)
+					fn = file.name
+					if len(fn) > 5 and fn[-5:] == ".json":
+						fn = fn[:-5]
+					lisien_el.append(
+						Element(
+							"language",
+							code=fn,
+							blake2b=b64encode(langhash.digest()).decode(
+								"utf-8"
+							),
+						)
+					)
+		return game_history
+
+	def to_xml(
+		self,
+		xml_file_path: PathLike[str] | IO[str | bytes] | None = None,
+		indent: bool = True,
+		name: str | None = None,
+	) -> str | None:
+		"""Write the history of the game to XML.
+
+		:param xml_file_path: The file to write to, or a path to one.
+			If omitted, return the XML in a string.
+		:param indent: Whether to format the XML for human eyes. Default ``True``.
+		:param name: Optional string to use to identify your game in the XML.
+			If omitted, but ``xml_file_path`` is a path to a file, the file's
+			name will be used, with the ``.xml`` suffix removed.
+
+		"""
+		if xml_file_path is not None:
+			xml_file_path = Path(xml_file_path)
+		if name is None and xml_file_path and not self._prefix:
+			name = xml_file_path.name
+		tree = self.to_etree(name)
+		if indent:
+			try:
+				from lxml.etree import indent as indent_tree
+			except ModuleNotFoundError:
+				from xml.etree.ElementTree import indent as indent_tree
+			indent_tree(tree)
+		if xml_file_path is None:
+			f = io.StringIO()
+			tree.write(f, encoding="utf-8")
+			return f.getvalue()
+		tree.write(xml_file_path, encoding="utf-8")
 
 	def export(
 		self,
 		name: str | None = None,
-		path: str | os.PathLike | None = None,
+		path: Path | PathLike[str] | None = None,
 		indent: bool = True,
-	) -> str | os.PathLike:
+	) -> Path:
 		if path is None:
 			if name is None:
 				raise ValueError(
 					"Need a path to export to, or at least a name"
 				)
-			path = os.path.join(os.getcwd(), f"{name}.lisien")
-		elif name is None:
-			name = os.path.basename(path).removesuffix(".lisien")
+			path = Path(".").joinpath(f"{name}.lisien")
+		else:
+			path = Path(path)
+			if name is None:
+				name = path.name.removesuffix(".lisien")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
-			if self._prefix is not None:
-				with zf.open("world.xml", "w") as f:
-					Exporter(self.query, self).write_xml(f, name, indent)
-			else:
-				self.error(
-					"No database to export from, so the exported world.xml will be empty"
-				)
+			with zf.open("world.xml", "w") as f:
+				self.database.write_xml(f, name, indent)
 			if isinstance(self.string, StringStore):
 				self.string.save()
 				if self.string._prefix is None:
@@ -7344,13 +7894,13 @@ class Engine(AbstractEngine, Executor):
 							dict(self.string.items()), io.TextIOWrapper(outf)
 						)
 				else:
-					for lang in os.listdir(self.string._prefix):
+					for lang in self.string._prefix.iterdir():
 						with (
 							open(
-								os.path.join(self.string._prefix, lang), "rb"
+								self.string._prefix.joinpath(lang.name), "rb"
 							) as inf,
 							zf.open(
-								os.path.join("strings", lang), "w"
+								os.path.join("strings", lang.name), "w"
 							) as outf,
 						):
 							outf.writelines(inf)
@@ -7378,9 +7928,10 @@ class Engine(AbstractEngine, Executor):
 						for _, function in store.iterplain():
 							outf.write(function + "\n\n")
 				elif hasattr(store, "__file__"):
+					file = Path(store.__file__)
 					with (
-						open(store.__file__, "rb") as inf,
-						zf.open(os.path.basename(store.__file__), "w") as outf,
+						open(file, "rb") as inf,
+						zf.open(file.name, "w") as outf,
 					):
 						outf.writelines(inf)
 				else:

@@ -20,9 +20,36 @@ import pytest
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
-from lisien.proxy import EngineProcessManager
 from lisien.proxy.handle import EngineHandle
+from lisien.proxy.manager import EngineProxyManager, Sub
 from lisien.tests import data
+from lisien.tests.util import make_test_engine, make_test_engine_kwargs
+
+
+@pytest.mark.parametrize("sim", ["kobold", "polygons"])
+def test_start(tmp_path, sim, persistent_database, sub_mode, random_seed):
+	if persistent_database == "parquetdb" and sub_mode == Sub.interpreter:
+		raise pytest.skip(
+			"PyArrow does not yet support running in subinterpreters"
+		)
+
+	with make_test_engine(
+		tmp_path, "serial", persistent_database, random_seed
+	) as eng:
+		match sim:
+			case "kobold":
+				kobold.inittest(eng)
+			case "polygons":
+				polygons.install(eng)
+
+	mgr = EngineProxyManager(
+		sub_mode=sub_mode,
+		**make_test_engine_kwargs(
+			tmp_path, "serial", persistent_database, random_seed
+		),
+	)
+	mgr.start(sub_mode=None)  # we're not testing workers
+	mgr.shutdown()
 
 
 def test_fast_delta(handle_initialized):
@@ -33,9 +60,9 @@ def test_fast_delta(handle_initialized):
 	# a character was created, due to the way keyframes work...
 	# so don't test that
 
-	branch, turn, tick = hand._real._btt()
+	branch, turn, tick = hand._real.time
 	ret, diff = hand.next_turn()
-	btt = hand._real._btt()
+	btt = tuple(hand._real.time)
 	slowd = unpack_delta(
 		hand._get_slow_delta(btt_from=(branch, turn, tick), btt_to=btt)
 	)
@@ -45,7 +72,7 @@ def test_fast_delta(handle_initialized):
 		del fastd["universal"]["rando_state"]
 	assert fastd == slowd, "Fast delta differs from slow delta"
 	ret, diff2 = hand.time_travel("trunk", 0, tick)
-	btt2 = hand._real._btt()
+	btt2 = tuple(hand._real.time)
 	slowd2 = unpack_delta(hand._get_slow_delta(btt_from=btt, btt_to=btt2))
 	fastd2 = hand.unpack(diff2)
 	if "universal" in slowd:
@@ -53,7 +80,7 @@ def test_fast_delta(handle_initialized):
 		del fastd2["universal"]["rando_state"]
 	assert fastd2 == slowd2, "Fast delta differs from slow delta"
 	ret, diff3 = hand.time_travel("trunk", 1)
-	btt3 = hand._real._btt()
+	btt3 = tuple(hand._real.time)
 	slowd3 = unpack_delta(hand._get_slow_delta(btt_from=btt2, btt_to=btt3))
 	fastd3 = hand.unpack(diff3)
 	if "universal" in slowd:
@@ -62,8 +89,8 @@ def test_fast_delta(handle_initialized):
 	assert fastd3 == slowd3, "Fast delta differs from slow delta"
 
 
-def test_serialize_deleted(college24_premade):
-	eng = college24_premade
+def test_serialize_deleted(college24):
+	eng = college24
 	d0r0s0 = eng.character["dorm0room0student0"]
 	roommate = d0r0s0.stat["roommate"]
 	del eng.character[roommate.name]
@@ -174,7 +201,7 @@ def test_thing_place_iter(tmp_path):
 	# set up some world state with things and places, before starting the proxy
 	with Engine(tmp_path, workers=0) as eng:
 		kobold.inittest(eng)
-	manager = EngineProcessManager()
+	manager = EngineProxyManager()
 	engine = manager.start(tmp_path, workers=0)
 	phys = engine.character["physical"]
 	for place_name in phys.place:
@@ -251,12 +278,13 @@ def test_apply_delta(tmp_path, algorithm):
 		assert "pointless" not in eng.character, "Failed to delete character"
 		phys.portal[0][1]["meaning"] = 42
 		del phys.portal[0][1]["omg"]
+		back_in_time = tuple(eng.time)
 		if slow:
 			eng.branch = "trunk"
 		else:
 			eng.turn = 0
 			eng.tick = 0
-	mang = EngineProcessManager()
+	mang = EngineProxyManager()
 	try:
 		prox = mang.start(tmp_path, workers=0)
 		assert prox.turn == 0
@@ -264,10 +292,7 @@ def test_apply_delta(tmp_path, algorithm):
 		assert 3 in phys.place
 		assert phys.portal[1][0]["omg"] == "blasphemy"
 		assert "it" in phys.thing
-		if slow:
-			prox.branch = "b"
-		else:
-			prox.turn = 1
+		prox.time = back_in_time
 		assert 3 not in phys.place
 		assert not list(phys.portal[1])
 		assert 2 in phys.portal[0]
@@ -290,7 +315,7 @@ def polys(tmp_path):
 
 
 def test_change_triggers(polys):
-	procman = EngineProcessManager()
+	procman = EngineProxyManager()
 	eng = procman.start(polys)
 	relocate = eng.character["triangle"].unit.rule["relocate"]
 	assert list(relocate.triggers) == [

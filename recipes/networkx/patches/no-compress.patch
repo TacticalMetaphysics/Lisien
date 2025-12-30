@@ -1,0 +1,34 @@
+diff -ur networkx-3.5/networkx/utils/decorators.py networkx-3.5-b/networkx/utils/decorators.py
+--- networkx-3.5/networkx/utils/decorators.py	2025-05-29 23:34:32.000000000 +1200
++++ networkx-3.5-b/networkx/utils/decorators.py	2025-10-17 17:04:32.328617154 +1300
+@@ -1,6 +1,4 @@
+-import bz2
+ import collections
+-import gzip
+ import inspect
+ import itertools
+ import re
+@@ -91,14 +89,6 @@
+     return argmap(_not_implemented_for, 0)
+ 
+ 
+-# To handle new extensions, define a function accepting a `path` and `mode`.
+-# Then add the extension to _dispatch_dict.
+-fopeners = {
+-    ".gz": gzip.open,
+-    ".gzip": gzip.open,
+-    ".bz2": bz2.BZ2File,
+-}
+-_dispatch_dict = defaultdict(lambda: open, **fopeners)
+ 
+ 
+ def open_file(path_arg, mode="r"):
+@@ -191,7 +181,7 @@
+             # could be None, or a file handle, in which case the algorithm will deal with it
+             return path, lambda: None
+ 
+-        fobj = _dispatch_dict[ext](path, mode=mode)
++        fobj = open(path, mode=mode)
+         return fobj, lambda: fobj.close()
+ 
+     return argmap(_open_file, path_arg, try_finally=True)

@@ -47,18 +47,19 @@ from kivy.properties import (
 	BooleanProperty,
 	NumericProperty,
 	ObjectProperty,
+	OptionProperty,
 	StringProperty,
 )
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
-from lisien.proxy import (
+from lisien.proxy.character import (
 	CharacterProxy,
 	CharStatProxy,
-	EngineProcessManager,
 	PlaceProxy,
 	ThingProxy,
 )
+from lisien.proxy.manager import EngineProxyManager, Sub
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard
@@ -89,13 +90,14 @@ class ElideApp(App):
 	games_dir = StringProperty("games")
 	logs_dir = StringProperty(None, allownone=True)
 	game_name = StringProperty("game0")
-	use_thread = BooleanProperty(False)
+	sub_mode = OptionProperty(Sub.process, options=list(Sub))
 	connect_string = StringProperty(None, allownone=True)
 	workers = NumericProperty(None, allownone=True)
 	immediate_start = BooleanProperty(False)
 	character_name = ObjectProperty()
 	closed = BooleanProperty(True)
 	stopped = BooleanProperty(False)
+	android = BooleanProperty(False)
 
 	@cached_property
 	def _bindings(self) -> dict[tuple, set[int]]:
@@ -213,7 +215,7 @@ class ElideApp(App):
 		if not hasattr(self, "engine"):
 			Clock.schedule_once(self._pull_time, 0)
 			return
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		self.branch = branch
 		self.turn = turn
 		self.tick = tick
@@ -446,12 +448,18 @@ class ElideApp(App):
 			enkw["workers"] = int(self.workers)
 		elif workers := config["lisien"].get("workers"):
 			enkw["workers"] = int(workers)
+		if sub_mode := config["lisien"].get("sub_mode"):
+			enkw["sub_mode"] = sub_mode
 		if path:
 			os.makedirs(path, exist_ok=True)
-		Logger.debug(f"About to start EngineProcessManager with kwargs={enkw}")
-		self.procman = EngineProcessManager(
-			use_thread=self.use_thread,
+		Logger.debug(
+			"ElideApp: About to start EngineProxyManager "
+			f"with path={path}, sub_mode={self.sub_mode}, kwargs={enkw}"
 		)
+		self.procman = EngineProxyManager(
+			sub_mode=self.sub_mode,
+		)
+		self.procman.android = self.android
 		if archive_path is None:
 			self.engine = engine = self.procman.start(path, **enkw)
 		else:
@@ -461,16 +469,33 @@ class ElideApp(App):
 		Logger.debug("Got EngineProxy")
 		if "boardchar" in engine.eternal:
 			self.character_name = engine.eternal["boardchar"]
+			Logger.debug(
+				"ElideApp: Pulled character %s", repr(self.character_name)
+			)
 		elif self.character_name is not None:
 			if self.character_name in engine.character:
 				self.character = engine.character[self.character_name]
+				Logger.debug(
+					"ElideApp: Selected existing character %s",
+					repr(self.character_name),
+				)
 			else:
 				self.character = engine.new_character(self.character_name)
+				Logger.debug(
+					"ElideApp: Making new initial character %s",
+					repr(self.character_name),
+				)
 		elif engine.character:
 			self.character = next(iter(engine.character.values()))
+			Logger.debug(
+				"ElideApp: Defaulted to selecting character %s",
+				repr(self.character.name),
+			)
 		else:
-			self.character = engine.new_character("physical")
-		Logger.debug("Pulled character")
+			Logger.debug(
+				"ElideApp: No initial character selected. "
+				"May crash if you don't create one..."
+			)
 		self.pull_time()
 		Logger.debug("Pulled time")
 

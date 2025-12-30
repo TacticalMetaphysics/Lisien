@@ -1,5 +1,19 @@
+# This file is part of Lisien, a framework for life simulation games.
+# Copyright (c) Zachary Spector, public@zacharyspector.com
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien import Engine
-from lisien.proxy import EngineProcessManager
+from lisien.proxy.manager import EngineProxyManager
 
 
 def test_serialize_character(sqleng):
@@ -37,11 +51,13 @@ def test_serialize_function(tmp_path):
 		def foo(bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProcessManager(workers=0)
-	engprox = procm.start(tmp_path)
-	funcprox = engprox.function.foo
-	assert funcprox("foo", "bar") == "foobar is correct"
-	procm.shutdown()
+	procm = EngineProxyManager(workers=0)
+	try:
+		engprox = procm.start(tmp_path)
+		funcprox = engprox.function.foo
+		assert funcprox("foo", "bar") == "foobar is correct"
+	finally:
+		procm.shutdown()
 
 
 def test_serialize_method(tmp_path):
@@ -53,7 +69,9 @@ def test_serialize_method(tmp_path):
 		def foo(self, bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProcessManager()
-	engprox = procm.start(tmp_path, workers=0)
-	assert engprox.foo("bar", "bas") == "barbas is correct"
-	procm.shutdown()
+	procm = EngineProxyManager()
+	try:
+		engprox = procm.start(tmp_path, workers=0)
+		assert engprox.foo("bar", "bas") == "barbas is correct"
+	finally:
+		procm.shutdown()

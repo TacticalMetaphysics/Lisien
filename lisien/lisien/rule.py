@@ -80,20 +80,34 @@ the function's name.
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from ast import parse, unparse
-from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
+from collections import UserDict
+from collections.abc import Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Callable,
+	Iterator,
+	Optional,
+	ValuesView,
+)
 
+from attrs import define
 from blinker import Signal
 
 from .cache import FuncListCache
 from .collections import FunctionStore
 from .types import (
+	AbstractEngine,
+	ActionFunc,
 	ActionFuncName,
 	Branch,
 	Key,
+	KeyHint,
+	PrereqFunc,
 	PrereqFuncName,
 	RuleBig,
 	RulebookName,
@@ -103,11 +117,12 @@ from .types import (
 	RuleName,
 	RuleNeighborhood,
 	Tick,
+	TriggerFunc,
 	TriggerFuncName,
 	Turn,
-	Value,
+	AttrSignal,
 )
-from .util import AbstractEngine, dedent_source
+from .util import dedent_source
 
 if TYPE_CHECKING:
 	from .engine import Engine
@@ -118,22 +133,30 @@ def roundtrip_dedent(source):
 	return unparse(parse(dedent_source(source)))
 
 
-class RuleFuncList(MutableSequence, Signal, ABC):
+@define
+class RuleFuncList[_K: RuleFuncName, _T: RuleFunc](
+	MutableSequence[_T], AttrSignal, ABC
+):
 	"""Abstract class for lists of functions like trigger, prereq, action"""
 
-	__slots__ = ["rule"]
-	_funcstore: FunctionStore
-	_cache: FuncListCache
-	_setter: Callable[[RuleName, Branch, Turn, Tick, list[RuleFuncName]], None]
+	__slots__ = ()
+	rule: Rule
 
-	def __init__(self, rule: Rule):
-		super().__init__()
-		self.rule = rule
+	@cached_property
+	@abstractmethod
+	def _funcstore(self) -> FunctionStore: ...
 
-	def __repr__(self):
-		return f"<class 'lisien.rule.{self.__class__.__name__}' [{', '.join(self._get())}]>"
+	@cached_property
+	@abstractmethod
+	def _cache(self) -> FuncListCache: ...
 
-	def _nominate(self, v: RuleFunc | str | RuleFuncName) -> RuleFuncName:
+	@cached_property
+	@abstractmethod
+	def _setter(
+		self,
+	) -> Callable[[RuleName, Branch, Turn, Tick, list[_K]], None]: ...
+
+	def _nominate(self, v: _T | str | _K) -> _K:
 		if callable(v):
 			self._funcstore(v)
 			return v.__name__
@@ -141,26 +164,28 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 			raise KeyError(
 				"No function by that name in this store", v, self._funcstore
 			)
+		if not isinstance(v, str):
+			raise TypeError("Invalid rule function name", v)
 		return v
 
-	def _get(self) -> list[RuleFuncName]:
+	def _get(self) -> list[_K]:
 		try:
-			return self._cache.retrieve(
-				self.rule.name, *self.rule.engine._btt()
-			)
+			return self._cache.retrieve(self.rule.name, *self.rule.engine.time)
 		except KeyError:
 			return []
 
-	def _set(self, v: list[RuleFuncName]) -> None:
+	def _set(self, v: list[_K]) -> None:
+		if self._get() == v:
+			return
 		branch, turn, tick = self.rule.engine._nbtt()
-		self._cache.store(Key(self.rule.name), branch, turn, tick, v)
+		self._cache.store(self.rule.name, branch, turn, tick, v)
 		self._setter(self.rule.name, branch, turn, tick, v)
 
-	def __iter__(self):
+	def __iter__(self) -> Iterator[_T]:
 		for funcname in self._get():
 			yield getattr(self._funcstore, funcname)
 
-	def __contains__(self, item: RuleFunc | str | RuleFuncName):
+	def __contains__(self, item: _K | _T | str):
 		if hasattr(item, "__name__"):
 			item = item.__name__
 		return item in self._get()
@@ -168,12 +193,14 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 	def __len__(self):
 		return len(self._get())
 
-	def __getitem__(self, i: int):
+	def __getitem__(self, i: int) -> _T:
 		return getattr(self._funcstore, self._get()[i])
 
-	def __setitem__(self, i: int, v: RuleFunc | str | RuleFuncName):
+	def __setitem__(self, i: int, v: _K | str | _T):
 		v = self._nominate(v)
 		l = list(self._get())
+		if l[i] == v:
+			return
 		l[i] = v
 		self._set(list(l))
 		self.send(self)
@@ -184,13 +211,13 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 		self._set(list(l))
 		self.send(self)
 
-	def insert(self, i: int, v: RuleFunc | str | RuleFuncName) -> None:
+	def insert(self, i: int, v: _K | str | _T) -> None:
 		l = list(self._get())
 		l.insert(i, self._nominate(v))
 		self._set(list(l))
 		self.send(self)
 
-	def append(self, v: RuleFunc | str | RuleFuncName) -> None:
+	def append(self, v: _K | str | _T) -> None:
 		try:
 			old = self._get()
 		except KeyError:
@@ -200,16 +227,17 @@ class RuleFuncList(MutableSequence, Signal, ABC):
 
 	def index(
 		self,
-		x: RuleFunc | str | RuleFuncName,
+		x: _K | str | _T,
 		start: int = 0,
-		end: int | None = None,
+		end: int = sys.maxsize,
 	):
 		if not callable(x):
 			x = getattr(self._funcstore, x)
 		return super().index(x, start, end)
 
 
-class TriggerList(RuleFuncList):
+@define
+class TriggerList(RuleFuncList[TriggerFuncName, TriggerFunc]):
 	"""A list of trigger functions for rules"""
 
 	@cached_property
@@ -224,10 +252,11 @@ class TriggerList(RuleFuncList):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[TriggerFuncName]], None]:
-		return self.rule.engine.query.set_rule_triggers
+		return self.rule.engine.database.set_rule_triggers
 
 
-class PrereqList(RuleFuncList):
+@define
+class PrereqList(RuleFuncList[PrereqFuncName, PrereqFunc]):
 	"""A list of prereq functions for rules"""
 
 	@cached_property
@@ -242,10 +271,11 @@ class PrereqList(RuleFuncList):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[PrereqFuncName]], None]:
-		return self.rule.engine.query.set_rule_prereqs
+		return self.rule.engine.database.set_rule_prereqs
 
 
-class ActionList(RuleFuncList):
+@define
+class ActionList(RuleFuncList[ActionFuncName, ActionFunc]):
 	"""A list of action functions for rules"""
 
 	@cached_property
@@ -260,10 +290,10 @@ class ActionList(RuleFuncList):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[ActionFuncName]], None]:
-		return self.rule.engine.query.set_rule_actions
+		return self.rule.engine.database.set_rule_actions
 
 
-class RuleFuncListDescriptor:
+class RuleFuncListDescriptor[_K: RuleFuncName, _T: RuleFunc]:
 	"""Descriptor that lets you get and set a whole RuleFuncList at once"""
 
 	__slots__ = ("cls",)
@@ -275,12 +305,12 @@ class RuleFuncListDescriptor:
 	def flid(self):
 		return "_funclist" + str(id(self))
 
-	def __get__(self, obj: Rule, type=None) -> RuleFuncList:
+	def __get__(self, obj: Rule, type=None) -> RuleFuncList[_K, _T]:
 		if not hasattr(obj, self.flid):
 			setattr(obj, self.flid, self.cls(obj))
 		return getattr(obj, self.flid)
 
-	def __set__(self, obj: Rule, value: list[RuleFunc | str | RuleFuncName]):
+	def __set__(self, obj: Rule, value: list[_K | str | _T]):
 		if not hasattr(obj, self.flid):
 			setattr(obj, self.flid, self.cls(obj))
 		flist = getattr(obj, self.flid)
@@ -310,16 +340,22 @@ class Rule:
 
 	"""
 
-	triggers: TriggerList = RuleFuncListDescriptor(TriggerList)
-	prereqs: PrereqList = RuleFuncListDescriptor(PrereqList)
-	actions: ActionList = RuleFuncListDescriptor(ActionList)
+	triggers: TriggerList = RuleFuncListDescriptor[
+		TriggerFuncName, TriggerFunc
+	](TriggerList)
+	prereqs: PrereqList = RuleFuncListDescriptor[PrereqFuncName, PrereqFunc](
+		PrereqList
+	)
+	actions: ActionList = RuleFuncListDescriptor[ActionFuncName, ActionFunc](
+		ActionList
+	)
 	name: RuleName
 
 	@property
 	def neighborhood(self) -> RuleNeighborhood:
 		try:
 			ret = self.engine._neighborhoods_cache.retrieve(
-				self.name, *self.engine._btt()
+				self.name, *self.engine.time
 			)
 		except KeyError:
 			return None
@@ -331,51 +367,70 @@ class Rule:
 			raise TypeError("Not an int", neighbors)
 		if neighbors < 0:
 			raise ValueError("Can't be negative", neighbors)
-		btt = self.engine._nbtt()
+		try:
+			if (
+				self.engine._neighborhoods_cache.retrieve(
+					self.name, *self.engine.time
+				)
+				== neighbors
+			):
+				return
+		except KeyError:
+			pass
+		branch, turn, tick = self.engine._nbtt()
 		self.engine._neighborhoods_cache.store(
-			Key(self.name), *btt, Value(neighbors)
+			self.name, branch, turn, tick, neighbors
 		)
-		self.engine.query.set_rule_neighborhood(self.name, *btt, neighbors)
+		self.engine.database.set_rule_neighborhood(
+			self.name, branch, turn, tick, neighbors
+		)
 
 	@property
 	def big(self) -> RuleBig:
 		try:
 			return self.engine._rule_bigness_cache.retrieve(
-				self.name, *self.engine._btt()
+				self.name, *self.engine.time
 			)
 		except KeyError:
 			return RuleBig(False)
 
 	@big.setter
 	def big(self, big: bool | RuleBig):
-		btt = self.engine._nbtt()
-		self.engine._rule_bigness_cache.store(Key(self.name), *btt, Value(big))
-		self.engine.query.set_rule_big(self.name, *btt, big)
+		if not isinstance(big, bool):
+			raise TypeError("Boolean only", big)
+		try:
+			if (
+				self.engine._rule_bigness_cache.retrieve(
+					self.name, *self.engine.time
+				)
+				== big
+			):
+				return
+		except KeyError:
+			pass
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._rule_bigness_cache.store(
+			self.name, branch, turn, tick, big
+		)
+		self.engine.database.set_rule_big(self.name, branch, turn, tick, big)
 
 	def __init__(
 		self,
 		engine: "Engine",
 		name: RuleName | str,
-		triggers: list[TriggerFuncName | Callable[[Any], bool] | str]
-		| None = None,
-		prereqs: list[PrereqFuncName | Callable[[Any], bool] | str]
-		| None = None,
-		actions: list[ActionFuncName | Callable[[Any], bool] | str]
-		| None = None,
+		triggers: list[TriggerFuncName | TriggerFunc | str] | None = None,
+		prereqs: list[PrereqFuncName | PrereqFunc | str] | None = None,
+		actions: list[ActionFuncName | ActionFunc | str] | None = None,
 		neighborhood: RuleNeighborhood = None,
 		big: RuleBig = RuleBig(False),
 		create: bool = True,
 	):
-		"""Store the engine and my name, make myself a record in the database
-		if needed, and instantiate one FunList each for my triggers,
-		actions, and prereqs.
-
-		"""
 		self.engine = engine
-		self.name = self.__name__ = RuleName(name)
+		name = RuleName(name)
+		self.name = name
+		self.__name__ = name
 		# It'd be more correct to subclass InitializedEntitylessCache and
 		# give all its methods more specific signatures that take RuleName.
-		name = Key(name)
 		if create:
 			branch, turn, tick = engine._nbtt()
 			if (
@@ -390,10 +445,10 @@ class Rule:
 				)
 			):
 				(branch, turn, tick) = self.engine._nbtt()
-			triggers = list(self._fun_names_iter("trigger", triggers or []))
-			prereqs = list(self._fun_names_iter("prereq", prereqs or []))
-			actions = list(self._fun_names_iter("action", actions or []))
-			self.engine.query.create_rule(
+			triggers = list(self._trigger_names_iter(triggers or ()))
+			prereqs = list(self._prereq_names_iter(prereqs or ()))
+			actions = list(self._action_names_iter(actions or ()))
+			self.engine.database.create_rule(
 				name,
 				branch,
 				turn,
@@ -514,47 +569,68 @@ class Rule:
 
 	def _fun_names_iter(
 		self,
-		functyp: Literal["trigger", "prereq", "action"],
+		funcstore: FunctionStore,
 		val: Iterable[RuleFunc | str | RuleFuncName],
-	):
+	) -> Iterator[RuleFuncName]:
 		"""Iterate over the names of the functions in ``val``,
 		adding them to ``funcstore`` if they are missing;
 		or if the items in ``val`` are already the names of functions
 		in ``funcstore``, iterate over those.
 
 		"""
-		funcstore = getattr(self.engine, functyp)
 		for v in val:
 			if callable(v):
 				if v != getattr(funcstore, v.__name__, None):
 					setattr(funcstore, v.__name__, v)
 				yield v.__name__
-			elif v not in funcstore:
+			elif not hasattr(funcstore, v):
 				raise KeyError(
 					"Function {} not present in {}".format(v, funcstore._tab)
 				)
 			else:
+				v: RuleFuncName
 				yield v
+
+	def _trigger_names_iter(
+		self, val: Iterable[TriggerFunc | TriggerFuncName | str]
+	) -> Iterator[TriggerFuncName]:
+		trig: TriggerFuncName
+		for trig in self._fun_names_iter(self.engine.trigger, val):
+			yield trig
+
+	def _prereq_names_iter(
+		self, val: Iterable[PrereqFunc | PrereqFuncName | str]
+	) -> Iterator[PrereqFuncName]:
+		preq: PrereqFuncName
+		for preq in self._fun_names_iter(self.engine.prereq, val):
+			yield preq
+
+	def _action_names_iter(
+		self, val: Iterable[ActionFunc | ActionFuncName | str]
+	) -> Iterator[ActionFuncName]:
+		act: ActionFuncName
+		for act in self._fun_names_iter(self.engine.action, val):
+			yield act
 
 	def __repr__(self):
 		return f"<Rule({repr(self.name)})>"
 
 	def trigger(
-		self, fun: RuleFunc | str | TriggerFuncName
+		self, fun: TriggerFunc | str | TriggerFuncName
 	) -> RuleFunc | str | TriggerFuncName:
 		"""Decorator to append the function to my triggers list."""
 		self.triggers.append(fun)
 		return fun
 
 	def prereq(
-		self, fun: RuleFunc | str | PrereqFuncName
+		self, fun: PrereqFunc | str | PrereqFuncName
 	) -> RuleFunc | str | PrereqFuncName:
 		"""Decorator to append the function to my prereqs list."""
 		self.prereqs.append(fun)
 		return fun
 
 	def action(
-		self, fun: RuleFunc | str | ActionFuncName
+		self, fun: ActionFunc | str | ActionFuncName
 	) -> RuleFunc | str | ActionFuncName:
 		"""Decorator to append the function to my actions list."""
 		self.actions.append(fun)
@@ -562,10 +638,11 @@ class Rule:
 
 	def always(self) -> None:
 		"""Arrange to be triggered every turn"""
-		self.triggers = [self.engine.trigger.truth]
+		self.triggers.clear()
+		self.triggers.append(self.engine.trigger.truth)
 
 
-class RuleBook(MutableSequence, Signal):
+class RuleBook(MutableSequence[Rule], Signal):
 	"""A list of rules to be followed for some Character, or a part of it"""
 
 	def _get_cache(
@@ -600,7 +677,7 @@ class RuleBook(MutableSequence, Signal):
 
 	@property
 	def priority(self) -> RulebookPriority:
-		return self._get_cache(*self.engine._btt())[1]
+		return self._get_cache(*self.engine.time)[1]
 
 	@priority.setter
 	def priority(self, v: float | RulebookPriority):
@@ -608,24 +685,26 @@ class RuleBook(MutableSequence, Signal):
 		branch, turn, tick = self.engine._nbtt()
 		cache, _ = self._get_cache(branch, turn, tick)
 		self._set_cache(branch, turn, tick, (cache, v))
-		self.engine.query.set_rulebook(self.name, branch, turn, tick, cache, v)
+		self.engine.database.set_rulebook(
+			self.name, branch, turn, tick, cache, v
+		)
 
 	def __contains__(self, v: RuleName | Rule) -> bool:
-		return getattr(v, "name", v) in self._get_cache(*self.engine._btt())[0]
+		return getattr(v, "name", v) in self._get_cache(*self.engine.time)[0]
 
 	def __iter__(self) -> Iterator[Rule]:
 		rule_name: RuleName
-		for rule_name in self._get_cache(*self.engine._btt())[0]:
+		for rule_name in self._get_cache(*self.engine.time)[0]:
 			yield self.engine.rule[rule_name]
 
 	def __len__(self):
 		try:
-			return len(self._get_cache(*self.engine._btt())[0])
+			return len(self._get_cache(*self.engine.time)[0])
 		except KeyError:
 			return 0
 
 	def __getitem__(self, i: int) -> Rule:
-		return self.engine.rule[self._get_cache(*self.engine._btt())[0][i]]
+		return self.engine.rule[self._get_cache(*self.engine.time)[0][i]]
 
 	def _coerce_rule(self, v: Rule | str | RuleName) -> Rule:
 		if isinstance(v, Rule):
@@ -636,78 +715,87 @@ class RuleBook(MutableSequence, Signal):
 			raise TypeError("Invalid rule name", v)
 
 	def __setitem__(self, i: int, v: Rule | str | RuleName):
-		v = RuleName(getattr(v, "name", v))
-		if v == "truth":
+		if isinstance(v, Rule):
+			name = v.name
+		else:
+			name = RuleName(v)
+		if name == "truth":
 			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		cache, prio = self._get_cache(branch, turn, tick)
 		try:
-			cache[i] = v
+			cache[i] = name
 		except IndexError:
 			if i != len(cache):
 				raise
 			if i == 0:
-				cache = [v]
+				cache = [name]
 			else:
 				assert i == len(cache)
-				cache.append(v)
+				cache.append(name)
 			prio = RulebookPriority(0.0)
 			self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.query.set_rulebook(
+		self.engine.database.set_rulebook(
 			self.name, branch, turn, tick, cache, prio
 		)
-		self.engine.rulebook.send(self, i=i, v=v)
+		self.engine.rulebook.send(self, i=i, v=name)
 		self.send(self, i=i, v=v)
 
 	def insert(self, i: int, v: Rule | str | RuleName) -> None:
-		v = RuleName(getattr(v, "name", v))
-		if v == "truth":
+		if isinstance(v, Rule):
+			name = v.name
+		else:
+			name = RuleName(v)
+		if name == "truth":
 			raise ValueError("Illegal rule name")
 		branch, turn, tick = self.engine._nbtt()
 		try:
 			cache, prio = self._get_cache(branch, turn, tick)
-			cache.insert(i, v)
+			cache.insert(i, name)
 		except KeyError:
 			if i != 0:
 				raise IndexError
-			cache = [v]
+			cache = [name]
 			prio = RulebookPriority(0.0)
 		self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.query.set_rulebook(
+		self.engine.database.set_rulebook(
 			self.name, branch, turn, tick, cache, prio
 		)
-		self.engine.rulebook.send(self, i=i, v=v)
-		self.send(self, i=i, v=v)
+		self.engine.rulebook.send(self, i=i, v=name)
+		self.send(self, i=i, v=name)
 
 	def index(
 		self, v: Rule | str | RuleName, start: int = 0, stop: int | None = None
 	) -> int:
-		args = [v, start]
-		if stop is not None:
-			args.append(stop)
-		if isinstance(v, str):
-			try:
-				return self._get_cache(*self.engine._btt())[0].index(*args)
-			except KeyError:
-				raise ValueError("Not the name of a rule", v)
-		return super().index(*args)
+		if isinstance(v, Rule):
+			name = v.name
+		else:
+			name = RuleName(v)
+		try:
+			us = self._get_cache(*self.engine.time)[0]
+			if stop is None:
+				return us.index(name, start)
+			else:
+				return us.index(name, start, stop)
+		except KeyError:
+			raise ValueError("Not the name of a rule", name)
 
 	def __delitem__(self, i: int) -> None:
-		branch, turn, tick = self.engine._btt()
+		branch, turn, tick = self.engine.time
 		try:
 			cache, prio = self._get_cache(branch, turn, tick)
 		except KeyError:
 			raise IndexError
 		del cache[i]
-		self.engine.query.set_rulebook(
+		self.engine.database.set_rulebook(
 			self.name, branch, turn, tick, cache, prio
 		)
 		self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.rulebook.send(self, i=i, v=None)
-		self.send(self, i=i, v=None)
+		self.engine.rulebook.send(self, i=i, v=...)
+		self.send(self, i=i, v=...)
 
 
-class RuleMapping(MutableMapping, Signal):
+class RuleMapping(MutableMapping[RuleName, Rule], Signal):
 	"""Wraps a :class:`RuleBook` so you can get its rules by name.
 
 	You can access the rules in this either dictionary-style or as
@@ -742,7 +830,6 @@ class RuleMapping(MutableMapping, Signal):
 	def __init__(self, engine: "Engine", rulebook: RuleBook | RulebookName):
 		super().__init__()
 		self.engine = engine
-		self._rule_cache = self.engine.rule._cache
 		if isinstance(rulebook, RuleBook):
 			self.rulebook = rulebook
 		else:
@@ -752,18 +839,18 @@ class RuleMapping(MutableMapping, Signal):
 		return "RuleMapping({})".format([k for k in self])
 
 	def __iter__(self):
-		return iter(self.rulebook._get_cache(*self.engine._btt())[0])
+		return iter(self.rulebook._get_cache(*self.engine.time)[0])
 
 	def __len__(self):
 		return len(self.rulebook)
 
-	def __contains__(self, k: Rule | RuleName | str) -> bool:
+	def __contains__(self, k: Rule | KeyHint) -> bool:
 		return k in self.rulebook
 
 	def __getitem__(self, k: RuleName | str) -> Rule:
 		if k not in self:
 			raise KeyError("Rule '{}' is not in effect".format(k))
-		return self._rule_cache[k]
+		return self.engine.rule[k]
 
 	def __getattr__(self, k: str) -> Rule:
 		if k in self:
@@ -775,14 +862,15 @@ class RuleMapping(MutableMapping, Signal):
 	):
 		if k == "truth":
 			raise KeyError("Illegal rule name")
-		if isinstance(v, Hashable) and v in self.engine.rule:
-			v = self.engine.rule[v]
-		elif isinstance(v, str) and hasattr(self.engine.action, v):
-			v = getattr(self.engine.action, v)
-		if not isinstance(v, Rule) and callable(v):
+		if isinstance(v, str):
+			if v in self.engine.rule:
+				v = self.engine.rule[RuleName(v)]
+			elif hasattr(self.engine.action, v):
+				v = getattr(self.engine.action, v)
+		elif not isinstance(v, Rule) and callable(v):
 			# create a new rule, named k, performing action v
 			self.engine.rule[k] = v
-			v = self.engine.rule[k]
+			v = self.engine.rule[RuleName(k)]
 		assert isinstance(v, Rule)
 		if isinstance(k, int):
 			self.rulebook[k] = v
@@ -824,7 +912,7 @@ class RuleMapping(MutableMapping, Signal):
 	def __delitem__(self, k: RuleName | str):
 		i = self.rulebook.index(k)
 		del self.rulebook[i]
-		self.send(self, key=k, val=None)
+		self.send(self, key=k, val=...)
 
 	@property
 	def priority(self) -> RulebookPriority:
@@ -835,6 +923,21 @@ class RuleMapping(MutableMapping, Signal):
 		self.rulebook.priority = RulebookPriority(v)
 
 
+class RulebookDescriptor:
+	__slots__ = ()
+
+	def __get__(self, instance: RuleFollower, owner=None):
+		if instance is None:
+			return
+		return instance._get_rulebook()
+
+	def __set__(self, instance: RuleFollower, value: RuleBook | RulebookName):
+		if isinstance(value, RuleBook):
+			instance._set_rulebook_name(value.name)
+		else:
+			instance._set_rulebook_name(value)
+
+
 class RuleFollower(ABC):
 	"""Interface for that which has a rulebook associated, which you can
 	get a :class:`RuleMapping` into
@@ -842,61 +945,37 @@ class RuleFollower(ABC):
 	"""
 
 	__slots__ = ()
-	engine: AbstractEngine
-	_rulebook: RuleBook
 
-	@cached_property
-	def _rule_mapping(self) -> RuleMapping:
+	@property
+	@abstractmethod
+	def engine(self) -> AbstractEngine: ...
+
+	@property
+	def rule(self) -> RuleMapping:
 		return self._get_rule_mapping()
 
-	@property
-	def rule(
-		self, v: RuleFunc | None = None, name: RuleName | str | None = None
-	) -> RuleMapping | partial[Rule]:
-		if v is not None:
-			return self._rule_mapping(v, name)
-		return self._rule_mapping
-
-	@property
-	def rulebook(self) -> RuleBook:
-		if not hasattr(self, "_rulebook"):
-			self._upd_rulebook()
-		return self._rulebook
-
-	@rulebook.setter
-	def rulebook(self, v: RuleBook | RulebookName | str):
-		n = v.name if isinstance(v, RuleBook) else v
-		try:
-			if n == self._get_rulebook_name():
-				return
-		except KeyError:
-			pass
-		self._set_rulebook_name(n)
-		self._upd_rulebook()
-
-	def _upd_rulebook(self):
-		self._rulebook = self._get_rulebook()
+	rulebook = RulebookDescriptor()
 
 	def _get_rulebook(self) -> RuleBook:
 		return self.engine.rulebook[self._get_rulebook_name()]
 
-	def rules(self) -> Iterator[Rule]:
+	def rules(self) -> ValuesView[Rule]:
 		if not hasattr(self, "engine"):
 			raise AttributeError("Need an engine before I can get rules")
-		return self._rule_mapping.values()
+		return self.rule.values()
 
 	@abstractmethod
-	def _get_rule_mapping(self):
+	def _get_rule_mapping(self) -> RuleMapping:
 		"""Get the :class:`RuleMapping` for my rulebook."""
 		raise NotImplementedError("_get_rule_mapping")
 
 	@abstractmethod
-	def _get_rulebook_name(self):
+	def _get_rulebook_name(self) -> RulebookName:
 		"""Get the name of my rulebook."""
 		raise NotImplementedError("_get_rulebook_name")
 
 	@abstractmethod
-	def _set_rulebook_name(self, n: RulebookName | str):
+	def _set_rulebook_name(self, n: RulebookName | KeyHint) -> None:
 		"""Tell the database that this is the name of the rulebook to use for
 		me.
 
@@ -904,45 +983,52 @@ class RuleFollower(ABC):
 		raise NotImplementedError("_set_rulebook_name")
 
 
-class AllRuleBooks(MutableMapping, Signal):
-	__slots__ = ["engine", "_cache"]
-
+class AllRuleBooks(UserDict[RulebookName, RuleBook], Signal):
 	def __init__(self, engine: "Engine"):
-		super().__init__()
+		Signal.__init__(self)
 		self.engine = engine
-		self._cache = {}
+		UserDict.__init__(self)
 
 	def __iter__(self) -> Iterator[RulebookName]:
-		return self.engine._rulebooks_cache.iter_entities(*self.engine._btt())
-
-	def __len__(self):
-		return len(list(self))
+		return self.engine._rulebooks_cache.iter_keys(*self.engine.time)
 
 	def __contains__(self, k: RulebookName | Key):
-		return self.engine._rulebooks_cache.contains_entity(
-			k, *self.engine._btt()
+		return self.engine._rulebooks_cache._contains_entity_or_key(
+			k, *self.engine.time
 		)
 
-	def __getitem__(self, k: RulebookName | Key) -> RuleBook:
-		if k not in self._cache:
-			self._cache[k] = RuleBook(self.engine, k)
-		return self._cache[k]
+	def __getitem__(self, k: RulebookName | KeyHint) -> RuleBook:
+		if not isinstance(k, Key):
+			raise TypeError("Invalid rulebook name", k)
+		k = RulebookName(k)
+		if k not in self.data:
+			self.data[k] = RuleBook(self.engine, k)
+		return self.data[k]
 
 	def __setitem__(
-		self, key: RulebookName | Key, value: RuleBook | list[Rule | RuleName]
+		self,
+		key: RulebookName | KeyHint,
+		value: RuleBook | list[Rule | RuleName],
 	):
-		if key not in self._cache:
-			self._cache[key] = RuleBook(self.engine, key)
-		rb = self._cache[key]
+		if not isinstance(key, Key):
+			raise TypeError("Invalid rulebook name", key)
+		key = RulebookName(key)
+		if key not in self.data:
+			self.data[key] = RuleBook(self.engine, key)
+		rb = self.data[key]
 		while len(rb) > 0:
 			del rb[0]
-		rb.extend(value)
+		for v in value:
+			if isinstance(v, Rule):
+				rb.append(v)
+			else:
+				rb.append(self.engine.rule[RuleName(v)])
 
 	def __delitem__(self, key: RulebookName | Key):
 		self.engine._del_rulebook(key)
 
 
-class AllRules(MutableMapping, Signal):
+class AllRules(UserDict[RuleName, Rule], Signal):
 	"""A mapping of every rule in the game.
 
 	You can use this as a decorator to make a rule and not assign it
@@ -950,29 +1036,23 @@ class AllRules(MutableMapping, Signal):
 
 	"""
 
-	def __init__(self, engine: "Engine"):
-		super().__init__()
+	def __init__(self, engine: Engine):
+		Signal.__init__(self)
 		self.engine = engine
-
-	@cached_property
-	def _cache(self) -> dict[RuleName, Rule]:
-		return self.engine._rules_cache
-
-	def __iter__(self) -> Iterator[RuleName]:
-		yield from self._cache
-
-	def __len__(self):
-		return len(self._cache)
-
-	def __contains__(self, k: RuleName | str):
-		return k in self._cache
-
-	def __getitem__(self, k: RuleName | str) -> Rule:
-		return self._cache[k]
+		UserDict.__init__(
+			self,
+			(
+				(name, Rule(engine, name, create=False))
+				for name in engine.database.rules_dump()
+			),
+		)
 
 	def __setitem__(
 		self, k: RuleName | str, v: Rule | RuleFunc | RuleFuncName | str
 	):
+		if not isinstance(k, str):
+			raise TypeError("Invalid rule name", k)
+		k = RuleName(k)
 		# you can use the name of a stored function or rule
 		if isinstance(v, str):
 			if hasattr(self.engine.action, v):
@@ -984,10 +1064,11 @@ class AllRules(MutableMapping, Signal):
 			else:
 				raise ValueError("Unknown function: " + v)
 		if callable(v):
-			self._cache[k] = Rule(self.engine, k, actions=[v])
-			new = self._cache[k]
+			setattr(self.engine.action, v.__name__, v)
+			self.data[k] = Rule(self.engine, k, actions=[v.__name__])
+			new = self.data[k]
 		elif isinstance(v, Rule):
-			self._cache[k] = v
+			self.data[k] = v
 			new = v
 		else:
 			raise TypeError(
@@ -1003,7 +1084,7 @@ class AllRules(MutableMapping, Signal):
 				del rulebook[rulebook.index(k)]
 			except IndexError:
 				pass
-		del self._cache[k]
+		super().__delitem__(k)
 		self.send(self, key=k, rule=None)
 
 	def __call__(
@@ -1014,15 +1095,13 @@ class AllRules(MutableMapping, Signal):
 		neighborhood: RuleNeighborhood | int | None = ...,
 		always: bool = False,
 	):
-		def r(name: RuleName | str | None, v: RuleFunc, **kwargs):
+		def r(name: RuleName | None, v: RuleFunc, **kwargs):
 			if name is None:
-				name = v.__name__
-			if name == "truth":
-				raise ValueError("Illegal rule name")
+				name = RuleName(v.__name__)
 			self[name] = v
 			ret = self[name]
 			if kwargs.get("always"):
-				ret.triggers.append("truth")
+				ret.triggers.append(self.engine.trigger.truth)
 			if "neighborhood" in kwargs:
 				ret.neighborhood = neighborhood
 			return ret
@@ -1034,13 +1113,34 @@ class AllRules(MutableMapping, Signal):
 			kwargs["neighborhood"] = neighborhood
 		if v is None:
 			return partial(r, name, **kwargs)
+		elif callable(v):
+			if hasattr(self.engine.action, v.__name__):
+				v: ActionFunc = getattr(self.engine.action, v.__name__)
+				if getattr(self.engine.action, v.__name__) is not v:
+					raise AttributeError(
+						"Already have an action function by that name", v
+					)
+			else:
+				v: ActionFunc = self.engine.action(v)
+		else:
+			v: ActionFunc = getattr(self.engine.action, v)
+		if name is None:
+			name = RuleName(v.__name__)
+		elif name == "truth":
+			raise ValueError("Illegal rule name")
+		elif not isinstance(name, str):
+			raise TypeError("Invalid rule name", name)
+		name = RuleName(name)
 		return r(name, v, **kwargs)
 
 	def new_empty(self, name: RuleName | str) -> Rule:
 		"""Make a new rule with no actions or anything, and return it."""
+		if not isinstance(name, str):
+			raise TypeError("Invalid rule name", name)
+		name = RuleName(name)
 		if name in self:
 			raise KeyError("Already have rule {}".format(name))
 		new = Rule(self.engine, name)
-		self._cache[name] = new
+		self.data[name] = new
 		self.send(self, rule=new, active=True)
 		return new

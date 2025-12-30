@@ -2,8 +2,8 @@ from tempfile import TemporaryDirectory
 
 import kobold
 import polygons
-
 import wolfsheep
+
 from lisien import Engine
 
 RANDOM_SEED = 69105

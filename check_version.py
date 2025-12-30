@@ -64,4 +64,11 @@ for line in output.split("\n"):
 
 if lisien_version_str in vers:
 	sys.exit(f"Version {lisien_version_str} is already in PyPI.")
+
+with open("CHANGES.txt", "rt") as inf:
+	first_line = next(inf)
+if lisien_version_str not in first_line:
+	sys.exit(
+		f"Version {lisien_version_str} is not the top entry in CHANGES.txt."
+	)
 print(lisien_version_str)

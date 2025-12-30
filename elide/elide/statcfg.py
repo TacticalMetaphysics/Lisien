@@ -281,6 +281,7 @@ class StatListViewConfigurator(BaseStatListView):
 		ret["deleter"] = self.del_key
 		ret["set_control"] = self.set_control
 		ret["set_config"] = self.set_config
+		ret["config"] = {}
 		return ret
 
 

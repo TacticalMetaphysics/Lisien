@@ -60,7 +60,7 @@ def test_portal(someplace):
 	assert "someplace" not in there.preportal
 
 
-def test_user(someplace):
+def test_leader(someplace):
 	with pytest.raises(AmbiguousLeaderError):
 		someplace.leader.only
 	someone = someplace.engine.new_character("someone")

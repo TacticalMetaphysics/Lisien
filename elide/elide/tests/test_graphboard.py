@@ -11,7 +11,7 @@ from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
 from lisien.collections import FunctionStore
 from lisien.facade import CharacterFacade, EngineFacade
-from lisien.util import SignalDict
+from lisien.types import SignalDict
 
 from ..kivygarden.texturestack import TextureStackPlane
 from ..util import load_kv
@@ -143,7 +143,8 @@ def test_select_arrow():
 
 @pytest.mark.usefixtures("kivy")
 def test_select_spot():
-	char = CharacterFacade()
+	eng = EngineFacade(None)
+	char = eng.new_character("nobody")
 	char.add_place(0, _x=0.1, _y=0.1)
 	app = ElideApp()
 	board = GraphBoard(app=app, character=char)
@@ -159,7 +160,8 @@ def test_select_spot():
 
 @pytest.mark.usefixtures("kivy")
 def test_select_pawn():
-	char = CharacterFacade()
+	eng = EngineFacade(None)
+	char = eng.new_character("nobody")
 	char.add_place(0, _x=0.1, _y=0.1)
 	char.add_thing("that", location=0)
 	app = ElideApp()
@@ -175,7 +177,8 @@ def test_select_pawn():
 
 @pytest.mark.usefixtures("kivy")
 def test_pawn_drag():
-	char = CharacterFacade()
+	eng = EngineFacade(None)
+	char = eng.new_character("nobody")
 	char.add_place(0, _x=0.1, _y=0.1)
 	char.add_place(1, _x=0.2, _y=0.1)
 	char.add_thing("that", location=0)
@@ -337,7 +340,8 @@ def test_spot_and_pawn_from_dummy(elide_app):
 
 @pytest.mark.usefixtures("kivy")
 def test_pawn_add_new_place():
-	char = CharacterFacade()
+	eng = EngineFacade(None)
+	char = eng.new_character("nobody")
 	app = ElideApp()
 	board = GraphBoard(app=app, character=char)
 	board._connect_proxy_objects()

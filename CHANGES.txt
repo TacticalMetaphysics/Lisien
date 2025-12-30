@@ -1,3 +1,37 @@
+== 0.23.1 | 2025-11-16 ==
+* Fixed an inconsistency in instantiating ParquetDB that was probably preventing
+  Elide from launching for anybody who wasn't running the unreleased main
+  branch of ParquetDB. Sorry!
+* Fixed creating and deleting edges on the database
+* Fixed some crashes when trying to make Thing objects travel
+* More type safety
+* The database connector is now the `db` property of the `Engine` object
+  (formerly the `query` property)
+* The hashes in XML exports no longer vary depending on docstrings, formatting,
+  or type annotations. They're not used for anything yet; at some point,
+  the import feature will check the hashes to make sure you have compatible code.
+
+== 0.23.0 | 2025-11-13 ==
+* Added support for subinterpreter-based parallelism on Python 3.14, which is
+  now the version used for Android.
+* New dependency `u-msgpack-python` is used in those subinterpreters instead of
+  the basic `msgpack`, which doesn't run in subinterpreters (yet).
+* Refactored the codebase to use modern type hints; dropped support for Python
+  versions before 3.12. The database schema is now generated dynamically from
+  those annotations, which makes it easier to maintain. The import and export
+  methods now live on the database connectors, plus a couple on `Engine`.
+* Improved the database-free mode of operation that you get when you instantiate
+  `Engine` with a prefix of `None`. Now, you can export XML from the engine
+  when it's run that way. It may become the default mode of operation in a
+  future release.
+* Fixed data loss when you close the engine right after creating a graph.
+* XML exports now group the changes to the world state by which rule caused
+  them. This enables the rule stepper to work with those exports.
+* New dependency `reslot`, maintained by the author, will reduce Lisien's memory
+  footprint when there are a lot of entities active at once.
+* Dropped the `astor` dependency, which is unmaintained and not compatible with
+  Python 3.14.
+
 == 0.22.5 | 2025-10-11 ==
 * Fixed some data loss when exporting a game without simulating anything on
   ParquetDB. It made the .lisien files on the itch page kind of weird.

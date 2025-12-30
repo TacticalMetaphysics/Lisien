@@ -9,29 +9,32 @@ packages = ["lisien", "lisien.examples", "lisien.proxy", "lisien.server", "lisie
 
 [project]
 name = "lisien"
-version = "0.22.5"
+version = "0.23.1"
 authors = [
 	{ name="Zachary Spector", email="public@zacharyspector.com" },
 ]
 description = "Life Simulator Engine"
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = "~=3.10"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+requires-python = "~=3.12"
 classifiers = [
 	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: GNU Affero General Public License v3",
 	"Operating System :: OS Independent",
 	"Topic :: Software Development :: Libraries",
-	"Development Status :: 2 - Pre-Alpha"
+	"Intended Audience :: Developers",
+	"Development Status :: 3 - Alpha"
 ]
 dependencies = [
-	"astor~=0.8.1",
+	"attrs~=25.4.0",
 	"blinker~=1.4",
-	"msgpack~=1.0.0",
-	"networkx~=2.4",
+	"msgpack~=1.1.0",
+	"more-itertools~=10.8.0",
+	"u-msgpack-python~=2.8.0",
+	"networkx~=3.5",
 	"sqlalchemy~=2.0",
-	"numpy~=1.26.4",
-	"tblib~=1.7.0",
+	"numpy~=2.3.4",
+	"tblib~=3.2.0",
 	"parquetdb",
 	"annotated-types~=0.7.0",
 	"lxml~=6.0",
@@ -40,12 +43,3 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://codeberg.org/clayote/Lisien"
 "Bug Tracker" = "https://codeberg.org/clayote/Lisien/issues"
-
-[tool.pytest.ini_options]
-markers = [
-    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-	"big: marks tests as too big to diagnose specific bugs with",
-	"sqlite: marks tests that exercise the SQLite database backend",
-	"parquetdb: marks tests that exercise the ParquetDB database backend",
-	"parallel: marks tests that use the process pool"
-]

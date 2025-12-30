@@ -16,6 +16,7 @@ import os
 import shutil
 import zipfile
 from functools import partial
+from typing import Callable
 
 from kivy import Logger
 from kivy.app import App
@@ -104,44 +105,75 @@ class GeneratorButton(Button):
 class WorldStartConfigurator(BoxLayout):
 	"""Give options for how to initialize the world state"""
 
-	generator_type = OptionProperty("none", options=["none", "grid"])
+	generator_options = ["none", "grid"]
+	generator_type = OptionProperty("none", options=generator_options)
 	dismiss = ObjectProperty()
 	init_board = ObjectProperty()
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
-		binds = App.get_running_app()._bindings
+		app = App.get_running_app()
+		binds = app._bindings
+		self._buttons_bound = {}
 		self.grid_config = GridGeneratorDialog()
 		self.generator_dropdown = DropDown()
 
 		def select_txt(btn):
 			self.generator_dropdown.select(btn.text)
 
-		for opt in ["None", "Grid"]:
-			self.generator_dropdown.add_widget(
-				GeneratorButton(text=opt, on_release=select_txt)
-			)
+		for opt in self.generator_options:
+			btn = GeneratorButton(text=opt.capitalize())
+			binds_on_release = binds[
+				"WorldStartConfigurator",
+				"generator_dropdown",
+				"on_release",
+				opt,
+			]
+			uid = btn.fbind("on_release", select_txt)
+			self._buttons_bound[uid] = btn
+			binds_on_release.add(uid)
+			self.generator_dropdown.add_widget(btn)
 		binds_on_select = binds[
 			"WorldStartConfigurator", "generator_dropdown", "on_select"
 		]
 		while binds_on_select:
 			self.unbind_uid("on_select", binds_on_select.pop())
 		binds["WorldStartConfigurator", "generator_dropdown", "on_select"].add(
-			self.fbind("on_select", self.select_generator_type)
+			self.generator_dropdown.fbind(
+				"on_select", self.select_generator_type
+			)
 		)
+		app._unbinders.append(self.unbind_all)
+
+	def unbind_all(self):
+		binds = App.get_running_app()._bindings
+		for opt in self.generator_options:
+			for uid in devour(
+				binds[
+					"WorldStartConfigurator",
+					"generator_dropdown",
+					"on_release",
+					opt,
+				]
+			):
+				self._buttons_bound[uid].unbind_uid("on_release", uid)
+		for uid in devour(
+			binds["WorldStartConfigurator", "generator_dropdown", "on_select"]
+		):
+			self.unbind_uid("on_select", uid)
 
 	@logwrap(section="WorldStartConfigurator")
 	def select_generator_type(self, instance, value):
 		self.ids.drop.text = value
-		if value == "none":
-			self.ids.controls.clear_widgets()
-			self.generator_type = "none"
-		elif value == "Grid":
-			self.ids.controls.clear_widgets()
-			self.ids.controls.add_widget(self.grid_config)
-			self.grid_config.size = self.ids.controls.size
-			self.grid_config.pos = self.ids.controls.pos
-			self.generator_type = "grid"
+		self.ids.controls.clear_widgets()
+		match value.lower():
+			case "none":
+				self.generator_type = "none"
+			case "grid":
+				self.ids.controls.add_widget(self.grid_config)
+				self.grid_config.size = self.ids.controls.size
+				self.grid_config.pos = self.ids.controls.pos
+				self.generator_type = "grid"
 
 
 class GamePickerModal(ModalView):
@@ -270,8 +302,9 @@ class GameImporterModal(GamePickerModal):
 			return
 		except ImportError:
 			path = App.get_running_app().prefix
-			self._file_chooser = FileChooserIconView(path=path)
-			self.ids.chooser_goes_here.add_widget(self._file_chooser)
+			if not hasattr(self, "_file_chooser"):
+				self._file_chooser = FileChooserIconView(path=path)
+				self.ids.chooser_goes_here.add_widget(self._file_chooser)
 
 
 class GameLoaderModal(GamePickerModal):
@@ -426,11 +459,21 @@ class NewGameModal(ModalView):
 			)
 		else:
 			app.start_game(name=game_name)
-		app.select_character(app.engine.character["physical"])
+		if app.character_name:
+			if app.character_name in app.engine.character:
+				app.select_character(app.character)
+			else:
+				app.select_character(
+					app.engine.new_character(app.character_name)
+				)
+		elif "physical" in app.engine.character:
+			app.select_character(app.engine.character["physical"])
+		else:
+			app.select_character(app.engine.new_character("physical"))
 		self.dismiss()
 
 
-def trigger(func: callable) -> callable:
+def trigger(func: Callable) -> Callable:
 	return triggered()(func)
 
 

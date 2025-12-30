@@ -14,16 +14,20 @@ pyclean --version
 wine git --version
 buildozer --version
 ls ~/lisien_windows
-ulimit -n 69105
+if [ ! -z "$(git clean -n)" ]; then
+  echo "Debris in the repository."
+  git clean -n
+  exit 1
+fi
 isort lisien
 isort elide
 ruff format lisien
 ruff format elide
+PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
 for env in $(tox -c elide/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; pyclean .; tox -c elide/tox.ini -e $env; done
 for env in $(tox -c lisien/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; pyclean .; tox -c lisien/tox.ini -e $env; done
 rm -rf bin lisien/dist elide/dist
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android clean debug
-PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . docs/
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android update clean debug
 cd docs
 git add .
 git commit -m "Release v${VERSION}"

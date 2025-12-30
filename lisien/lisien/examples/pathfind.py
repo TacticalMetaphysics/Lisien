@@ -2,13 +2,13 @@ import random
 
 import networkx as nx
 
-import lisien.db
 
-
-def install(eng, seed=None):
+def install(eng, seed=None, width=25, height=25):
+	eng.eternal["width"] = width
+	eng.eternal["height"] = height
 	if seed is not None:
 		random.seed(seed)
-	grid: nx.Graph = nx.grid_2d_graph(100, 100)
+	grid: nx.Graph = nx.grid_2d_graph(width, height)
 
 	for node in list(grid):
 		if random.random() < 0.1:
@@ -25,12 +25,14 @@ def install(eng, seed=None):
 		from networkx.algorithms import astar_path
 
 		x, y = node.location.name
-		destx = 100 - int(x)
-		desty = 100 - int(y)
+		width = node.engine.eternal["width"]
+		height = node.engine.eternal["height"]
+		destx = width - int(x)
+		desty = height - int(y)
 		while (destx, desty) not in node.character.place:
-			if destx < 99:
+			if destx < width - 1:
 				destx += 1
-			elif desty < 99:
+			elif desty < height - 1:
 				destx = 0
 				desty += 1
 			else:

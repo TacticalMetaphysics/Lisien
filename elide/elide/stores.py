@@ -115,21 +115,31 @@ class StoreList(RecycleView):
 		App.get_running_app()._unbinders.append(self.unbind_all)
 
 	def unbind_all(self):
+		if not hasattr(self.store, "_store"):
+			return
 		binds = App.get_running_app()._bindings
 		for uid in devour(
 			binds["StoreList", self.store._store, "boxl", "selected_nodes"]
 		):
 			self.boxl.unbind_uid("selected_nodes", uid)
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def on_store(self, *_):
 		self.store.connect(self._trigger_redata)
 		self.redata()
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def on_boxl(self, *_):
-		if self.store is None:
+		if self.store is None or not hasattr(self.store, "_store"):
 			Clock.schedule_once(self.on_boxl, 0)
+			if self.store is None:
+				Logger.debug(
+					"StoreList: deferring binding until we have a store"
+				)
+			else:
+				Logger.debug(
+					f"StoreList: deferring binding until we know what {self.store} is for"
+				)
 			return
 		app = App.get_running_app()
 		if not app:
@@ -141,13 +151,13 @@ class StoreList(RecycleView):
 			self.boxl.unbind_uid("selected_nodes", uid)
 		binds.add(self.boxl.fbind("selected_nodes", self._pull_selection))
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def _pull_selection(self, *_):
 		if not self.boxl.selected_nodes:
 			return
 		self.selection_name = self._i2name[self.boxl.selected_nodes[0]]
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def munge(self, datum):
 		i, name = datum
 		self._i2name[i] = name
@@ -160,7 +170,7 @@ class StoreList(RecycleView):
 			"index": i,
 		}
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def redata(self, *_, **kwargs):
 		"""Update my ``data`` to match what's in my ``store``"""
 		select_name = kwargs.get("select_name")
@@ -173,19 +183,19 @@ class StoreList(RecycleView):
 		if select_name:
 			self._trigger_select_name(select_name)
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def _trigger_redata(self, *args, **kwargs):
 		part = partial(self.redata, *args, **kwargs)
 		if hasattr(self, "_scheduled_redata"):
 			Clock.unschedule(self._scheduled_redata)
 		self._scheduled_redata = Clock.schedule_once(part, 0)
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def select_name(self, name, *_):
 		"""Select an item by its name, highlighting"""
 		self.boxl.select_node(self._name2i[name])
 
-	@logwrap(section="RecycleToggleButton")
+	@logwrap(section="StoreList")
 	def _trigger_select_name(self, name):
 		part = partial(self.select_name, name)
 		if hasattr(self, "_scheduled_select_name"):

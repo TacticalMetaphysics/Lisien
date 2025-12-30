@@ -38,7 +38,7 @@ version.filename = %(source.dir)s/elide/pyproject.toml
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,blinker,sqlalchemy,typing_extensions,tblib,pygments,libbz2,liblzma,python-osc,lisien,elide,android,androidstorage4kivy,annotated-types,astor
+requirements = python3,kivy,msgpack,numpy,sqlite3,networkx,blinker,sqlalchemy,typing_extensions,tblib,pygments,lisien,elide,androidstorage4kivy,annotated-types,astor,android,pyjnius,python-osc,reslot,u-msgpack-python
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -59,71 +59,7 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-#services = worker0:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker1:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker2:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker3:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker4:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker5:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker6:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker7:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker8:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker9:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker10:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker11:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker12:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker13:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker14:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker15:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker16:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker17:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker18:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker19:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker20:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker21:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker22:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker23:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker24:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker25:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker26:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker27:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker28:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker29:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker30:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker31:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker32:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker33:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker34:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker35:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker36:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker37:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker38:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker39:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker40:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker41:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker42:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker43:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker44:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker45:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker46:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker47:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker48:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker49:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker50:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker51:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker52:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker53:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker54:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker55:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker56:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker57:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker58:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker59:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker60:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker61:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker62:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#    worker63:_python_bundle/site-packages/lisien/services/worker.py:foreground,
-#	core:_python_bundle/site-packages/lisien/services/core.py
+services =  core:_python_bundle/site-packages/lisien/android_service.py
 
 #
 # OSX Specific
@@ -164,7 +100,7 @@ fullscreen = 1
 
 # (list) Permissions
 # (See https://python-for-android.readthedocs.io/en/latest/buildoptions/#build-options-1 for all the supported syntaxes and properties)
-android.permissions = (name=android.permission.WRITE_EXTERNAL_STORAGE),android.permission.READ_EXTERNAL_STORAGE,
+android.permissions = (name=android.permission.WRITE_EXTERNAL_STORAGE),android.permission.READ_EXTERNAL_STORAGE,android.permission.INTERNET
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host
@@ -384,7 +320,7 @@ android.no-byte-compile-python = True
 #
 
 # (str) python-for-android URL to use for checkout
-# p4a.url = git@github.com:T-Dynamos/python-for-android.git
+# p4a.url = git@github.com:clayote/python-for-android.git
 
 # (str) python-for-android fork to use in case if p4a.url is not specified, defaults to upstream (kivy)
 #p4a.fork = kivy

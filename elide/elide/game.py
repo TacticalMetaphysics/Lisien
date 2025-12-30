@@ -29,6 +29,7 @@ from kivy.properties import (
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
 import lisien.proxy
+import lisien.proxy.manager
 
 from .graph.board import GraphBoard, GraphBoardView
 from .grid.board import GridBoard, GridBoardView
@@ -257,7 +258,7 @@ class GameApp(App):
 
 	@logwrap(section="GameApp")
 	def build(self):
-		self.procman = lisien.proxy.EngineProcessManager()
+		self.procman = lisien.proxy.manager.EngineProxyManager()
 		self.engine = self.procman.start(
 			self.prefix,
 			logger=Logger,
@@ -265,7 +266,7 @@ class GameApp(App):
 			install_modules=self.modules,
 			**self.engine_kwargs,
 		)
-		self.branch, self.turn, self.tick = self.engine._btt()
+		self.branch, self.turn, self.tick = self.engine.time
 		self.engine.time.connect(self._pull_time, weak=False)
 		self.screen_manager = ScreenManager(transition=NoTransition())
 		if hasattr(self, "inspector"):

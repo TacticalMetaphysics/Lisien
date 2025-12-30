@@ -24,11 +24,13 @@ try:
 	wd = app_storage_path()
 	connect_string = "sqlite:///{prefix}/world.sqlite3"
 	logs_dir = os.path.join(wd, "app", ".kivy", "logs")
+	android = True
 except ImportError:
 	from multiprocessing import freeze_support
 
 	wd = os.path.join(os.getcwd())
 	logs_dir = connect_string = None
+	android = False
 sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 
@@ -36,6 +38,7 @@ if __name__ == "__main__":
 	freeze_support()
 	from kivy.logger import Logger
 	from elide.app import ElideApp
+	from lisien.proxy.manager import Sub
 
 	Logger.setLevel(10)
 
@@ -44,8 +47,8 @@ if __name__ == "__main__":
 		games_dir="games",
 		connect_string=connect_string,
 		logs_dir=logs_dir,
-		workers=0,
-		use_thread=True,
+		sub_mode=Sub.thread,
+		android=android,
 	)
 	try:
 		app.run()

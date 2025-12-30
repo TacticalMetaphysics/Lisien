@@ -1,12 +1,13 @@
 annotated-types>=0.7.0
-astor~=0.8.1
+attrs~=25.4.0
 blinker>=1.4,<2
 msgpack>=1.0.0
+u-msgpack-python~=2.8.0
+parquetdb~=1.0.0
 networkx>=2.4,<4
 sqlalchemy>=1.4,<3
 numpy>=1.19.5,<3
 tblib>=1.7.0,<2
-parquetdb>=1.0.1,<2
 lxml~=6.0.1
 build
 twine
