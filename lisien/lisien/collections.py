@@ -14,9 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Common classes for collections in lisien
 
-Notably includes wrappers for mutable objects, allowing them to be stored in
-the database. These simply store the new value.
-
 Most of these are subclasses of :class:`blinker.Signal`, so you can listen
 for changes using the ``connect(..)`` method.
 
@@ -30,19 +27,19 @@ import importlib.util
 import json
 import os
 import sys
-from abc import ABC, abstractmethod
 from collections import UserDict
 from collections.abc import MutableMapping
 from contextlib import contextmanager
 from copy import deepcopy
-from dataclasses import dataclass
 from functools import cached_property
 from hashlib import blake2b
 from inspect import getsource
+from pathlib import Path
 from types import FunctionType, MethodType
-from typing import TYPE_CHECKING, Callable, Iterator, TypeVar
+from typing import TYPE_CHECKING, Callable, Iterator, TypeVar, ClassVar
 
 import networkx as nx
+from attrs import field, define
 from blinker import Signal
 
 from .types import (
@@ -61,6 +58,9 @@ from .types import (
 	Value,
 	ValueHint,
 	sort_set,
+	AbstractLanguageDescriptor,
+	AbstractStringStore,
+	AttrSignal,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval
@@ -74,23 +74,6 @@ if TYPE_CHECKING:
 # per Unicode 1.1
 GROUP_SEP = chr(0x241D).encode()
 REC_SEP = chr(0x241E).encode()
-
-
-class AbstractLanguageDescriptor(Signal, ABC):
-	@abstractmethod
-	def _get_language(self, inst: StringStore) -> str:
-		pass
-
-	@abstractmethod
-	def _set_language(self, inst: StringStore, val: str) -> None:
-		pass
-
-	def __get__(self, instance: StringStore, owner=None):
-		return self._get_language(instance)
-
-	def __set__(self, inst: StringStore, val: str):
-		self._set_language(inst, val)
-		self.send(inst, language=val)
 
 
 class LanguageDescriptor(AbstractLanguageDescriptor):
@@ -124,10 +107,14 @@ class TamperEvidentDict[_K, _V](dict[_K, _V]):
 		super().__delitem__(key)
 
 
+@define
 class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
-	def __init__(self, data: list[tuple[_K, _V]] | dict[_K, _V] = ()):
-		self.changed = {}
-		super().__init__(data)
+	changed: dict[_K, _V] = field(init=False, factory=dict)
+
+	def __attrs_pre_init__(
+		self, data: list[tuple[_K, _V]] | dict[_K, _V] = (), /, **kwargs
+	):
+		super().__init__(data, **kwargs)
 
 	def apply_changes(self) -> None:
 		self.data.update(self.changed)
@@ -170,32 +157,66 @@ class ChangeTrackingDict[_K, _V](UserDict[_K, _V]):
 			del self.data[key]
 
 
-class StringStore(MutableMapping[str, str], Signal):
-	language = LanguageDescriptor()
-	_store = "strings"
+@define
+class StringStore(AbstractStringStore, AttrSignal):
+	engine: AbstractEngine | dict[str, str] = field()
 
-	def __init__(
+	@engine.validator
+	def _validate_engine(
 		self,
-		engine_or_string_dict: AbstractEngine | dict,
-		prefix: str | None,
-		lang="eng",
+		_,
+		engine: AbstractEngine | dict[str, str] | dict[str, dict[str, str]],
 	):
-		super().__init__()
-		if isinstance(engine_or_string_dict, dict):
-			self._prefix = None
-			self._current_language = lang
-			if lang in engine_or_string_dict and isinstance(
-				engine_or_string_dict[lang], dict
-			):
-				self._languages = engine_or_string_dict
+		lang = self._current_language
+		if isinstance(engine, dict):
+			if lang in engine and isinstance(engine[lang], dict):
+				for k, v in engine[lang].items():
+					if not isinstance(k, str):
+						raise TypeError("String name must be string", k)
+					if not isinstance(v, str):
+						raise TypeError("StringStore only stores strings", v)
+				self._languages = engine
 			else:
-				self._languages = {lang: engine_or_string_dict}
-		else:
-			self.engine = engine_or_string_dict
+				self._languages = {lang: engine}
+		elif isinstance(engine, AbstractEngine):
 			self._languages = {lang: TamperEvidentDict()}
-			self._prefix = prefix
-			self._current_language = lang
 			self._switch_language(lang)
+		else:
+			raise TypeError(
+				"StringStore needs a Lisien engine or a dictionary of strings",
+				engine,
+			)
+
+	@staticmethod
+	def _convert_prefix(prefix: Path | os.PathLike[str] | None):
+		if prefix is None:
+			return None
+		elif isinstance(prefix, Path):
+			return prefix
+		else:
+			return Path(prefix)
+
+	_prefix: Path | None = field(converter=_convert_prefix, default=None)
+
+	@_prefix.validator
+	def _validate_prefix(self, _, prefix: Path | None):
+		if prefix is None:
+			return
+		if not prefix.is_dir():
+			raise NotADirectoryError(
+				"Strings prefix is not a directory", prefix
+			)
+
+	_current_language: str = field(default="eng")
+
+	@_current_language.validator
+	def _validate_language(self, _, lang: str):
+		if not isinstance(lang, str):
+			raise TypeError("Language code must be string", lang)
+
+	language: ClassVar = LanguageDescriptor()
+	_languages: dict[str, dict[str, str]] = field(init=False, factory=dict)
+	_store: ClassVar = "strings"
 
 	def _switch_language(self, lang: str) -> None:
 		"""Write the current language to disk, and load the new one if available"""
@@ -204,14 +225,14 @@ class StringStore(MutableMapping[str, str], Signal):
 				self._languages[lang] = TamperEvidentDict()
 			return
 		try:
-			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+			with open(self._prefix.joinpath(lang + ".json"), "r") as inf:
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		except FileNotFoundError:
 			self._languages[lang] = TamperEvidentDict()
 		assert self._current_language in self._languages
 		if getattr(self._languages[self._current_language], "tampered", False):
 			with open(
-				os.path.join(self._prefix, self._current_language + ".json"),
+				self._prefix.joinpath(self._current_language + ".json"),
 				"w",
 			) as outf:
 				json.dump(
@@ -251,20 +272,20 @@ class StringStore(MutableMapping[str, str], Signal):
 			and lang is not None
 			and self._current_language != lang
 		):
-			with open(os.path.join(self._prefix, lang + ".json"), "r") as inf:
+			with open(self._prefix.joinpath(lang + ".json"), "r") as inf:
 				self._languages[lang] = TamperEvidentDict(json.load(inf))
 		yield from self._languages[lang or self._current_language].items()
 
 	def save(self, reimport: bool = False) -> None:
 		if self._prefix is None:
 			return
-		if not os.path.exists(self._prefix):
-			os.mkdir(self._prefix)
+		if not self._prefix.exists():
+			self._prefix.mkdir()
 		for lang, d in self._languages.items():
 			if not d.tampered:
 				continue
 			with open(
-				os.path.join(self._prefix, lang + ".json"),
+				self._prefix.joinpath(lang + ".json"),
 				"w",
 			) as outf:
 				json.dump(
@@ -276,7 +297,7 @@ class StringStore(MutableMapping[str, str], Signal):
 			d.tampered = False
 		if reimport:
 			with open(
-				os.path.join(self._prefix, self._current_language + ".json"),
+				self._prefix.joinpath(self._current_language + ".json"),
 				"r",
 			) as inf:
 				self._languages[self._current_language] = TamperEvidentDict(
@@ -285,7 +306,8 @@ class StringStore(MutableMapping[str, str], Signal):
 
 	def blake2b(self) -> bytes:
 		the_hash = blake2b()
-		for k, v in self.items():
+		for k in sort_set(self.keys()):
+			v = self[k]
 			the_hash.update(k.encode())
 			the_hash.update(GROUP_SEP)
 			the_hash.update(v.encode())
@@ -293,7 +315,7 @@ class StringStore(MutableMapping[str, str], Signal):
 		return the_hash.digest()
 
 
-@dataclass
+@define
 class CodeHasher(ast.NodeVisitor):
 	# What if users want to subclass Place or whatever, and use type
 	# annotations to decide what rules to run on which of their subclasses?
@@ -1070,8 +1092,9 @@ class CodeHasher(ast.NodeVisitor):
 		return encoded.decode()
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class FunctionStore[_K: str, _T: FunctionType | MethodType](
-	AbstractFunctionStore[_K, _T], Signal
+	AbstractFunctionStore[_K, _T], AttrSignal
 ):
 	"""A module-like object that lets you alter its code and save your changes.
 
@@ -1086,53 +1109,65 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 	"""
 
-	_filename: str | None
+	@staticmethod
+	def _convert_filename(fn: Path | None):
+		if fn is None:
+			return None
+		return Path(fn)
 
-	def __init__(
-		self, filename: str | None, initial: dict = None, module: str = None
-	):
-		if initial is None:
-			initial = {}
-		super().__init__()
-		if filename is None:
-			self._filename = None
-			self._module = self.__name__ = module
+	_filename: Path | None = field(default=None, converter=_convert_filename)
+
+	@_filename.validator
+	def _validate_filename(self, _, file: Path | None):
+		if file is None:
+			if self._module is None and hasattr(self, "__name__"):
+				self._module = self.__name__
 			self._ast = ast.Module(body=[], type_ignores=[])
 			self._ast_idx = {}
 			self._need_save = False
-			self._locl = initial
 		else:
-			if not filename.endswith(".py"):
+			if not file.name.endswith(".py"):
 				raise ValueError(
 					"FunctionStore can only work with pure Python source code"
 				)
-			self._filename = os.path.abspath(os.path.realpath(filename))
-			self._store = os.path.basename(self._filename).removesuffix(".py")
+			self._filename = file.resolve().absolute()
+			self._store = file.name.removesuffix(".py")
 			try:
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
-				self._module = module
 				self._ast = ast.Module(body=[], type_ignores=[])
 				self._ast_idx = {}
 				self.save()
-			self._need_save = False
-			self._locl = {}
-			for k, v in initial.items():
-				setattr(self, k, v)
+
+	_module: str | None = None
+	_locl: dict[_K, _T] = field(alias="initial", factory=dict)
+
+	@_locl.validator
+	def _validate_initial(self, _, initial: dict[_K, _T]):
+		for k, v in initial.items():
+			if not isinstance(v, str):
+				func = v
+				v = getsource(v)
+			else:
+				func = None
+			self._set_source(k, v, func=func)
+
+	_need_save: bool = field(init=False, default=False)
 
 	def __dir__(self):
 		yield from self._locl
 		yield from super().__dir__()
 
 	def __getattr__(self, k):
-		if k in self._locl:
+		if k == "__name__" and isinstance(self._module, str):
+			return self._module
+		elif k in self._locl:
 			return self._locl[k]
 		elif k in dir(self):
 			return self.__getattribute__(k)
-		elif self._need_save:
+		if self._need_save:
 			self.save()
-			return getattr(self._module, k)
-		elif hasattr(self._module, k):
+		if hasattr(self._module, k):
 			return getattr(self._module, k)
 		else:
 			raise AttributeError("No attribute ", k)
@@ -1153,13 +1188,16 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 				)
 			func = holder[k]
 		outdented = dedent_source(source)
-		expr = ast.parse(outdented)
-		expr.body[0].name = k
+		expr: ast.Module = ast.parse(outdented)
+		funcdef: ast.FunctionDef = expr.body[0]
+		if not isinstance(funcdef, ast.FunctionDef):
+			raise TypeError("Not a function definition", outdented)
+		funcdef.name = k
 		if k in self._ast_idx:
-			self._ast.body[self._ast_idx[k]] = expr
+			self._ast.body[self._ast_idx[k]] = expr.body[0]
 		else:
 			self._ast_idx[k] = len(self._ast.body)
-			self._ast.body.append(expr)
+			self._ast.body.append(funcdef)
 		if self._filename is not None:
 			self._need_save = True
 		if isinstance(self._module, str):
@@ -1274,6 +1312,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		self._locl, self._ast, self._ast_idx = state
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 	def get_source(self, name: str) -> str:
 		if name == "truth":
@@ -1285,24 +1324,22 @@ class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 		return True
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]): ...
 
 
+@define(on_setattr=False, getstate_setstate=False)
 class ActionStore(FunctionStore[ActionFuncName, ActionFunc]): ...
 
 
-class UniversalMapping(MutableMapping, Signal):
+@define(repr=False)
+class UniversalMapping(MutableMapping, AttrSignal):
 	"""Mapping for variables that are global but which I keep history for"""
 
-	__slots__ = ["engine"]
+	engine: "engine.Engine"
 
-	def __init__(self, engine):
-		"""Store the engine and initialize my private dictionary of
-		listeners.
-
-		"""
-		super().__init__()
-		self.engine = engine
+	def __repr__(self):
+		return f"<{self.__class__.__name__} containing {dict(self)}>"
 
 	def __iter__(self):
 		return self.engine._universal_cache.iter_keys(*self.engine.time)
@@ -1330,7 +1367,7 @@ class UniversalMapping(MutableMapping, Signal):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, v)
-		self.engine.db.universal_set(k, branch, turn, tick, v)
+		self.engine.database.universal_set(k, branch, turn, tick, v)
 		self.send(self, key=k, val=v)
 
 	def _set_cache_now(self, k: UniversalKey, v: Value):
@@ -1340,11 +1377,12 @@ class UniversalMapping(MutableMapping, Signal):
 		"""Unset this key for the present (branch, tick)"""
 		branch, turn, tick = self.engine._nbtt()
 		self.engine._universal_cache.store(k, branch, turn, tick, ...)
-		self.engine.db.universal_del(k, branch, turn, tick)
+		self.engine.database.universal_del(k, branch, turn, tick)
 		self.send(self, key=k, val=...)
 
 
-class CharacterMapping(MutableMapping, Signal):
+@define(repr=False)
+class CharacterMapping(MutableMapping, AttrSignal):
 	"""A mapping by which to access :class:`Character` objects.
 
 	If a character already exists, you can always get its name here to
@@ -1355,11 +1393,10 @@ class CharacterMapping(MutableMapping, Signal):
 
 	"""
 
-	engine = getatt("orm")
+	engine: "engine.Engine"
 
-	def __init__(self, orm):
-		self.orm = orm
-		Signal.__init__(self)
+	def __repr__(self):
+		return f"<CharacterMapping containing {', '.join(self)}>"
 
 	def __iter__(self):
 		branch, turn, tick = self.engine.time

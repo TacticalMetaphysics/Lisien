@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-import os
+import pickle
 import resource
 import sys
 from functools import partial
@@ -20,9 +20,7 @@ from logging import getLogger
 
 import pytest
 
-from lisien.engine import (
-	Engine,
-)
+from lisien.engine import Engine
 from ..futures import (
 	LisienThreadExecutorProxy,
 	LisienProcessExecutorProxy,
@@ -44,9 +42,7 @@ from .util import (
 	make_test_engine,
 	make_test_engine_facade,
 	make_test_engine_kwargs,
-	get_database_connector_part,
 	college_engine,
-	restart_executor,
 	tar_cache,
 	untar_cache,
 )
@@ -86,7 +82,7 @@ def sub_mode(request):
 @pytest.fixture(scope="function")
 def handle(tmp_path):
 	hand = EngineHandle(
-		tmp_path,
+		prefix=tmp_path,
 		random_seed=69105,
 		workers=0,
 	)
@@ -145,7 +141,7 @@ def handle_initialized(request, tmp_path, database, random_seed):
 		ret.close()
 		return
 	with Engine(
-		tmp_path,
+		prefix=tmp_path,
 		workers=0,
 		random_seed=random_seed,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
@@ -154,7 +150,7 @@ def handle_initialized(request, tmp_path, database, random_seed):
 	) as eng:
 		install(eng)
 	ret = EngineHandle(
-		tmp_path,
+		prefix=tmp_path,
 		workers=0,
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3"
 		if database == "sqlite"
@@ -238,55 +234,61 @@ def persistent_database(request):
 	return request.param
 
 
-@pytest.fixture
-def database_connector_part(tmp_path, non_null_database):
-	yield get_database_connector_part(tmp_path, non_null_database)
-	if hasattr(get_database_connector_part, "_pyconnector"):
-		del get_database_connector_part._pyconnector
+def database_connector_partial(tmp_path, database):
+	match database:
+		case "python":
+			try:
+				with open(tmp_path.joinpath("database.pkl"), "rb") as f:
+					pydb = pickle.load(f)
+				return pydb
+			except FileNotFoundError:
+				db = PythonDatabaseConnector()
 
+				def part(*_):
+					return db
 
-@pytest.fixture
-def persistent_database_connector_part(tmp_path, persistent_database):
-	match persistent_database:
+				part.is_python = True
+				return part
 		case "sqlite":
 			return partial(
 				SQLAlchemyDatabaseConnector,
-				f"sqlite:///{tmp_path}/world.sqlite3",
+				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 			)
 		case "parquetdb":
 			return partial(
-				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
+				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
 			)
-	raise RuntimeError("Unknown database", persistent_database)
 
 
 @pytest.fixture
-def persistent_database_connector(persistent_database_connector_part):
-	yield persistent_database_connector_part()
+def database_connector_part(tmp_path, non_null_database):
+	return database_connector_partial(tmp_path, non_null_database)
 
 
-@pytest.fixture(scope="function")
-def database_connector(tmp_path, non_null_database):
+@pytest.fixture
+def database_connector_part2(tmp_path, non_null_database):
+	return database_connector_partial(tmp_path, non_null_database)
+
+
+@pytest.fixture
+def reusing_database_connector_part2(
+	tmp_path,
+	non_null_database,
+	reusing_python_database_connector_part,
+	reusing_sqlalchemy_database_connector_part,
+	reusing_parquetdb_database_connector_part,
+):
 	match non_null_database:
 		case "python":
-			connector = PythonDatabaseConnector()
+			yield reusing_python_database_connector_part
 		case "sqlite":
-			connector = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{tmp_path}/world.sqlite3"
-			)
+			yield reusing_sqlalchemy_database_connector_part
 		case "parquetdb":
-			connector = ParquetDatabaseConnector(
-				os.path.join(tmp_path, "world")
-			)
-		case _:
-			raise ValueError("Unknown database", non_null_database)
-	if hasattr(connector, "is_empty"):
-		assert connector.is_empty()
-	return connector
+			yield reusing_parquetdb_database_connector_part
 
 
 @pytest.fixture(scope="session")
-def process_executor():
+def process_executor(random_seed):
 	with LisienProcessExecutorProxy(
 		None,
 		getLogger("lisien"),
@@ -294,12 +296,13 @@ def process_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def thread_executor():
+def thread_executor(random_seed):
 	with LisienThreadExecutorProxy(
 		None,
 		getLogger("lisien"),
@@ -307,12 +310,13 @@ def thread_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def interpreter_executor():
+def interpreter_executor(random_seed):
 	if sys.version_info.minor < 14:
 		yield None
 		return
@@ -323,6 +327,7 @@ def interpreter_executor():
 		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
 		{"trunk": (None, 0, 0, 0, 0)},
 		2,
+		random_seed=random_seed,
 	) as x:
 		yield x
 
@@ -411,7 +416,7 @@ def engine(
 	tmp_path,
 	serial_or_parallel,
 	local_or_remote,
-	database_connector_part,
+	non_null_database,
 	random_seed,
 	serial_or_executor,
 ):
@@ -422,7 +427,7 @@ def engine(
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
-				database_connector_part,
+				non_null_database,
 				random_seed,
 				executor=serial_or_executor,
 			)
@@ -434,53 +439,12 @@ def engine(
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
-				database_connector_part,
+				non_null_database,
 				random_seed,
 				executor=serial_or_executor,
 			)
 		) as eng:
 			yield eng
-
-
-@pytest.fixture
-def no_proxy_executor(
-	tmp_path,
-	serial_or_parallel,
-	random_seed,
-	thread_executor,
-	process_executor,
-	interpreter_executor,
-):
-	match serial_or_parallel:
-		case "serial":
-			yield None
-		case "thread":
-			restart_executor(thread_executor, tmp_path, random_seed)
-			yield thread_executor
-		case "process":
-			restart_executor(process_executor, tmp_path, random_seed)
-			yield process_executor
-		case "interpreter":
-			restart_executor(interpreter_executor, tmp_path, random_seed)
-			yield interpreter_executor
-
-
-def proxyless_engine(
-	tmp_path, serial_or_parallel, database_connector, no_proxy_executor
-):
-	with Engine(
-		tmp_path,
-		random_seed=69105,
-		enforce_end_of_time=False,
-		workers=0 if serial_or_parallel == "serial" else 2,
-		database=database_connector,
-		executor=no_proxy_executor,
-	) as eng:
-		yield eng
-	if hasattr(eng, "_worker_log_threads"):
-		for t in eng._worker_log_threads:
-			assert not t.is_alive()
-		assert not eng._fut_manager_thread.is_alive()
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
@@ -493,7 +457,7 @@ def sqleng(tmp_path, request, execution, executor):
 			prefix=tmp_path,
 			worker_index=0,
 			eternal={"language": "eng"},
-			branches={},
+			branches_d={"trunk": (None, 0, 0, 0, 0)},
 		)
 		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
 			"trunk",
@@ -541,7 +505,6 @@ def serial_engine(tmp_path, persistent_database):
 @pytest.fixture(scope="function")
 def null_engine():
 	with Engine(
-		None,
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0,
@@ -614,7 +577,6 @@ def college24_tar(
 def college24(
 	college24_tar,
 	tmp_path,
-	serial_or_parallel,
 	database_connector_part,
 	serial_or_executor,
 ):
@@ -633,7 +595,10 @@ def sickle_tar(non_null_database):
 @pytest.fixture
 def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
 	with untar_cache(
-		sickle_tar, tmp_path, database_connector_part, serial_or_executor
+		sickle_tar,
+		tmp_path,
+		database_connector_part,
+		serial_or_executor,
 	) as eng:
 		yield eng
 
@@ -646,10 +611,16 @@ def wolfsheep_tar(non_null_database):
 
 @pytest.fixture
 def wolfsheep(
-	wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+	wolfsheep_tar,
+	tmp_path,
+	database_connector_part,
+	serial_or_executor,
 ):
 	with untar_cache(
-		wolfsheep_tar, tmp_path, database_connector_part, serial_or_executor
+		wolfsheep_tar,
+		tmp_path,
+		database_connector_part,
+		serial_or_executor,
 	) as eng:
 		yield eng
 
@@ -665,7 +636,10 @@ def pathfind(
 	pathfind_tar, tmp_path, database_connector_part, parallel_executor
 ):
 	with untar_cache(
-		pathfind_tar, tmp_path, database_connector_part, parallel_executor
+		pathfind_tar,
+		tmp_path,
+		database_connector_part,
+		parallel_executor,
 	) as eng:
 		yield eng
 
@@ -675,8 +649,6 @@ def pytest_collection_modifyitems(items):
 		fixturenames = getattr(item, "fixturenames", ())
 		if "college10" in fixturenames or "college24" in fixturenames:
 			item.add_marker("college")
-		for fixturename in fixturenames:
-			item.add_marker(fixturename)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

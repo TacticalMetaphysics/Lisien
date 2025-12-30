@@ -21,14 +21,13 @@ from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
 from contextlib import contextmanager
-from dataclasses import KW_ONLY, dataclass
 from functools import cached_property, partial, partialmethod, wraps
 from io import IOBase, StringIO
 from itertools import filterfalse, starmap
 from pathlib import Path
 from queue import Queue
 from threading import Lock, Thread
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, EllipsisType
 from typing import (
 	TYPE_CHECKING,
 	Any,
@@ -42,13 +41,15 @@ from typing import (
 	MutableMapping,
 	MutableSet,
 	Optional,
-	Self,
 	Set,
 	TypeVar,
+	get_origin,
 	get_args,
 	get_type_hints,
 )
 
+from attr import Factory
+from attrs import define, field
 import networkx as nx
 from tblib import Traceback
 
@@ -125,7 +126,6 @@ from .types import (
 	RuleNeighborhood,
 	RuleNeighborhoodRowType,
 	RuleRowType,
-	RulesKeyframe,
 	Stat,
 	StatDict,
 	ThingRowType,
@@ -154,7 +154,6 @@ from .types import (
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
 from .window import (
 	AssignmentTimeDict,
-	WindowDict,
 	BranchingTimeListDict,
 	LinearTimeListDict,
 )
@@ -214,10 +213,22 @@ class GlobalKeyValueStore(UserDict):
 		super().__delitem__(k)
 		self.qe.global_del(k)
 
+	def __copy__(self) -> dict[EternalKey, Value]:
+		return {
+			EternalKey(k): Value(v.unwrap() if hasattr(v, "unwrap") else v)
+			for (k, v) in self.items()
+		}
 
-@dataclass
+
+@define
 class ConnectionLooper(ABC):
 	connector: AbstractDatabaseConnector
+	_initialized: bool = field(init=False, default=False)
+	existence_lock: Lock = field(init=False, factory=Lock)
+
+	@existence_lock.validator
+	def _validate_existence_lock(self, attr, lock: Lock):
+		lock.acquire()
 
 	@cached_property
 	def inq(self) -> Queue:
@@ -229,10 +240,6 @@ class ConnectionLooper(ABC):
 
 	@cached_property
 	def lock(self):
-		return Lock()
-
-	@cached_property
-	def existence_lock(self):
 		return Lock()
 
 	@cached_property
@@ -275,6 +282,7 @@ def mutexed(
 	return mutexy
 
 
+@define
 class Batch(list):
 	"""A list of tuples to be serialized with a given function and sent to the database
 
@@ -285,33 +293,25 @@ class Batch(list):
 
 	"""
 
-	validate: bool = True
-	"""Whether to check that records added to the batch are correctly typed tuples"""
-	cached_properties = {}
+	connector: AbstractDatabaseConnector
+	table: str
+	key_len: int
+	inc_rec_counter: bool
+	per_character: bool
+
+	@staticmethod
+	def _convert_sig(
+		serialize_record: Callable[[Value, ...], bytes],
+	) -> inspect.Signature:
+		return inspect.signature(serialize_record)
+
+	signature: inspect.Signature = field(converter=_convert_sig)
+	cached_properties: ClassVar[dict[str, cached_property]] = {}
 	"""`cached_property` objects produced by `@batched`"""
-	serializers = {}
+	serializers: ClassVar[dict[str, Callable[[Value], bytes]]] = {}
 	"""Serialization functions decorated by `@batched`"""
-	argspec: inspect.FullArgSpec
-
-	_hint2type = {}
-
-	def __init__(
-		self,
-		qe: AbstractDatabaseConnector,
-		table: str,
-		key_len: int,
-		inc_rec_counter: bool,
-		per_character: bool,
-		serialize_record: Callable,
-	):
-		super().__init__()
-		self._qe = qe
-		self.table = table
-		self.key_len = key_len
-		self.inc_rec_counter = inc_rec_counter
-		self.serialize_record = serialize_record
-		self.per_character = per_character
-		self.argspec = inspect.getfullargspec(self.serialize_record)
+	validate: ClassVar[bool] = True
+	"""Whether to check that records added to the batch are correctly typed tuples"""
 
 	def cull(self, condition: Callable[..., bool]) -> None:
 		"""Remove records matching a condition from the batch
@@ -329,10 +329,10 @@ class Batch(list):
 
 	@cached_property
 	def deserialize(self) -> Callable[[tuple], tuple]:
-		argspec = self.argspec
-		unpack = self._qe.unpack
+		sig = self.signature
+		unpack = self.connector.unpack
 
-		ret_annot = argspec.annotations["return"]
+		ret_annot = sig.return_annotation
 		if isinstance(ret_annot, str):
 			ret_annot = eval(ret_annot)
 		types_on_disk = get_args(ret_annot)
@@ -350,24 +350,28 @@ class Batch(list):
 	@cached_property
 	def get_lists(self) -> Callable[[dict, Branch, Queue], tuple]:
 		if self.per_character:
-			argspec = self.argspec
-			args = argspec.args[1:]
-			argtyps = [
-				eval(annot) if isinstance(annot, str) else annot
-				for annot in (argspec.annotations[arg] for arg in args)
-			]
-			char_index = argtyps.index(CharName)
+			sig = self.signature
+			char_index = -1
+			args = list(sig.parameters.keys())
+			for char_index, arg in enumerate(args):
+				param = sig.parameters[arg]
+				if isinstance(param.annotation, str):
+					annot = eval(param.annotation)
+				else:
+					annot = param.annotation
+				if annot is CharName:
+					break
+			else:
+				raise TypeError("per_character was set, but no CharName")
 
 			def get_lists(ret: dict, branch: Branch, outq: Queue) -> tuple:
 				while isinstance(got := outq.get(), list):
 					for rec in got:
 						if isinstance(rec, dict):
-							rec = tuple(
-								rec[arg] for arg in self.argspec.args[1:]
-							)
+							rec = tuple(rec[arg] for arg in args)
 						else:
 							rec = (branch, *rec)
-						charn = self._qe.unpack(rec[char_index])
+						charn = self.connector.unpack(rec[char_index])
 						try:
 							ret[charn][self.table].append(
 								self.deserialize(rec)
@@ -383,7 +387,8 @@ class Batch(list):
 					for rec in got:
 						if isinstance(rec, dict):
 							rec = tuple(
-								rec[arg] for arg in self.argspec.args[1:]
+								rec[arg]
+								for arg in self.signature.parameters.keys()
 							)
 						else:
 							rec = (branch, *rec)
@@ -457,18 +462,20 @@ class Batch(list):
 	def _validate(self, t: tuple):
 		if not isinstance(t, tuple):
 			raise TypeError("Can only batch tuples")
-		if len(t) != len(self.argspec.args) - 1:  # exclude self
+		if len(t) != len(self.signature.parameters):
 			raise TypeError(
-				f"Need a tuple of length {len(self.argspec.args) - 1}, not {len(t)}"
+				f"Need a tuple of length {len(self.signature.parameters)}, not {len(t)}"
 			)
-		for i, (name, value) in enumerate(zip(self.argspec.args[1:], t)):
-			annot = self.argspec.annotations[name]
+		for i, (param, value) in enumerate(
+			zip(self.signature.parameters.values(), t)
+		):
+			annot = param.annotation
 
 			if not isinstance(value, tuple(map(root_type, deannotate(annot)))):
 				raise TypeError(
 					f"While validating {self.table}: "
 					f"Tuple element {i} is of type {type(value)};"
-					f" should be {self.argspec.annotations[name]}",
+					f" should be {param.annotation}",
 					value,
 				)
 
@@ -487,6 +494,34 @@ class Batch(list):
 			self._validate(v)
 		super().append(v)
 
+	def serialize_record(self, *args) -> tuple:
+		sig = self.signature
+		if len(sig.parameters) != len(args):
+			raise TypeError("Wrong record length", sig.parameters, args)
+		rett = sig.return_annotation
+		if isinstance(rett, str):
+			rett = eval(rett)
+		if hasattr(rett, "__value__"):
+			rett = rett.__value__
+		rett = get_args(rett)
+		if len(rett) != len(args):
+			raise TypeError(
+				"Wrong record length", sig.return_annotation, rett, args
+			)
+		pack = self.connector.pack
+		out = []
+		for arg, typ in zip(args, rett):
+			if isinstance(typ, str):
+				typ = eval(typ)
+			typ = root_type(typ)
+			if typ is bytes:
+				out.append(pack(arg))
+			elif not isinstance(arg, typ):
+				raise TypeError("Wrong type", arg, typ)
+			else:
+				out.append(arg)
+		return tuple(out)
+
 	def __call__(self):
 		if not self:
 			return 0
@@ -501,22 +536,22 @@ class Batch(list):
 		else:
 			records = starmap(self.serialize_record, self)
 		data = list(records)
-		argnames = self.argspec.args[1:]
+		argnames = list(self.signature.parameters.keys())
 		if self.key_len:
-			self._qe.delete_many_silent(
+			self.connector.delete_many_silent(
 				self.table,
 				[
 					dict(zip(argnames[: self.key_len], datum))
 					for datum in {rec[: self.key_len] for rec in data}
 				],
 			)
-		self._qe.insert_many_silent(
+		self.connector.insert_many_silent(
 			self.table, [dict(zip(argnames, datum)) for datum in data]
 		)
 		n = len(data)
 		self.clear()
 		if self.inc_rec_counter:
-			self._qe._increc(n)
+			self.connector._increc(n)
 		return n
 
 
@@ -576,19 +611,75 @@ def batched(
 	)
 
 
+def _fake_pack_or_unpack(obj):
+	return obj
+
+
+@define(eq=False)
 class AbstractDatabaseConnector(ABC):
-	_: KW_ONLY
-	kf_interval_override: Callable[[], bool | None] = lambda _: None
-	keyframe_interval: int | None = 1000
-	snap_keyframe: Callable[[Self], None] = lambda self: None
+	"""The interface between Lisien and wherever it's storing its data
 
-	@cached_property
-	def engine(self) -> AbstractEngine:
-		return EngineFacade(None)
+	Currently, there are three implementations (and
+	:class:`NullDatabaseConnector`, which does nothing, suitable only for tests).
+	This module contains the concrete class :class:`PythonDatabaseConnector`,
+	which stores all of Lisien's data as ordinary Python objects, to be
+	exported via :meth:`to_xml` and later imported by :meth:`load_xml`.
+	You should probably use the :meth:`lisien.engine.Engine.export`
+	and :meth:`lisien.engine.Engine.from_archive` methods instead. Lisien's
+	XML files are very large, and don't contain the game's code, but the
+	archives produced by :meth:`lisien.engine.Engine.export` are compressed
+	well, and include the code.
 
-	@cached_property
-	def tree(self) -> ElementTree:
-		return ElementTree(Element("lisien"))
+	To more conveniently persist the state of the game between play sessions,
+	the modules :mod:`lisien.sql` and :mod:`lisien.pqdb` implement connectors
+	for SQL and ParquetDB databases, respectively. It shouldn't be necessary
+	to import them directly, as :class:`lisien.engine.Engine` will select
+	the appropriate connector class itself.
+
+	"""
+
+	_pack: PackSignature
+	"""Function to pack Lisien's objects into bytes
+	
+	Normally the same as :py:meth:`lisien.engine.Engine.pack`.
+	
+	"""
+	_unpack: UnpackSignature
+	"""Function to unpack bytes into Lisien's objects
+	
+	Normally the same as :py:meth:`lisien.engine.Engine.unpack`.
+	
+	"""
+	clear: bool = field(kw_only=True, default=False)
+	"""Whether to delete everything immediately"""
+	kf_interval_override: Callable[[], bool | None] = field(
+		default=lambda: None, kw_only=True
+	)
+	"""Function to decide when not to respect :py:attr:`keyframe_interval`
+	
+	Before snapping a keyframe at an interval, we'll call
+	:py:attr:`kf_interval_override` with no arguments. If it returns ``True``,
+	we'll delay snapping that keyframe until :attr:`kf_interval_override`
+	returns ``False`` or ``None``.
+	
+	"""
+	keyframe_interval: int | None = field(default=1000, kw_only=True)
+	"""The number of records to be written between automatic keyframe snaps"""
+	snap_keyframe: Callable[[], None] = field(
+		default=lambda: None, kw_only=True
+	)
+	"""Function to snap keyframes
+	
+	Normally the same as :meth:`lisien.engine.Engine.snap_keyframe`.
+	
+	"""
+	_initialized: bool = field(init=False, default=False)
+	_kf_interval_overridden: bool = field(init=False, default=False)
+
+	engine: AbstractEngine = field(
+		init=False, factory=partial(EngineFacade, None)
+	)
+	tree: ElementTree = field(init=False, eq=False)
 
 	@cached_property
 	def _records(self) -> int:
@@ -628,21 +719,9 @@ class AbstractDatabaseConnector(ABC):
 	def pack(self) -> PackSignature:
 		return self._pack
 
-	@pack.setter
-	def pack(self, v: PackSignature) -> None:
-		self._pack = v
-		if hasattr(self, "_unpack") and not hasattr(self, "_initialized"):
-			self._init_db()
-
 	@property
 	def unpack(self) -> UnpackSignature:
 		return self._unpack
-
-	@unpack.setter
-	def unpack(self, v: UnpackSignature) -> None:
-		self._unpack = v
-		if hasattr(self, "_pack") and not hasattr(self, "_initialized"):
-			self._init_db()
 
 	def dump_everything(self) -> dict[str, list[tuple]]:
 		"""Return the whole database in a Python dictionary.
@@ -659,14 +738,26 @@ class AbstractDatabaseConnector(ABC):
 			return tuple(rec)
 
 		return {
-			table: sorted(
-				map(entuple, getattr(self, f"{table}_dump")()), key=self.pack
+			table: list(
+				map(entuple, getattr(self, f"{table}_dump")()),
 			)
 			for table in Batch.cached_properties
 		}
 
-	def __getstate__(self):
-		return self.dump_everything()
+	def __getstate__(
+		self,
+	) -> tuple[
+		dict[str, list[tuple]],
+		bool,
+		int | None,
+		Callable[[], bool],
+	]:
+		return (
+			self.dump_everything(),
+			self._initialized,
+			self.keyframe_interval,
+			self.kf_interval_override,
+		)
 
 	def load_everything(self, state: dict[str, list[tuple]]):
 		for table, data in state.items():
@@ -675,8 +766,22 @@ class AbstractDatabaseConnector(ABC):
 			batch.extend(data)
 		self.flush()
 
-	def __setstate__(self, state: dict[str, list[tuple]]):
-		self.load_everything(state)
+	def __setstate__(
+		self,
+		state: tuple[
+			dict[str, list[tuple]],
+			bool,
+			int | None,
+			Callable[[], bool],
+		],
+	):
+		(
+			data,
+			self._initialized,
+			self.keyframe_interval,
+			self.kf_interval_override,
+		) = state
+		self.load_everything(data)
 
 	def __enter__(self) -> AbstractDatabaseConnector:
 		return self
@@ -691,9 +796,7 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _eternal2set(
 		self, key: EternalKey, value: Value
-	) -> tuple[bytes, bytes]:
-		pack = self.pack
-		return pack(key), pack(value)
+	) -> tuple[bytes, bytes]: ...
 
 	@batched(
 		"branches",
@@ -708,14 +811,12 @@ class AbstractDatabaseConnector(ABC):
 		parent_tick: Tick,
 		end_turn: Turn,
 		end_tick: Tick,
-	) -> tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]:
-		return branch, parent, parent_turn, parent_tick, end_turn, end_tick
+	) -> tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]: ...
 
 	@batched("turns", key_len=2)
 	def _turns2set(
 		self, branch: Branch, turn: Turn, end_tick: Tick, plan_end_tick: Tick
-	) -> tuple[Branch, Turn, Tick, Tick]:
-		return (branch, turn, end_tick, plan_end_tick)
+	) -> tuple[Branch, Turn, Tick, Tick]: ...
 
 	@batched(
 		"turns_completed",
@@ -723,8 +824,7 @@ class AbstractDatabaseConnector(ABC):
 	)
 	def _turns_completed_to_set(
 		self, branch: Branch, turn: Turn
-	) -> tuple[Branch, Turn]:
-		return (branch, turn)
+	) -> tuple[Branch, Turn]: ...
 
 	def complete_turn(
 		self, branch: Branch, turn: Turn, discard_rules: bool = False
@@ -742,14 +842,12 @@ class AbstractDatabaseConnector(ABC):
 	@batched("plan_ticks", inc_rec_counter=False)
 	def _planticks2set(
 		self, plan: Plan, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[Plan, Branch, Turn, Tick]:
-		return plan, branch, turn, tick
+	) -> tuple[Plan, Branch, Turn, Tick]: ...
 
 	@batched("bookmarks", key_len=1, inc_rec_counter=False)
 	def _bookmarks2set(
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick
-	) -> tuple[bytes, Branch, Turn, Tick]:
-		return (self.pack(key), branch, turn, tick)
+	) -> tuple[bytes, Branch, Turn, Tick]: ...
 
 	def set_bookmark(
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick
@@ -767,9 +865,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		key: UniversalKey,
 		value: Value,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(key), pack(value)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched("rules", key_len=1)
 	def _rules2set(self, rule: RuleName) -> tuple[str]:
@@ -783,8 +879,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rule: RuleName,
 		triggers: list[TriggerFuncName],
-	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
-		return (branch, turn, tick, rule, self.pack(triggers))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]: ...
 
 	@batched("rule_prereqs", key_len=4)
 	def _prereqs2set(
@@ -794,8 +889,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rule: RuleName,
 		prereqs: list[PrereqFuncName],
-	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
-		return (branch, turn, tick, rule, self.pack(prereqs))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]: ...
 
 	@batched("rule_actions", key_len=4)
 	def _actions2set(
@@ -805,8 +899,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rule: RuleName,
 		actions: list[ActionFuncName],
-	) -> tuple[Branch, Turn, Tick, RuleName, bytes]:
-		return (branch, turn, tick, rule, self.pack(actions))
+	) -> tuple[Branch, Turn, Tick, RuleName, bytes]: ...
 
 	@batched(
 		"rule_neighborhood",
@@ -819,8 +912,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rule: RuleName,
 		neighborhood: RuleNeighborhood,
-	) -> tuple[Branch, Turn, Tick, RuleName, RuleNeighborhood]:
-		return (branch, turn, tick, rule, neighborhood)
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleNeighborhood]: ...
 
 	@batched("rule_big", key_len=4)
 	def _big2set(
@@ -830,8 +922,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		rule: RuleName,
 		big: RuleBig,
-	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]:
-		return branch, turn, tick, rule, big
+	) -> tuple[Branch, Turn, Tick, RuleName, RuleBig]: ...
 
 	@batched("rulebooks", key_len=4)
 	def _rulebooks2set(
@@ -842,15 +933,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rules: list[RuleName] = (),
 		priority: RulebookPriority = 0.0,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, RulebookPriority]:
-		return (
-			branch,
-			turn,
-			tick,
-			self.pack(rulebook),
-			self.pack(rules),
-			priority,
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, RulebookPriority]: ...
 
 	@batched("graphs", key_len=4)
 	def _graphs2set(
@@ -860,8 +943,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		graph: CharName,
 		type: GraphTypeStr,
-	) -> tuple[Branch, Turn, Tick, bytes, GraphTypeStr]:
-		return branch, turn, tick, self.pack(graph), type
+	) -> tuple[Branch, Turn, Tick, bytes, GraphTypeStr]: ...
 
 	@batched(
 		"character_rulebook",
@@ -875,9 +957,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched("unit_rulebook", key_len=4, per_character=True)
 	def _unit_rulebook_to_set(
@@ -887,9 +967,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched(
 		"character_thing_rulebook",
@@ -903,9 +981,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched(
 		"character_place_rulebook",
@@ -919,9 +995,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched(
 		"character_portal_rulebook",
@@ -935,9 +1009,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes]: ...
 
 	@batched("node_rulebook", key_len=5, per_character=True)
 	def _noderb2set(
@@ -948,9 +1020,7 @@ class AbstractDatabaseConnector(ABC):
 		character: CharName,
 		node: NodeName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(character), pack(node), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@batched(
 		"portal_rulebook",
@@ -966,17 +1036,7 @@ class AbstractDatabaseConnector(ABC):
 		orig: NodeName,
 		dest: NodeName,
 		rulebook: RulebookName,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
-		pack = self.pack
-		return (
-			branch,
-			turn,
-			tick,
-			pack(character),
-			pack(orig),
-			pack(dest),
-			pack(rulebook),
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]: ...
 
 	@batched("nodes", key_len=5, per_character=True)
 	def _nodes2set(
@@ -987,9 +1047,7 @@ class AbstractDatabaseConnector(ABC):
 		graph: CharName,
 		node: NodeName,
 		extant: bool,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bool]:
-		pack = self.pack
-		return branch, turn, tick, pack(graph), pack(node), bool(extant)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bool]: ...
 
 	@abstractmethod
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
@@ -1007,17 +1065,7 @@ class AbstractDatabaseConnector(ABC):
 		orig: NodeName,
 		dest: NodeName,
 		extant: bool,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]:
-		pack = self.pack
-		return (
-			branch,
-			turn,
-			tick,
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			bool(extant),
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]: ...
 
 	@abstractmethod
 	def edges_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
@@ -1035,17 +1083,7 @@ class AbstractDatabaseConnector(ABC):
 		node: NodeName,
 		key: Stat,
 		value: Value,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
-		pack = self.pack
-		return (
-			branch,
-			turn,
-			tick,
-			pack(graph),
-			pack(node),
-			pack(key),
-			pack(value),
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]: ...
 
 	@abstractmethod
 	def node_val_del_time(
@@ -1066,18 +1104,7 @@ class AbstractDatabaseConnector(ABC):
 		dest: NodeName,
 		key: Stat,
 		value: Value,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes, bytes]:
-		pack = self.pack
-		return (
-			branch,
-			turn,
-			tick,
-			pack(graph),
-			pack(orig),
-			pack(dest),
-			pack(key),
-			pack(value),
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes, bytes]: ...
 
 	@abstractmethod
 	def edge_val_del_time(
@@ -1096,9 +1123,7 @@ class AbstractDatabaseConnector(ABC):
 		graph: CharName,
 		key: Stat,
 		value: Value,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(graph), pack(key), pack(value)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@abstractmethod
 	def graph_val_del_time(
@@ -1130,17 +1155,7 @@ class AbstractDatabaseConnector(ABC):
 		nodes: NodeKeyframe,
 		edges: EdgeKeyframe,
 		graph_val: GraphValKeyframe,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]:
-		pack = self.pack
-		return (
-			branch,
-			turn,
-			tick,
-			pack(graph),
-			pack(nodes),
-			pack(edges),
-			pack(graph_val),
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bytes]: ...
 
 	@batched(
 		"keyframe_extensions",
@@ -1155,9 +1170,7 @@ class AbstractDatabaseConnector(ABC):
 		universal: UniversalKeyframe,
 		rule: RuleKeyframe,
 		rulebook: RulebooksKeyframe,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		pack = self.pack
-		return branch, turn, tick, pack(universal), pack(rule), pack(rulebook)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@batched("character_rules_handled", key_len=5, inc_rec_counter=False)
 	def _char_rules_handled(
@@ -1175,9 +1188,7 @@ class AbstractDatabaseConnector(ABC):
 		bytes,
 		RuleName,
 		Tick,
-	]:
-		(character, rulebook) = map(self.pack, (character, rulebook))
-		return (branch, turn, character, rulebook, rule, tick)
+	]: ...
 
 	@batched("unit_rules_handled", key_len=7, inc_rec_counter=False)
 	def _unit_rules_handled_to_set(
@@ -1190,11 +1201,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]:
-		character, graph, unit, rulebook = map(
-			self.pack, (character, graph, unit, rulebook)
-		)
-		return branch, turn, character, graph, unit, rulebook, rule, tick
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched("character_thing_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_thing_rules_handled(
@@ -1206,11 +1213,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, Tick]:
-		character, thing, rulebook = map(
-			self.pack, (character, thing, rulebook)
-		)
-		return (branch, turn, character, rulebook, rule, thing, tick)
+	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, Tick]: ...
 
 	@batched("character_place_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_place_rules_handled(
@@ -1222,11 +1225,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]:
-		character, rulebook, place = map(
-			self.pack, (character, rulebook, place)
-		)
-		return (branch, turn, character, place, rulebook, rule, tick)
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched(
 		"character_portal_rules_handled", key_len=7, inc_rec_counter=False
@@ -1241,11 +1240,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]:
-		character, rulebook, orig, dest = map(
-			self.pack, (character, rulebook, orig, dest)
-		)
-		return branch, turn, character, orig, dest, rulebook, rule, tick
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched("node_rules_handled", key_len=6, inc_rec_counter=False)
 	def _node_rules_handled_to_set(
@@ -1257,9 +1252,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]:
-		character, rulebook, node = map(self.pack, (character, rulebook, node))
-		return branch, turn, character, node, rulebook, rule, tick
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched("portal_rules_handled", key_len=7, inc_rec_counter=False)
 	def _portal_rules_handled_to_set(
@@ -1272,11 +1265,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]:
-		(character, orig, dest, rulebook) = map(
-			self.pack, (character, orig, dest, rulebook)
-		)
-		return branch, turn, character, orig, dest, rulebook, rule, tick
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched("units", key_len=6, per_character=True)
 	def _unitness(
@@ -1288,19 +1277,7 @@ class AbstractDatabaseConnector(ABC):
 		unit_graph: CharName,
 		unit_node: NodeName,
 		is_unit: bool,
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]:
-		(character_graph, unit_graph, unit_node) = map(
-			self.pack, (character_graph, unit_graph, unit_node)
-		)
-		return (
-			branch,
-			turn,
-			tick,
-			character_graph,
-			unit_graph,
-			unit_node,
-			is_unit,
-		)
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes, bool]: ...
 
 	@batched("things", key_len=5, per_character=True)
 	def _things2set(
@@ -1311,11 +1288,7 @@ class AbstractDatabaseConnector(ABC):
 		character: CharName,
 		thing: NodeName,
 		location: NodeName | type(...),
-	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]:
-		(character, thing, location) = map(
-			self.pack, (character, thing, location)
-		)
-		return branch, turn, tick, character, thing, location
+	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@abstractmethod
 	def universal_get(
@@ -1686,10 +1659,6 @@ class AbstractDatabaseConnector(ABC):
 
 	@abstractmethod
 	def close(self) -> None:
-		pass
-
-	@abstractmethod
-	def _init_db(self) -> None:
 		pass
 
 	@abstractmethod
@@ -2368,6 +2337,7 @@ class AbstractDatabaseConnector(ABC):
 		return PickierDefaultDict(int, BranchingTimeListDict)
 
 	def to_etree(self, name: str) -> ElementTree:
+		self.tree = ElementTree(Element("lisien"))
 		root = self.tree.getroot()
 		self.commit()
 		eternals = dict(self.eternal.items())
@@ -3293,10 +3263,10 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[TriggerFuncName]]],
+			AssignmentTimeDict[list[TriggerFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_prereqs(
@@ -3305,10 +3275,10 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[PrereqFuncName]]],
+			AssignmentTimeDict[list[PrereqFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_actions(
@@ -3317,10 +3287,10 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, list[ActionFuncName]]],
+			AssignmentTimeDict[list[ActionFuncName]],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_neighborhoods(
@@ -3329,25 +3299,25 @@ class AbstractDatabaseConnector(ABC):
 		RuleName,
 		dict[
 			Branch,
-			AssignmentTimeDict[Turn, WindowDict[Tick, RuleNeighborhood]],
+			AssignmentTimeDict[RuleNeighborhood],
 		],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _known_big(
 		self,
 	) -> dict[
 		RuleName,
-		dict[Branch, AssignmentTimeDict[Turn, WindowDict[Tick, RuleBig]]],
+		dict[Branch, AssignmentTimeDict[RuleBig]],
 	]:
-		return {}
+		return defaultdict(partial(defaultdict, AssignmentTimeDict))
 
 	@cached_property
 	def _plan_times(self) -> dict[Plan, set[Time]]:
 		return {}
 
-	def _element_to_value(self, el: Element) -> Value | ValueHint:
+	def _element_to_value(self, el: Element) -> Value | EllipsisType:
 		eng = self.engine
 		match el.tag:
 			case "Ellipsis":
@@ -3364,31 +3334,35 @@ class AbstractDatabaseConnector(ABC):
 				return Value(el.get("value") in {"T", "true"})
 			case "character":
 				name = CharName(literal_eval(el.get("name")))
-				return eng.character[name]
+				return Value(eng.character[name])
 			case "node":
 				char_name = CharName(literal_eval(el.get("character")))
 				place_name = NodeName(literal_eval(el.get("name")))
-				return eng.character[char_name].node[place_name]
+				return Value(eng.character[char_name].node[place_name])
 			case "portal":
 				char_name = CharName(literal_eval(el.get("character")))
 				orig = NodeName(literal_eval(el.get("origin")))
 				dest = NodeName(literal_eval(el.get("destination")))
-				return eng.character[char_name].portal[orig][dest]
+				return Value(eng.character[char_name].portal[orig][dest])
 			case "list":
-				return [self._element_to_value(listel) for listel in el]
+				return Value([self._element_to_value(listel) for listel in el])
 			case "tuple":
-				return tuple(self._element_to_value(tupel) for tupel in el)
+				return Value(
+					tuple(self._element_to_value(tupel) for tupel in el)
+				)
 			case "set":
-				return {self._element_to_value(setel) for setel in el}
+				return Value({self._element_to_value(setel) for setel in el})
 			case "frozenset":
-				return frozenset(self._element_to_value(setel) for setel in el)
+				return Value(
+					frozenset(self._element_to_value(setel) for setel in el)
+				)
 			case "dict":
 				ret = {}
 				for dict_item_el in el:
 					ret[literal_eval(dict_item_el.get("key"))] = (
 						self._element_to_value(dict_item_el[0])
 					)
-				return ret
+				return Value(ret)
 			case "exception":
 				raise NotImplementedError(
 					"Deserializing exceptions from XML not implemented"
@@ -3655,16 +3629,7 @@ class AbstractDatabaseConnector(ABC):
 			d = self._known_big
 		else:
 			raise ValueError(what)
-		if rule in d:
-			if branch in d[rule]:
-				if turn in d[rule][branch]:
-					d[rule][branch][turn][tick] = datum
-				else:
-					d[rule][branch][turn] = {tick: datum}
-			else:
-				d[rule][branch] = AssignmentTimeDict({turn: {tick: datum}})
-		else:
-			d[rule] = {branch: AssignmentTimeDict({turn: {tick: datum}})}
+		d[rule][branch].store_at(turn, tick, datum)
 
 	_rule_triggers_rec = partialmethod(_rule_func_list, "triggers")
 	_rule_prereqs_rec = partialmethod(_rule_func_list, "prereqs")
@@ -4003,6 +3968,39 @@ class AbstractDatabaseConnector(ABC):
 					tick,
 				)
 
+	@cached_property
+	def _element_dispatch_table(self):
+		return {
+			"keyframe": self._keyframe_rec,
+			"universal": self._universal_rec,
+			"rule-triggers": self._rule_triggers_rec,
+			"rule-prereqs": self._rule_prereqs_rec,
+			"rule-actions": self._rule_actions_rec,
+			"rule-neighborhood": self._rule_neighborhood_rec,
+			"rule-big": self._rule_big_rec,
+			"rulebook": self._rulebook_rec,
+			"graph": self._graph_rec,
+			"graph-val": self._graph_val_rec,
+			"node": self._node_rec,
+			"node-val": self._node_val_rec,
+			"edge": self._edge_rec,
+			"edge-val": self._edge_val_rec,
+			"location": self._location_rec,
+			"unit": self._unit_rec,
+			"character-rulebook": self._character_rulebook_rec,
+			"unit-rulebook": self._unit_rulebook_rec,
+			"character-thing-rulebook": self._character_thing_rulebook_rec,
+			"character-place-rulebook": self._character_place_rulebook_rec,
+			"character-portal-rulebook": self._character_portal_rulebook_rec,
+			"node-rulebook": self._node_rulebook_rec,
+			"portal-rulebook": self._portal_rulebook_rec,
+		}
+
+	def _dispatch_element(
+		self, branch_el: Element, turn_el: Element, elem: Element
+	) -> None:
+		self._element_dispatch_table[elem.tag](branch_el, turn_el, elem)
+
 	def load_etree(
 		self,
 		tree: ElementTree,
@@ -4066,18 +4064,14 @@ class AbstractDatabaseConnector(ABC):
 						for elem in turn_el:
 							if elem.tag == "rule":
 								self._rule(branch_el, turn_el, elem)
-								for ellem in elem:
-									getattr(
-										self,
-										"_"
-										+ ellem.tag.replace("-", "_")
-										+ "_rec",
-									)(branch_el, turn_el, ellem)
+								for element in elem:
+									self._dispatch_element(
+										branch_el, turn_el, element
+									)
 							else:
-								getattr(
-									self,
-									"_" + elem.tag.replace("-", "_") + "_rec",
-								)(branch_el, turn_el, elem)
+								self._dispatch_element(
+									branch_el, turn_el, elem
+								)
 				known_rules = (
 					self._known_triggers.keys()
 					| self._known_prereqs.keys()
@@ -4129,16 +4123,14 @@ class AbstractDatabaseConnector(ABC):
 					),
 					(self._known_big, self.set_rule_big),
 				]:
-					for rule in mapp:
-						for branch in mapp[rule]:
-							for turn in mapp[rule][branch]:
+					for rule, branches in mapp.items():
+						for branch, assignments in branches.items():
+							for turn, tick in assignments.iter_times():
 								# Turn and tick are guaranteed to be in
 								# chronological order here, because that's what
 								# an AssignmentTimeDict does.
-								for tick, datum in mapp[rule][branch][
-									turn
-								].items():
-									setter(rule, branch, turn, tick, datum)
+								datum = assignments.retrieve_exact(turn, tick)
+								setter(rule, branch, turn, tick, datum)
 				for plan, times in self._plan_times.items():
 					for branch, turn, tick in times:
 						self.plans_insert(plan, branch, turn, tick)
@@ -4161,18 +4153,22 @@ class AbstractDatabaseConnector(ABC):
 _T = TypeVar("_T")
 
 
-@dataclass
+@define(getstate_setstate=False, eq=False)
 class PythonDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that holds all data in memory
 
 	You'll have to write it to disk yourself. Use the ``write_xml`` method
-	for that, or
+	for that.
 
 	This does not start any threads, unlike the connectors that really
 	connect to databases, making it an appropriate choice if running in
 	an environment that lacks threading, such as WASI.
 
 	"""
+
+	_pack = field(default=None)
+	_unpack = field(default=None)
+	is_python: ClassVar = True
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -4600,29 +4596,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _lock(self) -> Lock:
 		return Lock()
 
-	@property
-	def pack(self):
-		return self._pack
-
-	@pack.setter
-	def pack(self, v):
-		pass
+	@staticmethod
+	def pack(obj):
+		return obj
 
 	@staticmethod
-	def _pack(a: _T) -> _T:
-		return a
-
-	@property
-	def unpack(self):
-		return self._unpack
-
-	@unpack.setter
-	def unpack(self, v):
-		pass
-
-	@staticmethod
-	def _unpack(a: _T) -> _T:
-		return a
+	def unpack(obj):
+		return obj
 
 	def _load_window(
 		self,
@@ -5099,9 +5079,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	commit = close = AbstractDatabaseConnector.flush
 
-	def _init_db(self) -> None:
-		pass
-
 	def truncate_all(self) -> None:
 		for table in Batch.cached_properties:
 			getattr(self, "_" + table).clear()
@@ -5393,7 +5370,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 			yield from sort_set(self._bookmarks.items())
 
 
-@dataclass
+@define
 class NullDatabaseConnector(AbstractDatabaseConnector):
 	"""Database connector that does nothing, connects to no database
 
@@ -5401,6 +5378,9 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 	you put into it, instead use :class:`PythonDatabaseConnector`.
 
 	"""
+
+	_pack = field(default=None)
+	_unpack = field(default=None)
 
 	def echo(self, *args):
 		if len(args) == 1:
@@ -6252,15 +6232,29 @@ def window_getter(
 window_getter.tables = {}
 
 
+@define
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
-	Looper: ClassVar[type[ConnectionLooper]]
-	clear: bool
+	_pack: PackSignature
+	_unpack: UnpackSignature
 
-	def __post_init__(self):
-		self._t = Thread(target=self._looper.run)
-		self._t.start()
-		if self.clear:
-			self.truncate_all()
+	Looper: ClassVar[type[ConnectionLooper]]
+
+	def _make_thread(self):
+		return Thread(target=self._looper.run, name="rundb")
+
+	_t: Thread = field(
+		init=False, default=Factory(_make_thread, takes_self=True)
+	)
+	_initialized: bool = field(init=False, default=False)
+
+	def close(self) -> None:
+		self._inq.put("close")
+		try:
+			self._looper.existence_lock.acquire(timeout=10)
+		except TimeoutError as ex:
+			raise TimeoutError("Couldn't close looper", *ex.args) from ex
+		self._looper.existence_lock.release()
+		self._t.join()
 
 	@contextmanager
 	def mutex(self):
@@ -6451,28 +6445,39 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 			raise TypeError("Invalid universal keyframe", unpacked)
 		return {UniversalKey(Key(k)): Value(v) for (k, v) in unpacked.items()}
 
-	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RulesKeyframe:
-		def make_rule_keyframe(v: dict) -> RuleKeyframe:
-			return {
-				"triggers": [
-					TriggerFuncName(trig) for trig in v.get("triggers", ())
-				],
-				"prereqs": [
-					PrereqFuncName(preq) for preq in v.get("prereqs", ())
-				],
-				"actions": [
-					ActionFuncName(act) for act in v.get("actions", ())
-				],
-				"neighborhood": v["neighborhood"]
-				if "neighborhood" in v and v["neighborhood"] is not None
-				else None,
-				"big": RuleBig(bool(v.get("big"))),
-			}
-
+	def _unpack_rules_keyframe(self, rule_packed: bytes) -> RuleKeyframe:
 		unpacked = self.unpack(rule_packed)
 		if not isinstance(unpacked, dict):
 			raise TypeError("Invalid rule keyframe", unpacked)
-		return {rule: make_rule_keyframe(v) for (rule, v) in unpacked.items()}
+		neighborhood_d: dict[RuleName, RuleNeighborhood] = unpacked[
+			"neighborhood"
+		]
+		if not isinstance(neighborhood_d, dict):
+			raise TypeError("Invalid neighborhood dict")
+		for k, v in neighborhood_d.items():
+			if not isinstance(k, str):
+				raise TypeError("Invalid rule name", k)
+			if not isinstance(v, (int, type(None))):
+				raise TypeError("Invalid neighborhood", v)
+		return {
+			"triggers": {
+				RuleName(rule): [TriggerFuncName(trig) for trig in trigs]
+				for (rule, trigs) in unpacked["triggers"].items()
+			},
+			"prereqs": {
+				RuleName(rule): [PrereqFuncName(preq) for preq in preqs]
+				for (rule, preqs) in unpacked["prereqs"].items()
+			},
+			"actions": {
+				RuleName(rule): [ActionFuncName(act) for act in acts]
+				for (rule, acts) in unpacked["actions"].items()
+			},
+			"neighborhood": neighborhood_d,
+			"big": {
+				RuleName(rule): RuleBig(big)
+				for (rule, big) in unpacked["big"].items()
+			},
+		}
 
 	def _unpack_rulebooks_keyframe(
 		self, rulebook_packed: bytes

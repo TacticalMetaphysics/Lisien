@@ -18,14 +18,15 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import (
 	TYPE_CHECKING,
-	Hashable,
 	Iterator,
 	Literal,
 	MutableMapping,
 	MutableSequence,
 	Optional,
+	ClassVar,
 )
 
+from attrs import define
 from blinker import Signal
 
 from ..types import (
@@ -38,6 +39,7 @@ from ..types import (
 	RuleNeighborhood,
 	Value,
 	ValueHint,
+	AttrSignal,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper
 
@@ -46,22 +48,15 @@ if TYPE_CHECKING:
 	from .engine import EngineProxy, FuncStoreProxy, RuleMapProxyDescriptor
 
 
-class CachingProxy(MutableMapping, Signal):
-	"""Abstract class for proxies to lisien entities or mappings thereof"""
+class CachingProxy(MutableMapping, Signal, ABC):
+	"""Abstract class for proxies to Lisien entities or mappings thereof"""
 
-	_cache: dict
-	rulebook: RuleBookProxy
-	engine: EngineProxy
+	@property
+	@abstractmethod
+	def _cache(self) -> dict: ...
 
 	def _worker_check(self):
 		self.engine._worker_check()
-
-	def __init__(self):
-		super().__init__()
-		self.exists = True
-
-	def __bool__(self):
-		return bool(self.exists)
 
 	def __iter__(self):
 		yield from self._cache
@@ -119,10 +114,19 @@ class CachingProxy(MutableMapping, Signal):
 		raise NotImplementedError("Abstract method")
 
 
-class CachingEntityProxy(CachingProxy):
-	"""Abstract class for proxy objects representing lisien entities"""
+@define(eq=False)
+class CachingEntityProxy(CachingProxy, AttrSignal, ABC):
+	"""Abstract class for proxy objects representing Lisien entities"""
 
-	name: Hashable
+	character: CharacterProxy
+
+	@property
+	def engine(self):
+		return self.character.engine
+
+	@property
+	def name(self):
+		return self.character.name
 
 	def _cache_get_munge(
 		self, k: Key, v: Value
@@ -134,11 +138,6 @@ class CachingEntityProxy(CachingProxy):
 		elif isinstance(v, set):
 			return SetWrapper(lambda: self._cache[k], self, k)
 		return v
-
-	def __repr__(self):
-		return "<{}({}) {} at {}>".format(
-			self.__class__.__name__, self._cache, self.name, id(self)
-		)
 
 
 class FuncListProxy(MutableSequence, Signal):
@@ -443,9 +442,8 @@ class RuleMapProxyDescriptor(RuleFollowerProxyDescriptor):
 
 
 class RuleFollowerProxy(ABC):
-	rule = RuleMapProxyDescriptor()
-	rulebook = RulebookProxyDescriptor()
-	engine: "EngineProxy"
+	rule: ClassVar = RuleMapProxyDescriptor()
+	rulebook: ClassVar = RulebookProxyDescriptor()
 
 	@abstractmethod
 	def _get_default_rulebook_name(self) -> RulebookName:

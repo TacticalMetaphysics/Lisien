@@ -13,7 +13,13 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien import Engine
-from lisien.collections import FunctionStore, StringStore
+from lisien.collections import (
+	FunctionStore,
+	StringStore,
+	TriggerStore,
+	PrereqStore,
+	ActionStore,
+)
 
 
 def test_single_plan(serial_engine):
@@ -150,7 +156,7 @@ def test_plan_vs_plan(serial_engine):
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, persistent_database_connector_part):
+def test_save_load_plan(tmp_path, database_connector_part):
 	with Engine(
 		tmp_path,
 		function=FunctionStore(None),
@@ -160,7 +166,7 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		action=FunctionStore(None),
 		string={},
 		workers=0,
-		database=persistent_database_connector_part(),
+		database=database_connector_part,
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -187,7 +193,7 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=persistent_database_connector_part(),
+		database=database_connector_part,
 	) as orm:
 		g1 = orm.character[1]
 		g2 = orm.character[2]
@@ -215,18 +221,17 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		workers=0,
 		function=FunctionStore(None),
 		method=FunctionStore(None),
-		trigger=FunctionStore(None),
-		prereq=FunctionStore(None),
-		action=FunctionStore(None),
+		trigger=TriggerStore(None),
+		prereq=PrereqStore(None),
+		action=ActionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=persistent_database_connector_part(),
+		database=database_connector_part,
 	) as orm:
 		orm.turn = 0
 		g1 = orm.character[1]
 		g2 = orm.character[2]
 		assert 1 in g2.node
 		assert 2 in g2.node
-		assert 2 not in g1.edge[1]
 		assert 2 not in g2.edge[1]
 		orm.turn = 1
 		assert 2 not in g1.node

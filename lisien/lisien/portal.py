@@ -17,7 +17,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any, Optional, ClassVar
+
+from attrs import define
 
 from .exc import HistoricKeyError
 from .facade import EngineFacade, FacadePortal
@@ -35,20 +37,16 @@ class RuleMapping(BaseRuleMapping):
 		self.portal = portal
 
 
+@define(eq=False)
 class Portal(Edge, RuleFollower):
-	"""Connection between two nodes that :class:`lisien.node.Thing` travel along
-
-	lisien entities are truthy so long as they exist, falsy if they've
-	been deleted.
-
-	"""
+	"""Connection between two nodes that :class:`lisien.node.Thing` travel along"""
 
 	__slots__ = ("_rulebook",)
-	no_unwrap = True
+	no_unwrap: ClassVar[bool] = True
 
 	@property
 	def _cache(self):
-		return self.db._edge_val_cache[self.character.name][self.orig][
+		return self.engine._edge_val_cache[self.character.name][self.orig][
 			self.dest
 		]
 
@@ -81,7 +79,7 @@ class Portal(Edge, RuleFollower):
 		except KeyError:
 			ret = (self.character.name, self.orig, self.dest)
 			self.engine._portals_rulebooks_cache.store(*ret, *btt, ret)
-			self.engine.db.set_portal_rulebook(*ret, *btt, ret)
+			self.engine.database.set_portal_rulebook(*ret, *btt, ret)
 			return ret
 
 	def _set_rulebook_name(self, rulebook):
@@ -98,12 +96,27 @@ class Portal(Edge, RuleFollower):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, orig, dest, branch, turn, tick, rulebook)
-		self.engine.db.set_portal_rulebook(
+		self.engine.database.set_portal_rulebook(
 			character, orig, dest, branch, turn, tick, rulebook
 		)
 
 	def _get_rule_mapping(self):
 		return RuleMapping(self)
+
+	def __eq__(self, other):
+		if self is other:
+			return True
+		if (
+			not hasattr(other, "character")
+			or not hasattr(other.character, "name")
+			or self.character.name != other.character.name
+			or not hasattr(other, "dest")
+			or self.dest != other.dest
+			or not hasattr(other, "orig")
+			or self.orig != other.orig
+		):
+			return False
+		return super().__eq__(other)
 
 	def __getitem__(self, key):
 		if key == "origin":
@@ -120,15 +133,6 @@ class Portal(Edge, RuleFollower):
 			raise KeyError("Can't change " + key)
 		super().__setitem__(key, value)
 
-	def __repr__(self):
-		"""Describe character, origin, and destination"""
-		return "<{}.character[{}].portal[{}][{}]>".format(
-			repr(self.engine),
-			repr(self["character"]),
-			repr(self["origin"]),
-			repr(self["destination"]),
-		)
-
 	def __bool__(self):
 		"""It means something that I exist, even if I have no data."""
 		return (
@@ -140,7 +144,7 @@ class Portal(Edge, RuleFollower):
 	def reciprocal(self) -> "Portal":
 		"""If there's another Portal connecting the same origin and
 		destination that I do, but going the opposite way, return
-		it. Else raise KeyError.
+		it. Else raise ``AttributeError``.
 
 		"""
 		try:
@@ -150,7 +154,7 @@ class Portal(Edge, RuleFollower):
 
 	def facade(self) -> FacadePortal:
 		face = self.character.facade()
-		ret = FacadePortal(face.portal[self.orig], self.dest)
+		ret = FacadePortal(face, face.portal[self.orig], self.dest)
 		face.portal._patch = {self.orig: {self.dest: ret}}
 		return ret
 

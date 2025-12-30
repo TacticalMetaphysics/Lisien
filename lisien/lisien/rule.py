@@ -84,10 +84,18 @@ import sys
 from abc import ABC, abstractmethod
 from ast import parse, unparse
 from collections import UserDict
-from collections.abc import Hashable, Iterable, MutableMapping, MutableSequence
+from collections.abc import Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, Optional
+from typing import (
+	TYPE_CHECKING,
+	Any,
+	Callable,
+	Iterator,
+	Optional,
+	ValuesView,
+)
 
+from attrs import define
 from blinker import Signal
 
 from .cache import FuncListCache
@@ -112,7 +120,7 @@ from .types import (
 	TriggerFunc,
 	TriggerFuncName,
 	Turn,
-	Value,
+	AttrSignal,
 )
 from .util import dedent_source
 
@@ -125,24 +133,30 @@ def roundtrip_dedent(source):
 	return unparse(parse(dedent_source(source)))
 
 
+@define
 class RuleFuncList[_K: RuleFuncName, _T: RuleFunc](
-	MutableSequence[_T], Signal, ABC
+	MutableSequence[_T], AttrSignal, ABC
 ):
 	"""Abstract class for lists of functions like trigger, prereq, action"""
 
-	__slots__ = ["rule"]
-	_funcstore: FunctionStore
-	_cache: FuncListCache
-	_setter: Callable[[RuleName, Branch, Turn, Tick, list[RuleFuncName]], None]
+	__slots__ = ()
+	rule: Rule
 
-	def __init__(self, rule: Rule):
-		super().__init__()
-		self.rule = rule
+	@cached_property
+	@abstractmethod
+	def _funcstore(self) -> FunctionStore: ...
 
-	def __repr__(self):
-		return f"<class 'lisien.rule.{self.__class__.__name__}' [{', '.join(self._get())}]>"
+	@cached_property
+	@abstractmethod
+	def _cache(self) -> FuncListCache: ...
 
-	def _nominate(self, v: _T | str | RuleFuncName) -> _K:
+	@cached_property
+	@abstractmethod
+	def _setter(
+		self,
+	) -> Callable[[RuleName, Branch, Turn, Tick, list[_K]], None]: ...
+
+	def _nominate(self, v: _T | str | _K) -> _K:
 		if callable(v):
 			self._funcstore(v)
 			return v.__name__
@@ -222,6 +236,7 @@ class RuleFuncList[_K: RuleFuncName, _T: RuleFunc](
 		return super().index(x, start, end)
 
 
+@define
 class TriggerList(RuleFuncList[TriggerFuncName, TriggerFunc]):
 	"""A list of trigger functions for rules"""
 
@@ -237,9 +252,10 @@ class TriggerList(RuleFuncList[TriggerFuncName, TriggerFunc]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[TriggerFuncName]], None]:
-		return self.rule.engine.db.set_rule_triggers
+		return self.rule.engine.database.set_rule_triggers
 
 
+@define
 class PrereqList(RuleFuncList[PrereqFuncName, PrereqFunc]):
 	"""A list of prereq functions for rules"""
 
@@ -255,9 +271,10 @@ class PrereqList(RuleFuncList[PrereqFuncName, PrereqFunc]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[PrereqFuncName]], None]:
-		return self.rule.engine.db.set_rule_prereqs
+		return self.rule.engine.database.set_rule_prereqs
 
 
+@define
 class ActionList(RuleFuncList[ActionFuncName, ActionFunc]):
 	"""A list of action functions for rules"""
 
@@ -273,7 +290,7 @@ class ActionList(RuleFuncList[ActionFuncName, ActionFunc]):
 	def _setter(
 		self,
 	) -> Callable[[RuleName, Branch, Turn, Tick, list[ActionFuncName]], None]:
-		return self.rule.engine.db.set_rule_actions
+		return self.rule.engine.database.set_rule_actions
 
 
 class RuleFuncListDescriptor[_K: RuleFuncName, _T: RuleFunc]:
@@ -364,7 +381,7 @@ class Rule:
 		self.engine._neighborhoods_cache.store(
 			self.name, branch, turn, tick, neighbors
 		)
-		self.engine.db.set_rule_neighborhood(
+		self.engine.database.set_rule_neighborhood(
 			self.name, branch, turn, tick, neighbors
 		)
 
@@ -395,7 +412,7 @@ class Rule:
 		self.engine._rule_bigness_cache.store(
 			self.name, branch, turn, tick, big
 		)
-		self.engine.db.set_rule_big(self.name, branch, turn, tick, big)
+		self.engine.database.set_rule_big(self.name, branch, turn, tick, big)
 
 	def __init__(
 		self,
@@ -408,11 +425,6 @@ class Rule:
 		big: RuleBig = RuleBig(False),
 		create: bool = True,
 	):
-		"""Store the engine and my name, make myself a record in the database
-		if needed, and instantiate one FunList each for my triggers,
-		actions, and prereqs.
-
-		"""
 		self.engine = engine
 		name = RuleName(name)
 		self.name = name
@@ -436,7 +448,7 @@ class Rule:
 			triggers = list(self._trigger_names_iter(triggers or ()))
 			prereqs = list(self._prereq_names_iter(prereqs or ()))
 			actions = list(self._action_names_iter(actions or ()))
-			self.engine.db.create_rule(
+			self.engine.database.create_rule(
 				name,
 				branch,
 				turn,
@@ -673,7 +685,9 @@ class RuleBook(MutableSequence[Rule], Signal):
 		branch, turn, tick = self.engine._nbtt()
 		cache, _ = self._get_cache(branch, turn, tick)
 		self._set_cache(branch, turn, tick, (cache, v))
-		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, v)
+		self.engine.database.set_rulebook(
+			self.name, branch, turn, tick, cache, v
+		)
 
 	def __contains__(self, v: RuleName | Rule) -> bool:
 		return getattr(v, "name", v) in self._get_cache(*self.engine.time)[0]
@@ -721,7 +735,9 @@ class RuleBook(MutableSequence[Rule], Signal):
 				cache.append(name)
 			prio = RulebookPriority(0.0)
 			self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
+		self.engine.database.set_rulebook(
+			self.name, branch, turn, tick, cache, prio
+		)
 		self.engine.rulebook.send(self, i=i, v=name)
 		self.send(self, i=i, v=v)
 
@@ -742,7 +758,9 @@ class RuleBook(MutableSequence[Rule], Signal):
 			cache = [name]
 			prio = RulebookPriority(0.0)
 		self._set_cache(branch, turn, tick, (cache, prio))
-		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
+		self.engine.database.set_rulebook(
+			self.name, branch, turn, tick, cache, prio
+		)
 		self.engine.rulebook.send(self, i=i, v=name)
 		self.send(self, i=i, v=name)
 
@@ -769,7 +787,9 @@ class RuleBook(MutableSequence[Rule], Signal):
 		except KeyError:
 			raise IndexError
 		del cache[i]
-		self.engine.db.set_rulebook(self.name, branch, turn, tick, cache, prio)
+		self.engine.database.set_rulebook(
+			self.name, branch, turn, tick, cache, prio
+		)
 		self._set_cache(branch, turn, tick, (cache, prio))
 		self.engine.rulebook.send(self, i=i, v=...)
 		self.send(self, i=i, v=...)
@@ -903,6 +923,21 @@ class RuleMapping(MutableMapping[RuleName, Rule], Signal):
 		self.rulebook.priority = RulebookPriority(v)
 
 
+class RulebookDescriptor:
+	__slots__ = ()
+
+	def __get__(self, instance: RuleFollower, owner=None):
+		if instance is None:
+			return
+		return instance._get_rulebook()
+
+	def __set__(self, instance: RuleFollower, value: RuleBook | RulebookName):
+		if isinstance(value, RuleBook):
+			instance._set_rulebook_name(value.name)
+		else:
+			instance._set_rulebook_name(value)
+
+
 class RuleFollower(ABC):
 	"""Interface for that which has a rulebook associated, which you can
 	get a :class:`RuleMapping` into
@@ -910,53 +945,37 @@ class RuleFollower(ABC):
 	"""
 
 	__slots__ = ()
-	engine: AbstractEngine
-	_rulebook: RuleBook
 
-	@cached_property
+	@property
+	@abstractmethod
+	def engine(self) -> AbstractEngine: ...
+
+	@property
 	def rule(self) -> RuleMapping:
 		return self._get_rule_mapping()
 
-	@property
-	def rulebook(self) -> RuleBook:
-		if not hasattr(self, "_rulebook"):
-			self._upd_rulebook()
-		return self._rulebook
-
-	@rulebook.setter
-	def rulebook(self, v: RuleBook | RulebookName | str):
-		n = v.name if isinstance(v, RuleBook) else v
-		try:
-			if n == self._get_rulebook_name():
-				return
-		except KeyError:
-			pass
-		self._set_rulebook_name(n)
-		self._upd_rulebook()
-
-	def _upd_rulebook(self):
-		self._rulebook = self._get_rulebook()
+	rulebook = RulebookDescriptor()
 
 	def _get_rulebook(self) -> RuleBook:
 		return self.engine.rulebook[self._get_rulebook_name()]
 
-	def rules(self) -> Iterator[Rule]:
+	def rules(self) -> ValuesView[Rule]:
 		if not hasattr(self, "engine"):
 			raise AttributeError("Need an engine before I can get rules")
-		return self._rule_mapping.values()
+		return self.rule.values()
 
 	@abstractmethod
-	def _get_rule_mapping(self):
+	def _get_rule_mapping(self) -> RuleMapping:
 		"""Get the :class:`RuleMapping` for my rulebook."""
 		raise NotImplementedError("_get_rule_mapping")
 
 	@abstractmethod
-	def _get_rulebook_name(self):
+	def _get_rulebook_name(self) -> RulebookName:
 		"""Get the name of my rulebook."""
 		raise NotImplementedError("_get_rulebook_name")
 
 	@abstractmethod
-	def _set_rulebook_name(self, n: RulebookName | str):
+	def _set_rulebook_name(self, n: RulebookName | KeyHint) -> None:
 		"""Tell the database that this is the name of the rulebook to use for
 		me.
 
@@ -1024,7 +1043,7 @@ class AllRules(UserDict[RuleName, Rule], Signal):
 			self,
 			(
 				(name, Rule(engine, name, create=False))
-				for name in engine.db.rules_dump()
+				for name in engine.database.rules_dump()
 			),
 		)
 

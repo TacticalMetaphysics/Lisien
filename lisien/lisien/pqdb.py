@@ -15,11 +15,11 @@
 from __future__ import annotations
 
 import inspect
-import os
 import sys
-from dataclasses import KW_ONLY, dataclass
 from functools import cached_property, partial
 from operator import itemgetter
+from pathlib import Path
+from types import EllipsisType
 from typing import (
 	Annotated,
 	Any,
@@ -33,8 +33,8 @@ from typing import (
 	get_origin,
 )
 
+from attrs import define, field
 import pyarrow as pa
-from _operator import itemgetter
 from pyarrow import compute as pc
 
 from .db import (
@@ -58,7 +58,6 @@ from .types import (
 	EdgeValRowType,
 	GraphRowType,
 	GraphTypeStr,
-	GraphValKeyframe,
 	GraphValRowType,
 	Key,
 	KeyframeExtensionRowType,
@@ -83,7 +82,6 @@ from .types import (
 	RuleName,
 	RuleNeighborhoodRowType,
 	Stat,
-	StatDict,
 	ThingRowType,
 	Tick,
 	Time,
@@ -98,29 +96,26 @@ from .types import (
 	TurnRowType,
 	UniversalRowType,
 	RulebookRowType,
-	NodeValDict,
-	EdgeValDict,
 	CharDict,
+	PackSignature,
+	UnpackSignature,
+	__dict__ as types_dict,
 )
-from .types import __dict__ as types_dict
 from .util import ELLIPSIS, EMPTY
 
 
-@dataclass
+@define
 class ParquetDatabaseConnector(ThreadedDatabaseConnector):
-	path: str
-	_: KW_ONLY
-	clear: bool = False
+	_pack: PackSignature
+	_unpack: UnpackSignature
+	path: Path = field(converter=Path)
 
-	@dataclass
+	@define
 	class Looper(ConnectionLooper):
-		def __post_init__(self):
-			self.existence_lock.acquire(timeout=1)
+		connector: ParquetDatabaseConnector = field()
 
 		@cached_property
 		def schema(self):
-			import pyarrow as pa
-
 			def origif(typ):
 				if isinstance(typ, TypeAliasType):
 					typ = typ.__value__
@@ -235,7 +230,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self.existence_lock.release()
 
 		def initdb(self):
-			if hasattr(self, "_initialized"):
+			if self._initialized:
 				return RuntimeError("Already initialized the database")
 			self._initialized = True
 			initial = self.initial
@@ -266,7 +261,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def _get_db(self, table: str):
 			from parquetdb import ParquetDB
 
-			table_path = os.path.join(self.connector.path, table)
+			table_path = self.connector.path.joinpath(table)
 			try:
 				return ParquetDB(
 					table_path,
@@ -312,13 +307,28 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			self._get_db("keyframe_extensions").delete(filters=filters)
 
 		def delete(self, table: str, data: list[dict]):
-			from pyarrow import compute as pc
+			"""Delete data from ``table`` matching the provided keys
 
+			The 1.0.1 release of ParquetDB
+			doesn't handle the case of deleting *all* data from a table
+			correctly. This works around that.
+
+			"""
 			db = self._get_db(table)
+			if db.is_empty():
+				return
+			unwanted = pa.table([[]], schema=pa.schema([("id", pa.int64())]))
 			for datum in data:
-				db.delete(
-					filters=[pc.field(k) == v for (k, v) in datum.items()]
-				)
+				exprs: list[pc.Expression] = []
+				for k, v in datum.items():
+					expr = pc.field(k) == pc.scalar(v)
+					exprs.append(expr)
+				selected = db.read(filters=exprs, columns=["id"])
+				unwanted = pa.concat_tables([unwanted, selected])
+			if unwanted.num_rows == db.n_rows:
+				db.drop_dataset()
+			else:
+				db.delete(ids=unwanted["id"])
 
 		def all_keyframe_times(self):
 			return {
@@ -335,8 +345,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					db.drop_dataset()
 
 		def del_units_after(self, many):
-			from pyarrow import compute as pc
-
 			db = self._get_db("units")
 			ids = []
 			for character, graph, node, branch, turn, tick in many:
@@ -382,9 +390,9 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				db.delete(ids)
 
 		def dump(self, table: str) -> list:
-			data = (
-				self._get_db(table).read().sort_by(self._sort_columns(table))
-			)
+			data = self._get_db(table).read()
+			if data.num_rows > 0:
+				data = data.sort_by(self._sort_columns(table))
 			return data.to_pylist()
 
 		def rowcount(self, table: str) -> int:
@@ -399,8 +407,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		def set_bookmark(
 			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
 		):
-			import pyarrow.compute as pc
-
 			db = self._get_db("bookmarks")
 			schema = self._get_schema("bookmarks")
 			try:
@@ -434,8 +440,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			)
 
 		def del_bookmark(self, key: bytes):
-			import pyarrow.compute as pc
-
 			self._get_db("bookmarks").delete(
 				filters=[pc.field("key") == pc.scalar(key)]
 			)
@@ -562,7 +566,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 		def universal_get(
 			self, key: bytes, branch: Branch, turn: Turn, tick: Tick
-		) -> bytes | type(...):
+		) -> bytes | EllipsisType:
 			db = self._get_db("universals")
 			data = db.read(
 				filters=[
@@ -570,7 +574,12 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					pc.field("key") == key,
 					pc.field("turn") <= turn,
 				]
-			).sort_by([("turn", "descending"), ("tick", "descending")])
+			)
+			if data.num_rows == 0:
+				return ...
+			data = data.sort_by(
+				[("turn", "descending"), ("tick", "descending")]
+			)
 			for d in data.to_pylist():
 				if (d["turn"], d["tick"]) <= (turn, tick):
 					return d["value"]
@@ -625,8 +634,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			return ELLIPSIS
 
 		def _get_schema(self, table) -> pa.schema:
-			import pyarrow as pa
-
 			if table in self._schema:
 				return self._schema[table]
 			ret = self._schema[table] = pa.schema(self.schema[table])
@@ -775,8 +782,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			rules: bytes,
 			priority: RulebookPriority,
 		) -> bool:
-			import pyarrow.compute as pc
-
 			db = self._get_db("rulebooks")
 			named_data = {
 				"rulebook": rulebook,
@@ -1099,7 +1104,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				turn,
 				tick,
 				UniversalKey(unpack_key(d["key"])),
-				Value(unpack(d["value"])),
+				unpack(d["value"]),
 			)
 
 	def rulebooks_dump(
@@ -1147,7 +1152,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			):
 				raise TypeError("Invalid func list", an_rule)
 			funx: list[RuleFuncName] = an_rule
-			unpacked[d["rule"], d["branch"], d["turn"], d["tick"]] = funx
+			unpacked[d["branch"], d["turn"], d["tick"], d["rule"]] = funx
 		for branch, turn, tick, rule in sorted(unpacked):
 			yield branch, turn, tick, rule, unpacked[branch, turn, tick, rule]
 
@@ -1173,10 +1178,10 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		return iter(
 			sorted(
 				(
-					d["rule"],
 					d["branch"],
 					d["turn"],
 					d["tick"],
+					d["rule"],
 					d["neighborhood"],
 				)
 				for d in self.call("dump", "rule_neighborhood")
@@ -1189,7 +1194,7 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self._big2set()
 		return iter(
 			sorted(
-				(d["rule"], d["branch"], d["turn"], d["tick"], d["big"])
+				(d["branch"], d["turn"], d["tick"], d["rule"], d["big"])
 				for d in self.call("dump", "rule_big")
 			)
 		)
@@ -1582,24 +1587,17 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	def truncate_all(self) -> None:
 		self.call("truncate_all")
 
-	def close(self) -> None:
-		self._inq.put("close")
-		self._looper.existence_lock.acquire()
-		self._looper.existence_lock.release()
-		self._t.join()
-
 	def commit(self) -> None:
 		self.flush()
 		self.call("commit")
 
-	def _init_db(self) -> dict:
-		if hasattr(self, "_initialized"):
+	def __attrs_post_init__(self):
+		if self._initialized:
 			raise RuntimeError("Initialized the database twice")
+		self._t.start()
 		ret = self.call("initdb")
 		if isinstance(ret, Exception):
 			raise ret
-		elif not isinstance(ret, dict):
-			raise TypeError("initdb didn't return a dictionary", ret)
 		unpack = self.unpack
 		self.eternal = GlobalKeyValueStore(
 			self, {unpack(k): unpack(v) for (k, v) in ret.items()}
@@ -1609,7 +1607,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 		self._all_keyframe_times.clear()
 		self._all_keyframe_times.update(self.keyframes_dump())
 		self._initialized = True
-		return ret
 
 	def bookmarks_dump(self) -> Iterator[tuple[Key, Time]]:
 		return iter(self.call("bookmark_items"))
