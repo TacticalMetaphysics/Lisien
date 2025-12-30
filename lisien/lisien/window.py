@@ -31,15 +31,25 @@ from collections.abc import (
 	MutableMapping,
 	ValuesView,
 )
-from dataclasses import dataclass, replace
 from enum import Enum
 from functools import cached_property, partial
 from itertools import chain
 from operator import ge, itemgetter, le
 from threading import RLock
-from typing import Any, Callable, Iterable, Iterator, TypeVar, Union
+from typing import (
+	Any,
+	Callable,
+	Iterable,
+	Iterator,
+	TypeVar,
+	Union,
+	ClassVar,
+	overload,
+	Sequence,
+	Protocol,
+)
 
-from reslot import reslot
+from attrs import define
 
 from .exc import HistoricKeyError
 from .types import (
@@ -61,12 +71,16 @@ class Direction(Enum):
 	BACKWARD = "backward"
 
 
+class UpdateFunctionProtocol(Protocol):
+	def __call__(self, turn: Turn, tick: Tick, *args) -> None: ...
+
+
 def update_window(
 	turn_from: Turn,
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: Callable[[Turn, Tick, ...], None],
+	updfun: UpdateFunctionProtocol,
 	branchd: AssignmentTimeDict,
 ):
 	"""Iterate over some time in ``branchd``, call ``updfun`` on the values"""
@@ -106,7 +120,7 @@ def update_backward_window(
 	tick_from: Tick,
 	turn_to: Turn,
 	tick_to: Tick,
-	updfun: Callable[[Turn, Tick, ...], None],
+	updfun: UpdateFunctionProtocol,
 	branchd: AssignmentTimeDict,
 ):
 	"""Iterate backward over time in ``branchd``, call ``updfun`` on the values"""
@@ -137,7 +151,7 @@ def update_backward_window(
 			updfun(turn_to, tick, *state)
 
 
-class WindowDictKeysView[_K: int](KeysView):
+class WindowDictKeysView[_K: int](KeysView[_K]):
 	"""Look through all the keys a WindowDict contains."""
 
 	_mapping: WindowDict[_K, ...]
@@ -598,8 +612,8 @@ def _recurse(rev: _RK, revs: list[tuple[_RK, _RV]]) -> tuple[_RK, _RV]:
 		return _recurse(rev, after)
 
 
-@reslot
-class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
+@define(init=False, eq=False, repr=False)
+class WindowDict[_K: int, _V: ValueHint | WindowDict](MutableMapping[_K, _V]):
 	"""A dict that keeps every value that a variable has had over time.
 
 	Look up a revision number in this dict, and it will give you the
@@ -611,17 +625,17 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 
 	This supports slice notation to get all values in a given
 	time-frame. If you do not supply a step, you'll just get the
-	values, with no indication of when they're from exactly --
-	so explicitly supply a step of 1 to get the value at each point in
-	the slice, or use the ``future`` and ``past`` methods to get read-only
+	values, with no indication of exactly when they're from.
+	Specify a step of 1 to get the value at each point in
+	the slice, or use the :meth:`future` and :meth:`past` methods to get read-only
 	mappings of data relative to a particular revision.
 
-	Unlike slices of eg. lists, you can slice with a start greater than the stop
+	Unlike slices of e.g. lists, you can slice with a start greater than the stop
 	even if you don't supply a step. That will get you values in reverse order.
 
 	"""
 
-	__slots__ = ("__dict__",)
+	__slots__ = ()
 
 	@cached_property
 	def _past(self) -> list[tuple[_K, _V]]:
@@ -659,7 +673,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 
 	def future(
 		self, rev: _K, include_same_rev: bool = False, copy: bool = False
-	) -> WindowDictFutureView:
+	) -> WindowDictFutureView[_K, _V]:
 		"""Return a Mapping of items after the given revision.
 
 		:param include_same_rev: Whether to include the specified revision in
@@ -685,7 +699,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 
 	def past(
 		self, rev: _K, include_same_rev: bool = True, copy: bool = False
-	) -> WindowDictPastView:
+	) -> WindowDictPastView[_K, _V]:
 		"""Return a Mapping of items at or before the given revision.
 
 		:param include_same_rev: Whether to include the specified revision in
@@ -713,7 +727,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 				lock = self._lock
 		return WindowDictPastView(past, lock)
 
-	def search(self, rev: _K) -> Any:
+	def search(self, rev: _K) -> _V:
 		"""Alternative access for far-away revisions
 
 		This uses a binary search, which is faster in the case of random
@@ -769,7 +783,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			return False
 		return rev >= beg
 
-	def rev_before(self, rev: _K, search=False) -> int | None:
+	def rev_before(self, rev: _K, search=False) -> _K | None:
 		"""Return the latest past rev on which the value changed.
 
 		If it changed on this exact rev, return the rev.
@@ -788,7 +802,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 				else:
 					return None
 
-	def rev_after(self, rev: _K) -> int | None:
+	def rev_after(self, rev: _K) -> _K | None:
 		"""Return the earliest future rev on which the value will change."""
 		with self._lock:
 			self._seek(rev)
@@ -797,7 +811,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			else:
 				return None
 
-	def initial(self) -> _K:
+	def initial(self) -> _V:
 		"""Return the earliest value we have"""
 		with self._lock:
 			if self._past:
@@ -806,7 +820,7 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 				return self._future[-1][1]
 			raise KeyError("No data")
 
-	def final(self) -> _K:
+	def final(self) -> _V:
 		"""Return the latest value we have"""
 		with self._lock:
 			if self._future:
@@ -876,27 +890,42 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 			return empty
 
 	def __init__(
-		self, data: list[tuple[_K, _V]] | dict[_K, _V] | None = None
+		self, data: Sequence[tuple[_K, _V]] | Mapping[_K, _V] | None = None
 	) -> None:
-		with self._lock:
-			if not data:
-				pass
-			elif isinstance(data, Mapping):
-				self._past.extend(data.items())
+		if data:
+			if isinstance(data, Mapping):
+				for k in data.keys():
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
+				data = iter(data.items())
 			else:
-				# assume it's an orderable sequence of pairs
+				for k, _ in data:
+					if not isinstance(k, int):
+						raise TypeError("Integer keys only", k)
+				data = iter(data)
+		with self._lock:
+			if data:
 				self._past.extend(data)
 			self._past.sort()
 			self._keys.update(map(get0, self._past))
 
-	def __iter__(self) -> Iterable[_K]:
+	def __iter__(self) -> Iterator[_K]:
 		if not self:
 			return
 		with self._lock:
 			if self._past:
 				yield from map(get0, self._past)
 			if self._future:
+				yield from map(get0, reversed(self._future))
+
+	def __reversed__(self) -> Iterator[_K]:
+		if not self:
+			return
+		with self._lock:
+			if self._future:
 				yield from map(get0, self._future)
+			if self._past:
+				yield from map(get0, reversed(self._past))
 
 	def __contains__(self, item: _K) -> bool:
 		with self._lock:
@@ -906,7 +935,13 @@ class WindowDict[_K: int, _V: ValueHint](MutableMapping[_K, _V]):
 		with self._lock:
 			return len(self._keys)
 
-	def __getitem__(self, rev: _K | slice) -> Any:
+	@overload
+	def __getitem__(self, rev: slice, /) -> WindowDictSlice[_K, _V]: ...
+
+	@overload
+	def __getitem__(self, rev: _K, /) -> _V: ...
+
+	def __getitem__(self, rev, /):
 		if isinstance(rev, slice):
 			return WindowDictSlice(self, rev)
 		with self._lock:
@@ -1037,9 +1072,10 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 	__slots__ = ()
 
 	def __init__(
-		self, data: dict[Branch, dict[Turn, list[Tick]]] | None = None
+		self,
+		data: Mapping[Branch, Mapping[Turn, Sequence[Tick]]] | None = None,
 	):
-		super().__init__(str, LinearTimeListDict)
+		super().__init__(key_type=str, value_type=LinearTimeListDict)
 		if data is not None:
 			if not isinstance(data, dict):
 				raise TypeError("dict only", data)
@@ -1062,27 +1098,29 @@ class BranchingTimeListDict(PickierDefaultDict[Branch, LinearTimeListDict]):
 		super().__setitem__(branch, value)
 
 
-@reslot
-class EntikeyWindowDict(WindowDict):
-	__slots__ = ("entikeys",)
+@define(init=False)
+class EntikeyWindowDict[_K: int, _V: tuple](WindowDict[_K, _V]):
+	__slots__ = ()
+
+	@cached_property
+	def entikeys(self) -> set[_V]:
+		return set()
 
 	def __init__(
-		self, data: Union[list[tuple[int, Any]], dict[int, Any]] = None
+		self, data: Sequence[tuple[_K, _V]] | Mapping[_K, _V] | None = None
 	) -> None:
 		if data:
 			if hasattr(data, "values") and callable(data.values):
-				self.entikeys = {value[:-2] for value in data.values()}
+				self.entikeys.update(value[:-2] for value in data.values())
 			else:
-				self.entikeys = {value[:-2] for value in data}
-		else:
-			self.entikeys = set()
+				self.entikeys.update(value[:-2] for value in data)
 		super().__init__(data)
 
-	def __setitem__(self, rev: int, v: tuple) -> None:
+	def __setitem__(self, rev: _K, v: _V) -> None:
 		self.entikeys.add(v[:-2])
 		super().__setitem__(rev, v)
 
-	def __delitem__(self, rev: int) -> None:
+	def __delitem__(self, rev: _K) -> None:
 		entikey = self[rev][:-2]
 		super().__delitem__(rev)
 		for tup in self.values():
@@ -1091,8 +1129,8 @@ class EntikeyWindowDict(WindowDict):
 		self.entikeys.remove(entikey)
 
 
-@dataclass
-class SettingsTimes(Iterable[tuple[Turn, Tick]]):
+@define
+class SettingsTimes(Iterable[LinearTime]):
 	td: AssignmentTimeDict
 	time_from: LinearTime | None
 	time_to: LinearTime | None
@@ -1105,7 +1143,12 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 			return self.iter_forward()
 
 	def __reversed__(self):
-		return replace(self, reverse=not self.reverse)
+		return SettingsTimes(
+			td=self.td,
+			time_from=self.time_from,
+			time_to=self.time_to,
+			reverse=not self.reverse,
+		)
 
 	def iter_forward(self) -> Iterator[LinearTime]:
 		time_from = self.time_from
@@ -1113,31 +1156,31 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 		if time_from is None and time_to is None:
 			for trn, tcks in self.td.items():
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		elif time_from is None:
 			turn_to, tick_to = time_to
 			for trn, tcks in self.td.items():
 				if trn >= turn_to:
 					break
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 			if turn_to in self.td:
 				for tck in self.td[turn_to]:
 					if tck >= tick_to:
 						return
-					yield turn_to, tck
+					yield LinearTime(turn_to, tck)
 		elif time_to is None:
 			turn_from, tick_from = time_from
 			if turn_from in self.td:
 				for tck in self.td[turn_from].future(
 					tick_from, include_same_rev=True
 				):
-					yield turn_from, tck
+					yield LinearTime(turn_from, tck)
 			for trn, tcks in self.td.future(
 				turn_from, include_same_rev=False
 			).items():
 				for tck in tcks:
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		else:
 			turn_from, tick_from = time_from
 			turn_to, tick_to = time_to
@@ -1149,7 +1192,7 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 				):
 					if tck > tick_to:
 						return
-					yield turn_to, tck
+					yield LinearTime(turn_to, tck)
 			else:
 				for trn in self.td.future(turn_from, include_same_rev=True):
 					if trn > turn_to:
@@ -1158,10 +1201,10 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 						for tck in reversed(
 							self.td[trn].past(tick_to, include_same_rev=True)
 						):
-							yield trn, tck
+							yield LinearTime(trn, tck)
 					else:
 						for tck in self.td[trn]:
-							yield trn, tck
+							yield LinearTime(trn, tck)
 
 	def iter_reverse(self) -> Iterator[LinearTime]:
 		time_from = self.time_from
@@ -1169,51 +1212,55 @@ class SettingsTimes(Iterable[tuple[Turn, Tick]]):
 		if time_from is None and time_to is None:
 			for trn, tcks in reversed(self.td.items()):
 				for tck in reversed(tcks):
-					yield trn, tck
+					yield LinearTime(trn, tck)
 		elif time_from is None:
 			turn_to, tick_to = time_to
 			if turn_to in self.td:
 				for tck in self.td[turn_to].past(
 					tick_to, include_same_rev=True
 				):
-					yield turn_to, tck
-			for trn, tcks in self.td.past(turn_to, include_same_rev=False):
+					yield LinearTime(turn_to, tck)
+			for trn, tcks in self.td.past(
+				turn_to, include_same_rev=False
+			).items():
 				for tck in reversed(tcks):
-					yield trn, tck
+					yield LinearTime(trn, tck)
 
 		elif time_to is None:
 			turn_from, tick_from = time_from
 			for trn, tcks in reversed(
-				self.td.future(turn_from, include_same_rev=True)
+				self.td.future(turn_from, include_same_rev=True).items()
 			):
 				if trn == turn_from:
 					for tck in reversed(
 						tcks.future(tick_from, include_same_rev=True)
 					):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				else:
 					for tck in reversed(tcks.keys()):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 		else:
 			turn_from, tick_from = time_from
 			turn_to, tick_to = time_to
-			for trn, tcks in self.td.past(turn_to, include_same_rev=True):
+			for trn, tcks in self.td.past(
+				turn_to, include_same_rev=True
+			).items():
 				if trn == turn_to:
 					for tck in tcks.past(tick_to, include_same_rev=True):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				elif trn == turn_from:
 					for tck in reversed(
 						tcks.future(tick_from, include_same_rev=True)
 					):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 				elif trn < turn_from:
 					return
 				else:
 					for tck in reversed(tcks.keys()):
-						yield trn, tck
+						yield LinearTime(trn, tck)
 
 
-@reslot
+@define(init=False, repr=False)
 class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 	"""A WindowDict that contains a span of time, indexed as turns and ticks
 
@@ -1225,7 +1272,7 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 
 	__slots__ = ()
 
-	cls: type[WindowDict[Turn, WindowDict[Tick, _VV]]] = WindowDict
+	cls: ClassVar[type[WindowDict]] = WindowDict
 
 	@cached_property
 	def _future(self) -> list[tuple[Turn, WindowDict[Tick, _VV]]]:
@@ -1248,6 +1295,12 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 				if not isinstance(v, self.cls):
 					data[k] = self.cls(v)
 		super().__init__(data)
+
+	def __repr__(self):
+		return f"<AssignmentTimeDict({dict(self.items())})>"
+
+	def __getitem__(self, turn: Turn) -> WindowDict[Tick, _VV]:
+		return super().__getitem__(turn)
 
 	def __setitem__(self, turn: Turn, value: cls | dict) -> None:
 		if not isinstance(value, self.cls):
@@ -1317,6 +1370,6 @@ class AssignmentTimeDict[_VV](WindowDict[Turn, WindowDict[Tick, _VV]]):
 		return SettingsTimes(self, time_from, time_to, reverse)
 
 
-class EntikeySettingsTurnDict(AssignmentTimeDict):
+class EntikeySettingsTurnDict[_T](AssignmentTimeDict[_T]):
 	__slots__ = ()
 	cls = EntikeyWindowDict

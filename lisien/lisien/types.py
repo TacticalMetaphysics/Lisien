@@ -11,19 +11,21 @@
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.f
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import builtins
 import operator
 import os
+import weakref
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from collections.abc import Sequence, Set
 from concurrent.futures import Future
 from enum import Enum
 from functools import cached_property, partial, wraps
 from itertools import chain
+from logging import Logger
 from operator import (
 	add,
 	attrgetter,
@@ -40,14 +42,15 @@ from operator import (
 	sub,
 	truediv,
 )
+from pathlib import Path
 from random import Random
 from threading import RLock
 from types import (
 	EllipsisType,
 	FunctionType,
 	GenericAlias,
+	GetSetDescriptorType,
 	MethodType,
-	ModuleType,
 )
 from typing import (
 	TYPE_CHECKING,
@@ -63,7 +66,7 @@ from typing import (
 	MutableMapping,
 	NewType,
 	Optional,
-	Type,
+	Protocol,
 	TypedDict,
 	TypeGuard,
 	TypeVar,
@@ -72,23 +75,27 @@ from typing import (
 	get_origin,
 	override,
 	Self,
+	ClassVar,
+	overload,
 )
 
 import networkx as nx
 from annotated_types import Ge, Le
+from attrs import Factory, define, field, validators
 from blinker import Signal
 from networkx import NetworkXError
-from reslot import reslot
 from tblib import Traceback
+from zict import LRU
 
 from . import exc
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
-from .util import getatt
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
-	MappingUnwrapperMixin,
+	MappingUnwrapper,
 	SetWrapper,
+	OrderlySet,
+	OrderlyFrozenSet,
 	unwrap_items,
 	wrapval,
 )
@@ -165,7 +172,7 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 				and is_valid_value(v)
 				for orig in obj.adj
 				for dest in obj.adj[orig]
-				for (k, v, *_) in obj.adj[orig][dest]
+				for (k, v) in obj.adj[orig][dest].items()
 			)
 		)
 		or (
@@ -244,19 +251,63 @@ Tick = NewType("Tick", Annotated[int, Ge(0)])
 type Time = tuple[Branch, Turn, Tick]
 
 
-def validate_time(time: Time) -> None:
-	if not isinstance(time, tuple) or len(time) != 3:
+class ValidateTimeProtocol(Protocol):
+	@override
+	@staticmethod
+	def __call__(time) -> Time: ...
+
+	@override
+	@staticmethod
+	def __call__(time: LinearTime) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[int, int]) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[str, int, int]) -> Time: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[Turn, Tick]) -> LinearTime: ...
+
+	@override
+	@staticmethod
+	def __call__(time: tuple[Branch, Turn, Tick]) -> Time: ...
+
+
+def _validate_time(time):
+	if not isinstance(time, tuple):
 		raise TypeError("Invalid time", time)
-	if not isinstance(time[0], str):
-		raise TypeError("Invalid branch", time[0])
-	if not isinstance(time[1], int):
-		raise TypeError("Invalid turn", time[1])
-	if not isinstance(time[2], int):
-		raise TypeError("Invalid tick", time[2])
-	if time[1] < 0:
-		raise ValueError("Negative turn", time[1])
-	if time[2] < 0:
-		raise ValueError("Negative tick", time[2])
+	match len(time):
+		case 3:
+			if not isinstance(time[0], str):
+				raise TypeError("Invalid branch", time[0])
+			if not isinstance(time[1], int):
+				raise TypeError("Invalid turn", time[1])
+			if not isinstance(time[2], int):
+				raise TypeError("Invalid tick", time[2])
+			if time[1] < 0:
+				raise ValueError("Negative turn", time[1])
+			if time[2] < 0:
+				raise ValueError("Negative tick", time[2])
+			return time
+		case 2:
+			if not isinstance(time[0], int):
+				raise TypeError("Invalid turn", time[0])
+			if not isinstance(time[1], int):
+				raise TypeError("Invalid tick", time[1])
+			if time[0] < 0:
+				raise ValueError("Negative turn")
+			if time[1] < 0:
+				raise ValueError("Negative tick")
+			return LinearTime(*Time)
+		case _:
+			raise TypeError("Invalid time", time)
+
+
+validate_time: ValidateTimeProtocol = _validate_time
 
 
 class LinearTime(tuple[Turn, Tick]):
@@ -346,7 +397,6 @@ class RuleKeyframe(TypedDict):
 	big: dict[RuleName, RuleBig]
 
 
-type RulesKeyframe = dict[RuleName, RuleKeyframe]
 type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
@@ -541,7 +591,7 @@ type KeyframeGraphRowType = tuple[
 	CharDict,
 ]
 type KeyframeExtensionRowType = tuple[
-	Branch, Turn, Tick, UniversalKeyframe, RulesKeyframe, RulebooksKeyframe
+	Branch, Turn, Tick, UniversalKeyframe, RuleKeyframe, RulebooksKeyframe
 ]
 
 
@@ -587,20 +637,25 @@ type CharacterRulebookTypeStr = Literal[
 ]
 
 
-class DiGraphMappingMixin(MappingUnwrapperMixin, ABC):
+@define(eq=False)
+class CharacterMapping[_K, _V](MappingUnwrapper[_K, _V], ABC):
 	"""Common amenities for mappings in :class:`Character`"""
 
-	def __init__(self, character: DiGraph):
-		super().__init__()
-		self.character = character
+	__slots__ = ()
+
+	character: AbstractCharacter
 
 	@cached_property
-	def engine(self) -> Engine:
+	def engine(self) -> AbstractEngine:
 		return self.character.engine
+
+	@cached_property
+	def name(self):
+		return self.character.name
 
 
 class AbstractEntityMapping[_K, _V](
-	MutableMapping[_K, _V], MappingUnwrapperMixin, ABC
+	MappingUnwrapper, MutableMapping[_K, _V], ABC
 ):
 	__slots__ = ()
 
@@ -687,15 +742,12 @@ class AbstractEntityMapping[_K, _V](
 		self._del_db(key, branch, turn, tick)
 
 
-@reslot
+@define(eq=False)
 class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	"""Mapping for graph attributes"""
 
-	__slots__ = ("character", "__dict__")
-
-	def __init__(self, graph: DiGraph):
-		super().__init__()
-		self.character = graph
+	__slots__ = ()
+	character: DiGraph
 
 	@cached_property
 	def engine(self):
@@ -754,7 +806,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
 		CharName,
 	]:
-		return self.engine.db.graph_val_set, self.character.name
+		return self.engine.database.graph_val_set, self.character.name
 
 	@cached_property
 	def _set_cache_stuff(
@@ -770,7 +822,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	) -> tuple[
 		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
 	]:
-		return self.engine.db.graph_val_set, self.character.name
+		return self.engine.database.graph_val_set, self.character.name
 
 	@cached_property
 	def _get_cache_stuff(
@@ -784,12 +836,6 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def __iter__(self) -> Iterator[Stat]:
 		iter_entity_keys, graphn, btt = self._iter_stuff
 		yield from iter_entity_keys(graphn, *btt)
-
-	def __repr__(self):
-		return (
-			f"<{self.__class__.__name__} for {self.character.name} "
-			f"containing {dict(unwrap_items(self.items()))}>"
-		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
@@ -868,7 +914,6 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 			k = Stat(k)
 			if not isinstance(v, Value):
 				raise TypeError("Invalid stat value", v)
-			v = Value(v)
 			realupd[k] = v
 		for k, v in realupd.items():
 			if v is ...:
@@ -886,17 +931,15 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
-@reslot
+@define(eq=False)
 class Node(AbstractEntityMapping, ABC):
-	__slots__ = ("character", "name", "__dict__")
+	__slots__ = ()
+
+	character: AbstractCharacter
+	name: NodeName
 
 	def _validate_node_type(self):
 		return True
-
-	def __init__(self, graph: Character, node: NodeName):
-		super().__init__()
-		self.character = graph
-		self.name = node
 
 	@override
 	def __getitem__(self, item: Literal["name"]) -> NodeName: ...
@@ -912,18 +955,11 @@ class Node(AbstractEntityMapping, ABC):
 		return Value(super().__getitem__(item))
 
 	@cached_property
-	def engine(self) -> AbstractEngine:
+	def engine(self):
 		return self.character.engine
 
 	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Branch, Turn, Tick], Iterator[Key]],
-		CharName,
-		NodeName,
-		Time,
-	]:
+	def _iter_stuff(self):
 		return (
 			self.engine._node_val_cache.iter_keys,
 			self.character.name,
@@ -932,13 +968,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], bool],
-		CharName,
-		NodeName,
-	]:
+	def _cache_contains_stuff(self):
 		return (
 			self.engine._node_val_cache.contains_key,
 			self.character.name,
@@ -946,14 +976,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Branch, Turn, Tick], int],
-		CharName,
-		NodeName,
-		Time,
-	]:
+	def _len_stuff(self):
 		return (
 			self.engine._node_val_cache.count_keys,
 			self.character.name,
@@ -962,13 +985,7 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick], Value],
-		CharName,
-		NodeName,
-	]:
+	def _get_cache_stuff(self):
 		return (
 			self.engine._node_val_cache.retrieve,
 			self.character.name,
@@ -976,38 +993,19 @@ class Node(AbstractEntityMapping, ABC):
 		)
 
 	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-		NodeName,
-	]:
-		return self.engine.db.node_val_set, self.character.name, self.name
-
-	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-		NodeName,
-	]:
+	def _set_db_stuff(self):
 		return (
-			self.engine._node_val_cache.store,
+			self.engine.database.node_val_set,
 			self.character.name,
 			self.name,
 		)
 
-	def __repr__(self):
-		return "<{}(graph={}, name={})>".format(
-			self.__class__.__name__, repr(self.character), repr(self.name)
-		)
-
-	def __str__(self):
+	@cached_property
+	def _set_cache_stuff(self):
 		return (
-			f"Node of class {self.__class__.__name__} "
-			f"in graph {self.character.name} named {self.name}"
+			self.engine._node_val_cache.store,
+			self.character.name,
+			self.name,
 		)
 
 	def __iter__(self):
@@ -1052,24 +1050,6 @@ class Node(AbstractEntityMapping, ABC):
 	) -> None:
 		store, graphn, node = self._set_cache_stuff
 		store(graphn, node, key, branch, turn, tick, value)
-
-	def __eq__(self, other: Node) -> bool:
-		if not hasattr(other, "keys") or not callable(other.keys):
-			return False
-		if not hasattr(other, "name"):
-			return False
-		if self.name != other.name:
-			return False
-		if not hasattr(other, "character"):
-			return False
-		if self.character.name != other.character.name:
-			return False
-		if self.keys() != other.keys():
-			return False
-		for key in self:
-			if self[key] != other[key]:
-				return False
-		return True
 
 	def add_portal(
 		self,
@@ -1137,22 +1117,15 @@ class Node(AbstractEntityMapping, ABC):
 	def leaders(self) -> Iterator[AbstractCharacter]: ...
 
 
-@reslot
+@define(eq=False)
 class Edge(AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
-	__slots__ = (
-		"character",
-		"orig",
-		"dest",
-		"__dict__",
-	)
+	__slots__ = ()
 
-	def __init__(self, graph: DiGraph, orig: NodeName, dest: NodeName):
-		super().__init__()
-		self.character = graph
-		self.orig = orig
-		self.dest = dest
+	character: DiGraph
+	orig: NodeName
+	dest: NodeName
 
 	@cached_property
 	def origin(self) -> Node:
@@ -1166,30 +1139,11 @@ class Edge(AbstractEntityMapping, ABC):
 	def engine(self):
 		return self.character.engine
 
-	def __repr__(self):
-		return "<{} in graph {} from {} to {} containing {}>".format(
-			self.__class__.__name__,
-			self.character.name,
-			self.orig,
-			self.dest,
-			dict(self),
-		)
-
 	def __str__(self):
 		return str(dict(self))
 
 	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Branch, Turn, Tick], Iterator[Stat]
-		],
-		CharName,
-		NodeName,
-		NodeName,
-		Time,
-	]:
+	def _iter_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.iter_keys,
 			self.character.name,
@@ -1203,16 +1157,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return iter_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], bool
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _cache_contains_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.contains_key,
 			self.character.name,
@@ -1227,17 +1172,9 @@ class Edge(AbstractEntityMapping, ABC):
 		return contains_key(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, NodeName, NodeName, Branch, Turn, Tick], int],
-		CharName,
-		NodeName,
-		NodeName,
-		Time,
-	]:
+	def _len_stuff(self):
 		return (
-			self.character.engine.edge_val_cache.count_keys,
+			self.character.engine._edge_val_cache.count_keys,
 			self.character.name,
 			self.orig,
 			self.dest,
@@ -1249,16 +1186,7 @@ class Edge(AbstractEntityMapping, ABC):
 		return count_entity_keys(graphn, orig, dest, *btt)
 
 	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick], Value
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _get_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.retrieve,
 			self.character.name,
@@ -1273,19 +1201,9 @@ class Edge(AbstractEntityMapping, ABC):
 		return retrieve(graphn, orig, dest, key, branch, turn, tick)
 
 	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
-			None,
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _set_db_stuff(self):
 		return (
-			self.character.engine.db.edge_val_set,
+			self.character.engine.database.edge_val_set,
 			self.character.name,
 			self.orig,
 			self.dest,
@@ -1298,17 +1216,7 @@ class Edge(AbstractEntityMapping, ABC):
 		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
 
 	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[
-			[CharName, NodeName, NodeName, Stat, Branch, Turn, Tick, Value],
-			None,
-		],
-		CharName,
-		NodeName,
-		NodeName,
-	]:
+	def _set_cache_stuff(self):
 		return (
 			self.character.engine._edge_val_cache.store,
 			self.character.name,
@@ -1323,15 +1231,22 @@ class Edge(AbstractEntityMapping, ABC):
 		store(graphn, orig, dest, key, branch, turn, tick, value)
 
 
-class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
+@define(slots=True)
+class AttrSignal(Signal):
+	def __attrs_pre_init__(self):
+		super().__init__()
+
+
+@define(eq=False)
+class GraphNodeMapping[_K, _V](
+	CharacterMapping[_K, _V], MutableMapping[_K, _V], AttrSignal, ABC
+):
 	"""Mapping for nodes in a graph"""
 
-	def __init__(self, graph: DiGraph):
-		super().__init__()
-		self.character = graph
+	character: DiGraph
 
 	@cached_property
-	def engine(self) -> AbstractEngine:
+	def engine(self) -> Engine:
 		return self.character.engine
 
 	def __iter__(self) -> Iterator[NodeName]:
@@ -1384,8 +1299,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 	def __setitem__(
 		self,
 		node: NodeName | KeyHint,
-		data: dict[NodeName, dict[Stat, Value]]
-		| dict[KeyHint, dict[KeyHint, ValueHint]],
+		data: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	) -> None:
 		"""Only accept dict-like values for assignment. These are taken to be
 		dicts of node attributes, and so, a new GraphNodeMapping.Node
@@ -1394,7 +1308,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
-		dikt: dict[NodeName, dict[Stat, Value]]
+		dikt: dict[NodeName, dict[Stat, Value]] = {}
 		for node, stats in data.items():
 			if not isinstance(node, Key):
 				raise TypeError("Invalid node", node)
@@ -1434,7 +1348,7 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		for pred in self.character.pred[node]:
 			del self.character.pred[node][pred]
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.db.exist_node(
+		self.engine.database.exist_node(
 			self.character.name, node, branch, turn, tick, False
 		)
 		self.engine._nodes_cache.store(
@@ -1443,9 +1357,6 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 		key = (self.character.name, node)
 		if node in self.engine._node_objs:
 			del self.engine._node_objs[key]
-
-	def __repr__(self):
-		return f"<{self.__class__.__name__} containing {', '.join(map(repr, self.keys()))}>"
 
 	type _m_typ = dict[KeyHint, EllipsisType | dict[KeyHint, ValueHint]]
 
@@ -1479,10 +1390,14 @@ class GraphNodeMapping(MutableMapping, Signal, DiGraphMappingMixin, ABC):
 				self[node].update(value)
 
 
-class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
+@define(eq=False)
+class GraphEdgeMapping[
+	_ORIG: NodeName,
+	_DEST: MutableMapping[_DEST, Edge] | bool,
+](
 	MutableMapping[_ORIG, _DEST],
-	Signal,
-	DiGraphMappingMixin,
+	AttrSignal,
+	CharacterMapping,
 	ABC,
 ):
 	"""Provides an adjacency mapping and possibly a predecessor mapping
@@ -1490,15 +1405,11 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 
 	"""
 
-	__slots__ = ("character", "_cache")
-
 	character: DiGraph
-	engine: Engine = getatt("character.engine")
 
-	def __init__(self, graph: DiGraph):
-		super().__init__(graph)
-		self.character = graph
-		self._cache = {}
+	@cached_property
+	def engine(self) -> Engine:
+		return self.character.engine
 
 	def __eq__(self, other: Mapping):
 		"""Compare dictified versions of the edge mappings within me.
@@ -1523,17 +1434,29 @@ class GraphEdgeMapping[_ORIG: NodeName, _DEST: dict | bool](
 		return iter(self.character.node)
 
 
-class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
-	__slots__ = ("container", "orig", "_cache")
+@define
+class AbstractSuccessors(
+	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+):
+	__slots__ = ()
+
+	container: GraphEdgeMapping
+	orig: NodeName
+
+	@cached_property
+	def character(self):
+		return self.container.character
+
+	@cached_property
+	def engine(self):
+		return self.container.character.engine
+
+	@cached_property
+	def _cache(self):
+		return {}
 
 	@abstractmethod
 	def _order_nodes(self, node: NodeName) -> tuple[NodeName, NodeName]: ...
-
-	def __init__(self, container: GraphEdgeMapping, orig: NodeName):
-		"""Store container and node"""
-		super().__init__(container.character)
-		self.container = container
-		self.orig = orig
 
 	def __iter__(self) -> Iterator[NodeName]:
 		"""Iterate over node IDs that have an edge with my orig"""
@@ -1590,7 +1513,7 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 		if dest not in self.character.node:
 			self.character.add_node(dest)
 		branch, turn, tick = self.engine._nbtt()
-		self.engine.db.exist_edge(
+		self.engine.database.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, True
 		)
 		self.engine._edges_cache.store(
@@ -1607,17 +1530,11 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 		dest = NodeName(dest)
 		branch, turn, tick = self.engine._nbtt()
 		orig, dest = self._order_nodes(dest)
-		self.engine.db.exist_edge(
+		self.engine.database.exist_edge(
 			self.character.name, orig, dest, branch, turn, tick, False
 		)
 		self.engine._edges_cache.store(
 			self.character.name, orig, dest, branch, turn, tick, False
-		)
-
-	def __repr__(self):
-		cls = self.__class__
-		return "<{}.{} object containing {}>".format(
-			cls.__module__, cls.__name__, dict(self)
 		)
 
 	def clear(self) -> None:
@@ -1690,15 +1607,23 @@ class AbstractSuccessors(GraphEdgeMapping[NodeName, bool], ABC):
 					self[orig][dest][stat] = val
 
 
+@define(repr=False)
 class GraphSuccessorsMapping(
-	GraphEdgeMapping[NodeName, dict[NodeName, bool]], ABC
+	GraphEdgeMapping[NodeName, AbstractSuccessors], ABC
 ):
 	"""Mapping for Successors (itself a MutableMapping)"""
 
-	__slots__ = ("graph",)
+	__slots__ = ()
 
+	character: DiGraph
+
+	@define
 	class Successors(AbstractSuccessors):
-		__slots__ = ("graph", "container", "orig", "_cache")
+		__slots__ = ()
+
+		@cached_property
+		def _cache(self) -> dict[NodeName, Edge]:
+			return {}
 
 		def _order_nodes(self, dest: NodeName):
 			if dest < self.orig:
@@ -1738,6 +1663,10 @@ class GraphSuccessorsMapping(
 							del self[k][k2]
 						else:
 							self[k][k2] = v2
+
+	@cached_property
+	def _cache(self) -> dict[NodeName, Successors]:
+		return {}
 
 	def __getitem__(self, orig: KeyHint | NodeName) -> Successors:
 		if not isinstance(orig, Key):
@@ -1800,23 +1729,33 @@ class GraphSuccessorsMapping(
 		)
 
 
+@define
 class DiGraphSuccessorsMapping(GraphSuccessorsMapping, ABC):
-	__slots__ = ("graph",)
+	__slots__ = ()
 
+	@define
 	class Successors(AbstractSuccessors, ABC):
-		__slots__ = ("graph", "container", "orig", "_cache")
+		__slots__ = ()
 
 		def _order_nodes(self, dest: NodeName) -> tuple[NodeName, NodeName]:
 			return (self.orig, dest)
 
 
-class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
+@define
+class DiGraphPredecessorsMapping(
+	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+):
 	"""Mapping for Predecessors instances, which map to Edges that end at
 	the dest provided to this
 
 	"""
 
-	__slots__ = ("graph",)
+	__slots__ = ()
+	character: DiGraph
+
+	@cached_property
+	def engine(self):
+		return self.character.engine
 
 	def __contains__(self, dest: KeyHint | NodeName) -> bool:
 		if not isinstance(dest, Key):
@@ -1879,16 +1818,22 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 	def __len__(self) -> int:
 		return len(self.character.node)
 
-	class Predecessors(GraphEdgeMapping):
+	@define
+	class Predecessors(MutableMapping[NodeName, Edge]):
 		"""Mapping of Edges that end at a particular node"""
 
-		__slots__ = ("character", "container", "dest")
+		__slots__ = ()
 
-		def __init__(self, container, dest: NodeName):
-			"""Store container and node ID"""
-			super().__init__(container.character)
-			self.container = container
-			self.dest = dest
+		container: DiGraphPredecessorsMapping
+		dest: NodeName
+
+		@cached_property
+		def character(self):
+			return self.container.character
+
+		@cached_property
+		def engine(self):
+			return self.container.character.engine
 
 		def __iter__(self) -> Iterator[NodeName]:
 			"""Iterate over the edges that exist at the present (branch, rev)"""
@@ -1943,7 +1888,7 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 				e = self[orig]
 				e.clear()
 			except KeyError:
-				self.engine.db.exist_edge(
+				self.engine.database.exist_edge(
 					self.character.name,
 					orig,
 					self.dest,
@@ -1975,12 +1920,16 @@ class DiGraphPredecessorsMapping(GraphEdgeMapping, ABC):
 				raise TypeError("Invalid node", orig)
 			orig = NodeName(orig)
 			branch, turn, tick = self.engine._nbtt()
-			self.engine.db.exist_edge(
+			self.engine.database.exist_edge(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
 			self.engine._edges_cache.store(
 				self.character.name, orig, self.dest, branch, turn, tick, False
 			)
+
+	@cached_property
+	def _cache(self) -> dict[NodeName, Predecessors]:
+		return {}
 
 
 def unwrapped_dict(d) -> dict:
@@ -1999,19 +1948,19 @@ class DiGraph(nx.DiGraph, ABC):
 
 	"""
 
-	adj_cls = DiGraphSuccessorsMapping
-	pred_cls = DiGraphPredecessorsMapping
-	graph_map_cls = GraphMapping
-	node_map_cls = GraphNodeMapping
-	_statmap: graph_map_cls
-	_nodemap: node_map_cls
-	_adjmap: adj_cls
-	_predmap: pred_cls
+	adj_cls: ClassVar = DiGraphSuccessorsMapping
+	pred_cls: ClassVar = DiGraphPredecessorsMapping
+	graph_map_cls: ClassVar = GraphMapping
+	node_map_cls: ClassVar = GraphNodeMapping
 
-	def __repr__(self):
-		return "<{} object named {} containing {} nodes, {} edges>".format(
-			self.__class__, self.name, len(self.nodes), len(self.edges)
-		)
+	def __new__(
+		cls,
+		engine: AbstractEngine | None = None,
+		name: CharName | None = None,
+		*,
+		init_rulebooks: bool = False,
+	):
+		return super().__new__(cls)
 
 	def _nodes_state(self) -> dict[NodeName, dict[Stat, Value]]:
 		return {
@@ -2052,28 +2001,19 @@ class DiGraph(nx.DiGraph, ABC):
 			if k != "name"
 		}
 
-	def __new__(cls, engine: AbstractEngine, name: CharName):
-		return super().__new__(cls)
-
-	def __init__(
-		self, engine: AbstractEngine, name: CharName
-	):  # user shouldn't instantiate directly
-		self._name = name
-		self.engine = engine
-
 	def __bool__(self):
 		return self._name in self.engine._graph_objs
 
+	@cached_property
+	def _statmap(self):
+		return self.graph_map_cls(self)
+
 	@property
 	def graph(self) -> graph_map_cls:
-		if not hasattr(self, "_statmap"):
-			self._statmap = self.graph_map_cls(self)
 		return self._statmap
 
 	@graph.setter
 	def graph(self, v: dict[Stat, Value] | dict[KeyHint, ValueHint]):
-		if not hasattr(self, "_statmap"):
-			self._statmap = self.graph_map_cls(self)
 		self._statmap.clear()
 		self._statmap.update(v)
 
@@ -2242,7 +2182,7 @@ type PackSignature = Callable[
 	[Key | KeyHint | EternalKey | UniversalKey | Stat | ValueHint | Value],
 	bytes,
 ]
-type UnpackSignature = Callable[[bytes], ValueHint]
+type UnpackSignature = Callable[[bytes], Value]
 type LoadedCharWindow = dict[
 	Literal[
 		"nodes",
@@ -2331,7 +2271,7 @@ class get_rando:
 	"""
 
 	__slots__ = ("_getter", "_wrapfun", "_instance")
-	_getter: Callable[[], Callable]
+	_getter: attrgetter
 
 	def __init__(self, attr, *attrs):
 		self._getter = attrgetter(attr, *attrs)
@@ -2354,7 +2294,7 @@ class get_rando:
 		return remembering_rando_state
 
 
-class SignalDict(Signal, dict):
+class SignalDict[_K, _V](Signal, dict[_K, _V]):
 	def __setitem__(self, __key, __value):
 		super().__setitem__(__key, __value)
 		self.send(self, key=__key, value=__value)
@@ -2437,7 +2377,7 @@ class EntityAccessor(ABC):
 	def __eq__(self, other):
 		return self() == other
 
-	def munge(self, munger: callable):
+	def munge(self, munger: Callable):
 		return EntityStatAccessor(
 			self.entity,
 			self.stat,
@@ -2488,7 +2428,7 @@ class EntityAccessor(ABC):
 		if self.current:
 			res = self._get_value_now()
 		else:
-			time_was = self.engine.time
+			time_was = tuple(self.engine.time)
 			self.engine.branch = branch or self.branch
 			self.engine.turn = turn if turn is not None else self.turn
 			if tick is not None:
@@ -2513,7 +2453,7 @@ class EntityAccessor(ABC):
 			try:
 				y = self._get_value_now()
 			except KeyError:
-				yield None
+				yield Value(None)
 				continue
 			if hasattr(y, "unwrap"):
 				y = y.unwrap()
@@ -2546,19 +2486,6 @@ class EntityStatAccessor(EntityAccessor):
 		return self.entity[self.stat]
 
 
-class SizedDict(OrderedDict):
-	"""A dictionary that discards old entries when it gets too big."""
-
-	def __init__(self, max_entries: Annotated[int, Ge(0)] = 1000):
-		self._n = max_entries
-		super().__init__()
-
-	def __setitem__(self, key, value):
-		while len(self) > self._n:
-			self.popitem(last=False)
-		super().__setitem__(key, value)
-
-
 class FakeFuture(Future):
 	"""A 'Future' that calls its function immediately and sets the result"""
 
@@ -2567,7 +2494,7 @@ class FakeFuture(Future):
 		self.set_result(func(*args, **kwargs))
 
 
-class AbstractBookmarkMapping(MutableMapping, Callable):
+class AbstractBookmarkMapping(MutableMapping[KeyHint, Time], Callable):
 	@abstractmethod
 	def __call__(self, key: KeyHint) -> None: ...
 
@@ -2575,6 +2502,168 @@ class AbstractBookmarkMapping(MutableMapping, Callable):
 _SEQT = TypeVar("_SEQT", bound=Sequence[ValueHint])
 
 
+class TimeSignal(
+	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
+):
+	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
+
+	This is a ``Signal``. To set a function to be called whenever the
+	time changes, pass it to my ``connect`` method.
+
+	This always refers to the present game time. It will change when
+	simulation occurs. If you don't want that, convert it to a tuple, or unpack
+	it like: ``branch, turn, tick = engine.time``
+
+	"""
+
+	@property
+	def engine(self):
+		return tuple.__getitem__(self, 0)
+
+	def __iter__(self):
+		yield self.engine.branch
+		yield self.engine.turn
+		yield self.engine.tick
+
+	def __len__(self):
+		return 3
+
+	def __hash__(self):
+		raise TypeError(
+			"TimeSignal is mutable, not hashable. Convert it to a tuple."
+		)
+
+	def __call__(self) -> tuple[Branch, Turn, Tick]:
+		return self.engine.branch, self.engine.turn, self.engine.tick
+
+	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
+		if i in ("branch", 0):
+			return self.engine.branch
+		if i in ("turn", 1):
+			return self.engine.turn
+		if i in ("tick", 2):
+			return self.engine.tick
+		if isinstance(i, int):
+			raise IndexError(i)
+		else:
+			raise KeyError(i)
+
+	@property
+	def branch(self):
+		return self.engine.branch
+
+	@property
+	def turn(self):
+		return self.engine.turn
+
+	@property
+	def tick(self):
+		return self.engine.tick
+
+	def __setitem__(self, i: str | int, v: str | int) -> None:
+		if i in ("branch", 0):
+			if not isinstance(v, str):
+				raise TypeError("Invalid branch", v)
+			self.engine.branch = Branch(v)
+		elif i in ("turn", 1):
+			if not isinstance(v, int):
+				raise TypeError("Invalid turn", v)
+			if v < 0:
+				raise ValueError("Negative turn", v)
+			self.engine.turn = Turn(v)
+		elif i in ("tick", 2):
+			if not isinstance(v, int):
+				raise TypeError("Invalid tick", v)
+			if v < 0:
+				raise ValueError("Negative tick", v)
+			self.engine.tick = Tick(v)
+		else:
+			exctyp = KeyError if isinstance(i, str) else IndexError
+			raise exctyp(i)
+
+	def __str__(self):
+		return str(tuple(self))
+
+	def __eq__(self, other):
+		return tuple(self) == other
+
+	def __ne__(self, other):
+		return tuple(self) != other
+
+	def __gt__(self, other):
+		return tuple(self) > other
+
+	def __ge__(self, other):
+		return tuple(self) >= other
+
+	def __lt__(self, other):
+		return tuple(self) < other
+
+	def __le__(self, other):
+		return tuple(self) <= other
+
+
+class TimeSignalDescriptor:
+	__doc__ = TimeSignal.__doc__
+
+	def __get__(self, inst, cls) -> TimeSignal:
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal((inst,))
+		return inst._time_signal
+
+	def __set__(self, inst: AbstractEngine, val: Time):
+		if getattr(inst, "_worker", False):
+			raise WorkerProcessReadOnlyError(
+				"Tried to change the world state in a worker process"
+			)
+		if not hasattr(inst, "_time_signal"):
+			inst._time_signal = TimeSignal((inst,))
+		sig = inst._time_signal
+		branch_then, turn_then, tick_then = inst.time
+		branch_now, turn_now, tick_now = val
+		if (branch_then, turn_then, tick_then) == (
+			branch_now,
+			turn_now,
+			tick_now,
+		):
+			return
+		e = inst
+		# enforce the arrow of time, if it's in effect
+		if (
+			hasattr(e, "_forward")
+			and e._forward
+			and hasattr(e, "_planning")
+			and not e._planning
+		):
+			if branch_now != branch_then:
+				raise TimeError("Can't change branches in a forward context")
+			if turn_now < turn_then:
+				raise TimeError(
+					"Can't time travel backward in a forward context"
+				)
+			if turn_now > turn_then + 1:
+				raise TimeError("Can't skip turns in a forward context")
+		# make sure I'll end up within the revision range of the
+		# destination branch
+
+		if branch_now in e.branches():
+			e._extend_branch(branch_now, turn_now, tick_now)
+			e.load_at(branch_now, turn_now, tick_now)
+		else:
+			e._start_branch(branch_then, branch_now, turn_now, tick_now)
+		e._time_warp(branch_now, turn_now, tick_now)
+		sig.send(
+			e,
+			branch_then=branch_then,
+			turn_then=turn_then,
+			tick_then=tick_then,
+			branch_now=branch_now,
+			turn_now=turn_now,
+			tick_now=tick_now,
+		)
+
+
+@define
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
 
@@ -2582,39 +2671,124 @@ class AbstractEngine(ABC):
 
 	"""
 
-	thing_cls: type
-	place_cls: type
-	portal_cls: type
-	char_cls: type
-	character: Mapping[KeyHint | CharName, Type[char_cls]]
-	eternal: MutableMapping[KeyHint | EternalKey, ValueHint]
-	universal: MutableMapping[KeyHint | UniversalKey, ValueHint]
-	rulebook: MutableMapping[KeyHint | RulebookName, "RuleBook"]
-	rule: MutableMapping[KeyHint | RuleName, "Rule"]
-	db: AbstractDatabaseConnector
-	trunk: Branch
-	branch: Branch
-	turn: Turn
-	tick: Tick
-	time: Time
-	function: ModuleType | AbstractFunctionStore
-	method: ModuleType | AbstractFunctionStore
-	trigger: ModuleType | AbstractFunctionStore
-	prereq: ModuleType | AbstractFunctionStore
-	action: ModuleType | AbstractFunctionStore
-	bookmark: AbstractBookmarkMapping
-	_rando: Random
-	_branches_d: dict[
-		Optional[Branch], tuple[Optional[Branch], Turn, Tick, Turn, Tick]
-	]
+	thing_cls: ClassVar[type[AbstractThing]]
+	place_cls: ClassVar[type[Node]]
+	portal_cls: ClassVar[type[Edge]]
+	char_cls: ClassVar[type[AbstractCharacter]]
+	time: ClassVar[GetSetDescriptorType] = TimeSignalDescriptor()
 
-	@cached_property
-	def logger(self):
-		if hasattr(self, "_logger"):
-			return self._logger
-		from logging import getLogger
+	@staticmethod
+	def _make_time_signal(self):
+		return TimeSignal((self,))
 
-		return getLogger("lisien")
+	_time_signal: TimeSignal = field(
+		init=False, default=Factory(_make_time_signal, takes_self=True)
+	)
+	illegal_node_names: ClassVar = {
+		"nodes",
+		"node_val",
+		"edges",
+		"edge_val",
+		"things",
+	}
+	is_proxy: ClassVar[bool]
+
+	def __enter__(self):
+		return self
+
+	def __exit__(self, exc_type, exc_val, exc_tb):
+		try:
+			self.close()
+		except Exception as ex:
+			if exc_val:
+				raise ExceptionGroup(
+					f"Multiple exceptions during {self.__class__.__name__}.__exit__",
+					(
+						ex,
+						exc_val,
+					),
+				)
+			raise
+		finally:
+			if exc_val:
+				raise exc_val
+
+	@abstractmethod
+	def close(self) -> None: ...
+
+	@property
+	@abstractmethod
+	def bookmark(self) -> AbstractBookmarkMapping: ...
+
+	@property
+	@abstractmethod
+	def character(self) -> Mapping[KeyHint | CharName, char_cls]: ...
+
+	@property
+	@abstractmethod
+	def eternal(self) -> MutableMapping[KeyHint | EternalKey, ValueHint]: ...
+
+	@property
+	@abstractmethod
+	def universal(
+		self,
+	) -> MutableMapping[KeyHint | UniversalKey, ValueHint]: ...
+
+	@property
+	@abstractmethod
+	def rulebook(
+		self,
+	) -> MutableMapping[KeyHint | RulebookName, "RuleBook"]: ...
+
+	@property
+	@abstractmethod
+	def rule(self) -> MutableMapping[KeyHint | RuleName, "Rule"]: ...
+
+	@property
+	@abstractmethod
+	def trunk(self) -> Branch: ...
+
+	@trunk.setter
+	@abstractmethod
+	def trunk(self, branch: str | Branch) -> None: ...
+
+	@property
+	@abstractmethod
+	def branch(self) -> Branch: ...
+
+	@branch.setter
+	@abstractmethod
+	def branch(self, branch: str | Branch) -> None: ...
+
+	@property
+	@abstractmethod
+	def turn(self) -> Turn: ...
+
+	@turn.setter
+	@abstractmethod
+	def turn(self, turn: int | Turn): ...
+
+	@property
+	@abstractmethod
+	def tick(self) -> Tick: ...
+
+	@tick.setter
+	@abstractmethod
+	def tick(self, tick: int | Tick) -> None: ...
+
+	@property
+	@abstractmethod
+	def _rando(self) -> Random: ...
+
+	@property
+	@abstractmethod
+	def _branches_d(
+		self,
+	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]: ...
+
+	@property
+	@abstractmethod
+	def logger(self) -> Logger: ...
 
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
@@ -2739,11 +2913,11 @@ class AbstractEngine(ABC):
 				packer(
 					[
 						exc.__class__.__name__,
+						exc.args,
 						Traceback(exc.__traceback__).to_dict()
 						if hasattr(exc, "__traceback__")
 						else None,
 					]
-					+ list(exc.args)
 				),
 			),
 		}
@@ -2884,35 +3058,38 @@ class AbstractEngine(ABC):
 			return blank
 
 		def unpack_exception(ext: bytes) -> Exception:
-			data: tuple[str, dict | None] = self.unpack(
-				getattr(ext, "data", ext)
-			)
-			if data[0] not in excs:
-				return Exception(*data)
-			ret = excs[data[0]](*data[2:])
-			if data[1] is not None:
-				ret.__traceback__ = Traceback.from_dict(data[1]).to_traceback()
+			exctyp, excargs, tb = self.unpack(getattr(ext, "data", ext))
+			if exctyp not in excs:
+				return Exception(exctyp, *data)
+			ret = excs[exctyp](*excargs)
+			if tb is not None:
+				ret.__traceback__ = Traceback.from_dict(tb).to_traceback()
 			return ret
 
 		def unpack_char(ext: bytes) -> char_cls:
 			charn = self.unpack(getattr(ext, "data", ext))
-			return char_cls(self, charn, init_rulebooks=False)
+			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
 
 		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = self.unpack(getattr(ext, "data", ext))
 			return place_cls(
-				char_cls(self, charn, init_rulebooks=False), placen
+				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
+				NodeName(Key(placen)),
 			)
 
 		def unpack_thing(ext: bytes) -> thing_cls:
 			charn, thingn = self.unpack(getattr(ext, "data", ext))
 			# Breaks if the thing hasn't been instantiated yet, not great
-			return self.character[charn].thing[thingn]
+			return self.character[CharName(Key(charn))].thing[
+				NodeName(Key(thingn))
+			]
 
 		def unpack_portal(ext: bytes) -> portal_cls:
 			charn, orign, destn = self.unpack(getattr(ext, "data", ext))
 			return portal_cls(
-				char_cls(self, charn, init_rulebooks=False), orign, destn
+				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
+				NodeName(Key(orign)),
+				NodeName(Key(destn)),
 			)
 
 		def unpack_seq(t: type[_SEQT], ext: bytes) -> _SEQT:
@@ -2936,9 +3113,9 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.portal.value: unpack_portal,
 			MsgpackExtensionType.tuple.value: partial(unpack_seq, tuple),
 			MsgpackExtensionType.frozenset.value: partial(
-				unpack_seq, frozenset
+				unpack_seq, OrderlyFrozenSet
 			),
-			MsgpackExtensionType.set.value: partial(unpack_seq, set),
+			MsgpackExtensionType.set.value: partial(unpack_seq, OrderlySet),
 			MsgpackExtensionType.function.value: partial(
 				unpack_func, self.function
 			),
@@ -3172,16 +3349,16 @@ class AbstractEngine(ABC):
 	def export(
 		self,
 		name: str | None,
-		path: str | os.PathLike | None = None,
+		path: Path | os.PathLike[str] | None = None,
 		indent: bool = True,
-	) -> str | os.PathLike: ...
+	) -> Path: ...
 
 	@classmethod
 	@abstractmethod
 	def from_archive(
 		cls,
-		path: str | os.PathLike,
-		prefix: str | os.PathLike | None = ".",
+		path: Path | os.PathLike[str],
+		prefix: Path | os.PathLike[str] | None = ".",
 		**kwargs,
 	) -> AbstractEngine: ...
 
@@ -3282,11 +3459,12 @@ class AbstractEngine(ABC):
 	weibullvariate = get_rando("_rando.weibullvariate")
 
 
-class BaseMutableDiGraphMapping(
-	MutableMapping, Signal, DiGraphMappingMixin, ABC
+class BaseMutableCharacterMapping[_KT, _VT](
+	MutableMapping[_KT, _VT], CharacterMapping, ABC
 ): ...
 
 
+@define(eq=False)
 class AbstractCharacter(DiGraph, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
@@ -3301,18 +3479,14 @@ class AbstractCharacter(DiGraph, ABC):
 	"""
 
 	engine: AbstractEngine
-	name: CharName
+	_name: CharName
+	_init_rulebooks: bool = field(default=False, kw_only=True)
 
-	no_unwrap = True
+	no_unwrap: ClassVar = True
 
-	def __new__(
-		cls,
-		engine: AbstractEngine,
-		name: CharName,
-		*,
-		init_rulebooks: bool = False,
-	):
-		return super().__new__(cls, engine, name)
+	@property
+	def name(self):
+		return self._name
 
 	@staticmethod
 	def is_directed():
@@ -3524,14 +3698,14 @@ class AbstractCharacter(DiGraph, ABC):
 	) -> None:
 		pass
 
-	def __eq__(self, other: AbstractCharacter):
-		return isinstance(other, AbstractCharacter) and self.name == other.name
-
 	def __iter__(self):
 		return iter(self.node)
 
 	def __len__(self):
 		return len(self.node)
+
+	def __eq__(self, other):
+		return isinstance(other, AbstractCharacter) and self.name == other.name
 
 	def __bool__(self):
 		try:
@@ -3545,55 +3719,97 @@ class AbstractCharacter(DiGraph, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: type[BaseMutableDiGraphMapping]
+	ThingMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
 		return self.ThingMapping(self)
 
-	PlaceMapping: type[BaseMutableDiGraphMapping]
+	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
 		return self.PlaceMapping(self)
 
-	ThingPlaceMapping: type[BaseMutableDiGraphMapping]
+	ThingPlaceMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, Node]]
+	]
 
 	@cached_property
 	def _node(self) -> ThingPlaceMapping:
 		return self.ThingPlaceMapping(self)
 
-	node: ThingPlaceMapping = getatt("_node")
-	nodes: ThingPlaceMapping = getatt("_node")
+	@property
+	def node(self) -> ThingPlaceMapping:
+		return self._node
 
-	PortalSuccessorsMapping: type[BaseMutableDiGraphMapping]
+	@property
+	def nodes(self) -> ThingPlaceMapping:
+		return self._node
+
+	PortalSuccessorsMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				NodeName, MutableMapping[NodeName, Edge]
+			]
+		]
+	]
 
 	@cached_property
 	def _succ(self) -> PortalSuccessorsMapping:
 		return self.PortalSuccessorsMapping(self)
 
-	portal: PortalSuccessorsMapping = getatt("_succ")
-	adj: PortalSuccessorsMapping = getatt("_succ")
-	succ: PortalSuccessorsMapping = getatt("_succ")
-	edge: PortalSuccessorsMapping = getatt("_succ")
-	_adj: PortalSuccessorsMapping = getatt("_succ")
+	@property
+	def portal(self):
+		return self._succ
 
-	PortalPredecessorsMapping: type[BaseMutableDiGraphMapping]
+	@property
+	def _adj(self):
+		return self._succ
+
+	@property
+	def adj(self):
+		return self._succ
+
+	@property
+	def edge(self):
+		return self._succ
+
+	PortalPredecessorsMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				NodeName, MutableMapping[NodeName, Edge]
+			]
+		]
+	]
 
 	@cached_property
 	def _pred(self) -> PortalPredecessorsMapping:
 		return self.PortalPredecessorsMapping(self)
 
-	preportal: PortalPredecessorsMapping = getatt("_pred")
-	pred: PortalPredecessorsMapping = getatt("_pred")
+	@property
+	def preportal(self):
+		return self._pred
 
-	UnitGraphMapping: type[BaseMutableDiGraphMapping]
+	@property
+	def pred(self):
+		return self._pred
+
+	UnitGraphMapping: ClassVar[
+		type[
+			BaseMutableCharacterMapping[
+				CharName, MutableMapping[NodeName, Node]
+			]
+		]
+	]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
 		return self.UnitGraphMapping(self)
 
-	stat: GraphMapping = getatt("graph")
+	@property
+	def stat(self):
+		return self.graph
 
 	def units(self):
 		for units in self.unit.values():
@@ -3602,7 +3818,7 @@ class AbstractCharacter(DiGraph, ABC):
 	def historical(self, stat: Stat):
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
-	def do(self, func: Callable | str, *args, **kwargs) -> AbstractCharacter:
+	def do(self, func: Callable | str, *args, **kwargs) -> Self:
 		"""Apply the function to myself, and return myself.
 
 		Look up the function in the method store if needed. Pass it any
@@ -3616,7 +3832,7 @@ class AbstractCharacter(DiGraph, ABC):
 		func(self, *args, **kwargs)
 		return self
 
-	def copy_from(self, g: AbstractCharacter) -> AbstractCharacter:
+	def copy_from(self, g: AbstractCharacter) -> Self:
 		"""Copy all nodes and edges from the given graph into this.
 
 		Return myself.
@@ -3646,7 +3862,7 @@ class AbstractCharacter(DiGraph, ABC):
 				self.add_portal(renamed[v], renamed[u], **d)
 		return self
 
-	def become(self, g: AbstractCharacter) -> AbstractCharacter:
+	def become(self, g: AbstractCharacter) -> Self:
 		"""Erase all my nodes and edges. Replace them with a copy of the graph
 		provided.
 
@@ -3676,7 +3892,7 @@ class AbstractCharacter(DiGraph, ABC):
 		stat: Stat,
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
-	) -> AbstractCharacter:
+	) -> Self:
 		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -3697,7 +3913,7 @@ class AbstractCharacter(DiGraph, ABC):
 		stat: Stat,
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
-	):
+	) -> Self:
 		"""Delete portals whose stat >= ``threshold`` (default 0.5).
 
 		Optional argument ``comparator`` will replace >= as the test
@@ -3724,9 +3940,13 @@ class AbstractCharacter(DiGraph, ABC):
 
 
 class AbstractThing(ABC):
+	__slots__ = ()
 	character: AbstractCharacter
-	engine: AbstractEngine
 	name: NodeName
+
+	@property
+	def engine(self) -> AbstractEngine:
+		return self.character.engine
 
 	@property
 	def location(self) -> Node:
@@ -3746,6 +3966,9 @@ class AbstractThing(ABC):
 		elif not isinstance(v, Key):
 			raise TypeError("Invalid location", v)
 		self["location"] = NodeName(v)
+
+	@abstractmethod
+	def to_place(self) -> Node: ...
 
 	def go_to_place(
 		self,
@@ -3913,155 +4136,6 @@ class AbstractThing(ABC):
 		return self.follow_path(path, weight)
 
 
-class TimeSignal(
-	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
-):
-	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
-
-	This is a ``Signal``. To set a function to be called whenever the
-	time changes, pass it to my ``connect`` method.
-
-	This always refers to the present game time. It will change when
-	simulation occurs. If you don't want that, convert it to a tuple, or unpack
-	it like: ``branch, turn, tick = engine.time``
-
-	"""
-
-	@property
-	def engine(self):
-		return tuple.__getitem__(self, 0)
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.turn
-		yield self.engine.tick
-
-	def __len__(self):
-		return 3
-
-	def __hash__(self):
-		raise TypeError(
-			"TimeSignal is mutable, not hashable. Convert it to a tuple."
-		)
-
-	def __call__(self) -> tuple[Branch, Turn, Tick]:
-		return self.engine.branch, self.engine.turn, self.engine.tick
-
-	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("turn", 1):
-			return self.engine.turn
-		if i in ("tick", 2):
-			return self.engine.tick
-		if isinstance(i, int):
-			raise IndexError(i)
-		else:
-			raise KeyError(i)
-
-	def __setitem__(self, i: str | int, v: str | int) -> None:
-		if i in ("branch", 0):
-			if not isinstance(v, str):
-				raise TypeError("Invalid branch", v)
-			self.engine.branch = Branch(v)
-		elif i in ("turn", 1):
-			if not isinstance(v, int):
-				raise TypeError("Invalid turn", v)
-			if v < 0:
-				raise ValueError("Negative turn", v)
-			self.engine.turn = Turn(v)
-		elif i in ("tick", 2):
-			if not isinstance(v, int):
-				raise TypeError("Invalid tick", v)
-			if v < 0:
-				raise ValueError("Negative tick", v)
-			self.engine.tick = Tick(v)
-		else:
-			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(i)
-
-	def __str__(self):
-		return str(tuple(self))
-
-	def __eq__(self, other):
-		return tuple(self) == other
-
-	def __ne__(self, other):
-		return tuple(self) != other
-
-	def __gt__(self, other):
-		return tuple(self) > other
-
-	def __ge__(self, other):
-		return tuple(self) >= other
-
-	def __lt__(self, other):
-		return tuple(self) < other
-
-	def __le__(self, other):
-		return tuple(self) <= other
-
-
-class TimeSignalDescriptor:
-	__doc__ = TimeSignal.__doc__
-
-	def __get__(self, inst, cls) -> TimeSignal:
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		return inst._time_signal
-
-	def __set__(self, inst: AbstractEngine, val: Time):
-		if getattr(inst, "_worker", False):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst.time
-		branch_now, turn_now, tick_now = val
-		if (branch_then, turn_then, tick_then) == (
-			branch_now,
-			turn_now,
-			tick_now,
-		):
-			return
-		e = inst
-		# enforce the arrow of time, if it's in effect
-		if (
-			hasattr(e, "_forward")
-			and e._forward
-			and hasattr(e, "_planning")
-			and not e._planning
-		):
-			if branch_now != branch_then:
-				raise TimeError("Can't change branches in a forward context")
-			if turn_now < turn_then:
-				raise TimeError(
-					"Can't time travel backward in a forward context"
-				)
-			if turn_now > turn_then + 1:
-				raise TimeError("Can't skip turns in a forward context")
-		# make sure I'll end up within the revision range of the
-		# destination branch
-
-		if branch_now in e.branches():
-			e._extend_branch(branch_now, turn_now, tick_now)
-			e.load_at(branch_now, turn_now, tick_now)
-		else:
-			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._time_warp(branch_now, turn_now, tick_now)
-		sig.send(
-			e,
-			branch_then=branch_then,
-			turn_then=turn_then,
-			tick_then=tick_then,
-			branch_now=branch_now,
-			turn_now=turn_now,
-			tick_now=tick_now,
-		)
-
-
 _T = TypeVar("_T")
 
 
@@ -4072,7 +4146,9 @@ def sort_set(s: Set[_T]) -> list[_T]:
 	support anything you can't use as a key in a dictionary.
 
 	Works by converting everything to bytes before comparison. Tuples get
-	their contents converted and concatenated.
+	their contents converted and joined with 0x1e, the record separator.
+	Floats get converted to integer ratios, which are joined with 0x1f,
+	the unit separator.
 
 	This is memoized.
 
@@ -4082,13 +4158,13 @@ def sort_set(s: Set[_T]) -> list[_T]:
 		if isinstance(v, bytes):
 			return v
 		elif isinstance(v, tuple):
-			return b"".join(map(sort_set_key, v))
+			return b"\x1e".join(map(sort_set_key, v))
 		elif isinstance(v, str):
 			return v.encode()
 		elif isinstance(v, int):
 			return v.to_bytes(8)
 		elif isinstance(v, float):
-			return b"".join(i.to_bytes(8) for i in v.as_integer_ratio())
+			return b"\x1f".join(i.to_bytes(8) for i in v.as_integer_ratio())
 		else:
 			raise TypeError(v)
 
@@ -4100,7 +4176,7 @@ def sort_set(s: Set[_T]) -> list[_T]:
 	return sort_set.memo[s].copy()
 
 
-sort_set.memo = SizedDict()
+sort_set.memo = LRU(1000, {})
 
 
 def root_type(t: type) -> type | tuple[type, ...]:
@@ -4169,6 +4245,26 @@ def deannotate(annotation: str) -> Iterator[type]:
 		yield typ
 
 
+@define
+class AbstractStringStore(MutableMapping[str, str], ABC):
+	language: ClassVar[AbstractLanguageDescriptor]
+
+	@abstractmethod
+	def save(self, reimport: bool = False) -> None: ...
+
+	@abstractmethod
+	def _switch_language(self, lang: str) -> None: ...
+
+	@abstractmethod
+	def lang_items(
+		self, lang: str | None = None
+	) -> Iterator[tuple[str, str]]: ...
+
+	@abstractmethod
+	def blake2b(self) -> bytes: ...
+
+
+@define
 class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
 	def save(self, reimport: bool = True) -> None: ...
@@ -4179,6 +4275,7 @@ class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
 	def iterplain(self) -> Iterator[tuple[str, str]]: ...
 
+	@abstractmethod
 	def store_source(self, v: str, name: _K | None = None) -> None: ...
 
 	@abstractmethod
@@ -4366,6 +4463,9 @@ class QueryResult(Sequence, Set, ABC):
 		return self._list[item]
 
 	@abstractmethod
+	def __contains__(self, turn: int | Turn) -> bool: ...
+
+	@abstractmethod
 	def _generate(self): ...
 
 	@abstractmethod
@@ -4386,7 +4486,7 @@ class QueryResult(Sequence, Set, ABC):
 
 class QueryResultEndTurn(QueryResult):
 	def _generate(self):
-		spans = []
+		spans: list[tuple[int, int]] = []
 		left = []
 		right = []
 		for turn_from, turn_to, l_v, r_v in _yield_intersections(
@@ -4406,9 +4506,9 @@ class QueryResultEndTurn(QueryResult):
 		self._list = _list = []
 		append = _list.append
 		add = self._trues.add
-		for span, buul in zip(spans, bools):
+		for (start, stop), buul in zip(spans, bools):
 			if buul:
-				for turn in range(*span):
+				for turn in range(start, stop):
 					append(turn)
 					add(turn)
 
@@ -4684,7 +4784,7 @@ def slow_iter_turns_eval_cmp(qry, oper, start_branch=None, engine=None):
 		if branch is None:
 			return
 		turn_start, tick_start = engine._branch_start(branch)
-		for turn in range(turn_start, fork_turn + 1):
+		for turn in map(Turn, range(turn_start, fork_turn + 1)):
 			if oper(leftside(branch, turn), rightside(branch, turn)):
 				yield branch, turn
 
@@ -4701,12 +4801,12 @@ def slow_iter_btts_eval_cmp(qry, oper, start_branch=None, engine=None):
 		if branch is None:
 			return
 		turn_start = engine._branch_start(branch)[0]
-		for turn in range(turn_start, fork_turn + 1):
+		for turn in map(Turn, range(turn_start, fork_turn + 1)):
 			if turn == fork_turn:
 				local_turn_end = fork_tick
 			else:
 				local_turn_end = engine._turn_end_plan[branch, turn]
-			for tick in range(0, local_turn_end + 1):
+			for tick in map(Tick, range(0, local_turn_end + 1)):
 				try:
 					val = oper(
 						leftside(branch, turn, tick),
@@ -4843,7 +4943,46 @@ def _default_kwargs_munger(self, k):
 	return {}
 
 
-class PickyDefaultDict[_K, _V](dict[_K, _V]):
+@define
+class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
+	__slots__ = ()
+
+	@property
+	@abstractmethod
+	def value_type(self) -> type: ...
+
+	def args_munger(self, key: _K) -> tuple[_K, ...]:
+		return tuple()
+
+	def kwargs_munger(self, key: _K) -> dict[_K, _V]:
+		return {}
+
+	@cached_property
+	def _lock(self):
+		return RLock()
+
+	def __getitem__(self, k):
+		with self._lock:
+			if k in self:
+				return super().__getitem__(k)
+			ret = self[k] = self.value_type(
+				*self.args_munger(self, k), **self.kwargs_munger(self, k)
+			)
+			return ret
+
+	def __setitem__(self, k, v):
+		with self._lock:
+			if not isinstance(v, root_type(self.value_type)):
+				v = self.value_type(v)
+			super().__setitem__(k, v)
+
+
+def convert_subtype(subtyp: type) -> type:
+	return getattr(subtyp, "__supertype__", subtyp)
+
+
+@define
+class PickyDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	"""A ``defaultdict`` alternative that requires values of a specific type.
 
 	Pass some type object (such as a class) to the constructor to
@@ -4856,75 +4995,124 @@ class PickyDefaultDict[_K, _V](dict[_K, _V]):
 
 	"""
 
-	__slots__ = [
-		"type",
-		"args_munger",
-		"kwargs_munger",
-		"parent",
-		"key",
-		"_lock",
-	]
-
-	def __init__(
-		self,
-		typ: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		typ = getattr(typ, "__supertype__", typ)
-		if not isinstance(typ, type):
-			raise TypeError("types only", type(typ))
-		self._lock = RLock()
-		self.type = typ
-		self.args_munger = args_munger
-		self.kwargs_munger = kwargs_munger
-
-	def __getitem__(self, k):
-		with self._lock:
-			if k in self:
-				return super(PickyDefaultDict, self).__getitem__(k)
-			ret = self[k] = self.type(
-				*self.args_munger(self, k), **self.kwargs_munger(self, k)
-			)
-			return ret
-
-	def _create(self, v):
-		return self.type(v)
-
-	def __setitem__(self, k, v):
-		with self._lock:
-			if not isinstance(v, root_type(self.type)):
-				v = self._create(v)
-			super(PickyDefaultDict, self).__setitem__(k, v)
+	__slots__ = ()
+	value_type: type[_V] = field(converter=convert_subtype)
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	parent: dict | None = None
+	key: _K | None = None
 
 
-class PickierDefaultDict[_K, _V](PickyDefaultDict[_K, _V]):
+@define
+class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	"""So picky, even the keys need to be a certain type"""
 
-	__slots__ = ("key_type",)
-
-	def __init__(
-		self,
-		key_type: type,
-		value_type: type,
-		args_munger: Callable[
-			[Self, _K], tuple[_K, ...]
-		] = _default_args_munger,
-		kwargs_munger: Callable[
-			[Self, _K], dict[_K, _V]
-		] = _default_kwargs_munger,
-	):
-		key_type = getattr(key_type, "__supertype__", key_type)
-		if not isinstance(key_type, type):
-			raise TypeError("types only", type(key_type))
-		self.key_type = key_type
-		super().__init__(value_type, args_munger, kwargs_munger)
+	__slots__ = ()
+	key_type: type[_K] = field(converter=convert_subtype)
+	value_type: type[_V] = field(converter=convert_subtype)
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	parent: dict | None = None
+	key: _K | None = None
 
 	def __setitem__(self, key: _K, value: _V):
 		if not isinstance(key, self.key_type):
 			raise TypeError("Wrong type of key", key, self.key_type)
 		super().__setitem__(key, value)
+
+
+@define
+class StructuredDefaultDict[_K, _V](dict[_K, _V]):
+	"""A `defaultdict`-like class with values stored at a specific depth.
+
+	Requires an integer to tell it how many layers deep to go.
+	The innermost layer will be ``PickyDefaultDict``, which will take the
+	``type``, ``args_munger``, and ``kwargs_munger`` arguments supplied
+	to my constructor.
+
+	"""
+
+	__slots__ = ()
+
+	layer: int = field(validator=validators.ge(1))
+	type: type = type(None)
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	gettest: Callable[[_K], None] = lambda k: None
+	settest: Callable[[_K, _V], None] = lambda k, v: None
+	parent: StructuredDefaultDict | None = None
+	key: _K | None = None
+
+	@cached_property
+	def _lock(self):
+		return RLock()
+
+	@cached_property
+	def _stuff(self):
+		return self.layer, self.type, self.args_munger, self.kwargs_munger
+
+	def __getitem__(self, k: _K) -> _V:
+		with self._lock:
+			self.gettest(k)
+			if k in self:
+				return dict.__getitem__(self, k)
+			layer, typ, args_munger, kwargs_munger = self._stuff
+			if layer == 1:
+				if typ is type(None):
+					ret = {}
+				else:
+					ret = PickyDefaultDict(typ, args_munger, kwargs_munger)
+					ret.parent = self
+					ret.key = k
+			elif layer < 1:
+				raise ValueError("Invalid layer")
+			else:
+				ret = StructuredDefaultDict(
+					layer - 1, typ, args_munger, kwargs_munger
+				)
+				ret.parent = self
+				ret.key = k
+			dict.__setitem__(self, k, ret)
+			return ret
+
+	def __setitem__(self, k: _K, v: _V) -> None:
+		with self._lock:
+			self.settest(k, v)
+			if type(v) is StructuredDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					v.layer == layer - 1
+					and (typ is type(None) or v.type is typ)
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			elif type(v) is PickyDefaultDict:
+				layer, typ, args_munger, kwargs_munger = self._stuff
+				if (
+					layer == 1
+					and v.value_type is typ
+					and v.args_munger is args_munger
+					and v.kwargs_munger is kwargs_munger
+				):
+					super().__setitem__(k, v)
+					return
+			raise TypeError("Can't set layer {}".format(self.layer))
+
+
+class AbstractLanguageDescriptor(Signal, ABC):
+	@abstractmethod
+	def _get_language(self, inst: AbstractStringStore) -> str:
+		pass
+
+	@abstractmethod
+	def _set_language(self, inst: AbstractStringStore, val: str) -> None:
+		pass
+
+	def __get__(self, instance: AbstractStringStore, owner=None):
+		return self._get_language(instance)
+
+	def __set__(self, inst: AbstractStringStore, val: str):
+		self._set_language(inst, val)
+		self.send(inst, language=val)

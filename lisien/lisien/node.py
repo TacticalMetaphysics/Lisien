@@ -21,16 +21,16 @@ have a lot in common.
 
 from __future__ import annotations
 
-from abc import ABC
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator, List, Literal, Optional
+from typing import TYPE_CHECKING, Iterator, List, Literal, Optional, ClassVar
 
+from attrs import define
 from networkx import shortest_path, shortest_path_length
-from reslot import reslot
 
 import lisien.types
+from lisien.types import Edge
 
 from . import rule
 from .exc import AmbiguousLeaderError
@@ -53,10 +53,10 @@ from .util import getatt, unwrap
 
 if TYPE_CHECKING:
 	from .character import Character
-	from .engine import Engine
 	from .portal import Portal
 
 
+@define
 class LeaderMapping(Mapping):
 	"""A mapping of the characters that have a particular node as a unit.
 
@@ -68,13 +68,13 @@ class LeaderMapping(Mapping):
 
 	"""
 
-	__slots__ = ["node"]
+	__slots__ = ()
 
-	def __init__(self, node) -> None:
-		"""Store the node"""
-		self.node = node
+	node: Node
 
-	engine: "Engine" = getatt("node.engine")
+	@cached_property
+	def engine(self):
+		return self.node.character.engine
 
 	def _user_names(self) -> frozenset[CharName]:
 		try:
@@ -156,11 +156,10 @@ class NodeContentValues(ValuesView):
 			return False
 
 
+@define
 class NodeContent(Mapping):
-	__slots__ = ("node",)
-
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	__slots__ = ()
+	node: Node
 
 	def __iter__(self) -> Iterator[NodeName]:
 		try:
@@ -209,15 +208,30 @@ class DestsValues(ValuesView):
 		return item.origin.name == name
 
 
+@define
 class Dests(Mapping):
-	__slots__ = ("_ecnb", "_pn")
+	node: Node
 
-	def __init__(self, node: Node) -> None:
-		name = node.name
-		character = node.character
-		engine = node.engine
-		self._pn = (character.portal, name)
-		self._ecnb = (engine._edges_cache, character.name, name, engine.time)
+	@cached_property
+	def character(self):
+		return self.node.character
+
+	@cached_property
+	def engine(self):
+		return self.node.character.engine
+
+	@cached_property
+	def _pn(self):
+		return self.character.portal, self.node.name
+
+	@cached_property
+	def _ecnb(self):
+		return (
+			self.engine._edges_cache,
+			self.character.name,
+			self.node.name,
+			self.engine.time,
+		)
 
 	def __iter__(self) -> Iterator[NodeName]:
 		edges_cache, charname, name, btt = self._ecnb
@@ -252,9 +266,11 @@ class OrigsValues(ValuesView):
 		return item.destination.name == name
 
 
+@define
 class Origs(Mapping):
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	__slots__ = ()
+
+	node: Node
 
 	@cached_property
 	def character(self):
@@ -281,7 +297,7 @@ class Origs(Mapping):
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.iter_predecessors(charname, name, *btt)
 
-	def __contains__(self, item: KeyHint) -> bool:
+	def __contains__(self, item: KeyHint | NodeName) -> bool:
 		edges_cache, charname, name, btt = self._ecnb
 		return edges_cache.has_predecessor(charname, name, item, *btt)
 
@@ -291,7 +307,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: KeyHint) -> Node:
+	def __getitem__(self, item: KeyHint) -> Edge:
 		if item not in self:
 			raise KeyError
 		portal, name = self._pn
@@ -301,12 +317,11 @@ class Origs(Mapping):
 		return OrigsValues(self)
 
 
-@reslot
+@define
 class Portals(Set):
-	__slots__ = ("node", "__dict__")
+	__slots__ = ()
 
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	node: Node
 
 	@cached_property
 	def character(self):
@@ -333,7 +348,7 @@ class Portals(Set):
 			engine.time,
 		)
 
-	def __contains__(self, x: KeyHint) -> bool:
+	def __contains__(self, x: KeyHint | NodeName) -> bool:
 		_, edges_cache, _, charname, name, time = self._pecnb
 		return edges_cache.has_predecessor(
 			charname, name, x, *time
@@ -369,12 +384,11 @@ class NeighborValues(ValuesView):
 		return item.name in self._mapping
 
 
-@reslot
+@define
 class NeighborMapping(Mapping):
-	__slots__ = ("node", "__dict__")
+	__slots__ = ()
 
-	def __init__(self, node: Node) -> None:
-		self.node = node
+	node: Node
 
 	@cached_property
 	def _nn(self):
@@ -420,6 +434,7 @@ class NeighborMapping(Mapping):
 		return NeighborValues(self)
 
 
+@define(eq=False)
 class Node(lisien.types.Node, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
@@ -431,9 +446,9 @@ class Node(lisien.types.Node, rule.RuleFollower):
 
 	"""
 
-	__slots__ = ("_rulebook",)
-	no_unwrap = True
-	_extra_keys = {
+	__slots__ = ()
+	no_unwrap: ClassVar[bool] = True
+	_extra_keys: ClassVar[set[str]] = {
 		"name",
 	}
 
@@ -451,7 +466,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			self.engine._nodes_rulebooks_cache.store(
 				self.character.name, self.name, *now, ret
 			)
-			self.engine.db.set_node_rulebook(
+			self.engine.database.set_node_rulebook(
 				self.character.name, self.name, *now, ret
 			)
 			return ret
@@ -467,7 +482,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 			pass
 		branch, turn, tick = self.engine._nbtt()
 		cache.store(character, node, branch, turn, tick, rulebook)
-		self.engine.db.set_node_rulebook(
+		self.engine.database.set_node_rulebook(
 			character, node, branch, turn, tick, rulebook
 		)
 
@@ -508,6 +523,9 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		"""
 		return Origs(self)
 
+	def preportals(self) -> ValuesView[Origs]:
+		return self.preportal.values()
+
 	def portals(self) -> Portals:
 		"""A set-like object of portals connected to this node."""
 		return Portals(self)
@@ -525,6 +543,19 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		"""Delete all my keys"""
 		for key in super().__iter__():
 			del self[key]
+
+	def __eq__(self, other):
+		if self is other:
+			return True
+		if (
+			not hasattr(other, "character")
+			or not hasattr(other, "name")
+			or not hasattr(other.character, "name")
+			or self.character.name != other.character.name
+			or self.name != other.name
+		):
+			return False
+		return super().__eq__(other)
 
 	def __contains__(self, k: Key | KeyHint):
 		"""Handle extra keys, then delegate."""
@@ -650,14 +681,14 @@ class Node(lisien.types.Node, rule.RuleFollower):
 					now = engine._nbtt()
 			for username in list(self.leader):
 				engine._unitness_cache.store(username, g, n, *now, False)
-				engine.db.unit_set(username, g, n, *now, False)
+				engine.database.unit_set(username, g, n, *now, False)
 			for k in self:
 				assert k != "name"
 				if k != "location":
 					self._del_cache(k, *now)
 					self._del_db(k, *now)
 			engine._nodes_cache.store(g, n, *now, False)
-			engine.db.exist_node(g, n, *now, False)
+			engine.database.exist_node(g, n, *now, False)
 			self.character.node.send(
 				self.character.node, key=self.name, val=None
 			)
@@ -667,6 +698,7 @@ class Node(lisien.types.Node, rule.RuleFollower):
 		return self.engine._node_exists(self.character.name, self.name)
 
 
+@define(eq=False)
 class Place(Node):
 	"""The kind of node where a thing might ultimately be located.
 
@@ -681,15 +713,13 @@ class Place(Node):
 		"name",
 	}
 
+	def __bool__(self):
+		return self.name in self.character.place
+
 	def __getitem__(self, key: KeyHint | Stat):
 		if key == "name":
 			return self.name
 		return super().__getitem__(key)
-
-	def __repr__(self):
-		return "<{}.character[{}].place[{}]>".format(
-			repr(self.engine), self.character.name, self.name
-		)
 
 	def _validate_node_type(self) -> bool:
 		try:
@@ -714,11 +744,22 @@ class Place(Node):
 			me[k] = deepcopy(unwrap(v), memo)
 		return me
 
+	def to_thing(self, location: NodeName) -> Thing:
+		branch, turn, tick = self.engine._nbtt()
+		self.engine._things_cache.store(
+			self.character.name, self.name, branch, turn, tick, location
+		)
+		self.engine.database.set_thing_loc(
+			self.character.name, self.name, branch, turn, tick, location
+		)
+		return self.character.thing[self.name]
+
 
 def roerror(*args):
 	raise RuntimeError("Read-only")
 
 
+@define(eq=False)
 class Thing(Node, AbstractThing):
 	"""The sort of item that has a particular location at any given time.
 
@@ -732,7 +773,7 @@ class Thing(Node, AbstractThing):
 
 	__slots__ = ()
 
-	_extra_keys = {"name", "location"}
+	_extra_keys: ClassVar[set[str]] = {"name", "location"}
 
 	def _getname(self) -> NodeName:
 		return self.name
@@ -762,8 +803,11 @@ class Thing(Node, AbstractThing):
 		else:
 			raise ValueError("Couldn't find arrival time")
 
-	def _set_loc(self, loc: Optional[NodeName]) -> None:
+	def _set_loc(self, loc: NodeName | type(...)) -> None:
 		self.engine._set_thing_loc(self.character.name, self.name, loc)
+
+	def __bool__(self):
+		return self.name in self.character.thing
 
 	def __getitem__(self, item: KeyHint | Stat) -> Value | NodeName:
 		if item == "location":
@@ -787,9 +831,9 @@ class Thing(Node, AbstractThing):
 			raise ValueError("Can't delete {}".format(key))
 		super().__delitem__(key)
 
-	def __repr__(self):
-		charn = self.character.name
-		return f"<{self.engine}.character[{charn}].thing[{self.name}]"
+	def to_place(self) -> Place:
+		self._set_loc(...)
+		return self.character.place[self.name]
 
 	def facade(self) -> FacadeThing:
 		return FacadeThing(self.character.facade(), self.name)
@@ -817,7 +861,7 @@ class Thing(Node, AbstractThing):
 			self.engine._things_cache.store(
 				self.character.name, self.name, *now, ...
 			)
-			self.engine.db.set_thing_loc(
+			self.engine.database.set_thing_loc(
 				self.character.name, self.name, *now, ...
 			)
 			return now

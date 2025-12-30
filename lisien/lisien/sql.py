@@ -17,12 +17,11 @@ from __future__ import annotations
 import inspect
 import sys
 from collections import OrderedDict
-from dataclasses import KW_ONLY, dataclass, field
 from functools import cached_property, partial, partialmethod
 from queue import Queue
-from threading import Thread
 from typing import Iterator, Union, get_args
 
+from attrs import define, field
 from sqlalchemy import (
 	BLOB,
 	BOOLEAN,
@@ -31,9 +30,12 @@ from sqlalchemy import (
 	TEXT,
 	Column,
 	ColumnElement,
+	Connection,
+	Engine,
 	MetaData,
 	Select,
 	Table,
+	Transaction,
 	and_,
 	bindparam,
 	create_engine,
@@ -86,6 +88,26 @@ from .types import (
 	CharRulebookRowType,
 	ThingRowType,
 	UnitRowType,
+	UniversalRowType,
+	UniversalKey,
+	RulebookRowType,
+	RulebookPriority,
+	TriggerRowType,
+	TriggerFuncName,
+	PortalRulebookRowType,
+	NodeRulebookRowType,
+	RuleNeighborhoodRowType,
+	ActionFuncName,
+	ActionRowType,
+	RuleBigRowType,
+	RuleBig,
+	PrereqFuncName,
+	PrereqRowType,
+	GraphRowType,
+	Stat,
+	TurnRowType,
+	PackSignature,
+	UnpackSignature,
 )
 
 meta = MetaData()
@@ -148,16 +170,35 @@ for table, serializer in Batch.serializers.items():
 	Table(table, meta, *columns, sqlite_with_rowid=with_rowid)
 
 
-@dataclass
+@define
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
-	connect_string: str = "sqlite:///:memory:"
-	connect_args: dict[str, str] = field(default_factory=dict)
-	_: KW_ONLY
-	clear: bool = False
+	_pack: PackSignature
+	_unpack: UnpackSignature
+	connect_string: str = field(default="sqlite:///:memory:")
 
-	@dataclass
+	@connect_string.validator
+	def _validate_connect_string(self, _, val):
+		if not isinstance(val, str):
+			raise TypeError("Invalid connect_string", val)
+
+	connect_args: dict[str, str] = field(factory=dict)
+
+	@connect_args.validator
+	def _validate_connect_args(self, _, val):
+		if not isinstance(val, dict):
+			raise TypeError("Invalid connect_args", val)
+		for k, v in val.items():
+			if not isinstance(k, str):
+				raise TypeError("Invalid argument name", k)
+			if not isinstance(v, str):
+				raise TypeError("Invalid argument value", v)
+
+	@define
 	class Looper(ConnectionLooper):
 		connector: SQLAlchemyDatabaseConnector
+		engine: Engine = field(init=False)
+		connection: Connection = field(init=False)
+		transaction: Transaction = field(init=False)
 
 		@cached_property
 		def dbstring(self) -> str:
@@ -786,6 +827,8 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 						if not silent:
 							self.outq.put(o)
 						self.inq.task_done()
+					case "close":
+						return self.close()
 
 		def initdb(self) -> dict[bytes, bytes] | Exception:
 			"""Set up the database schema, both for allegedb and the special
@@ -819,12 +862,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		def close(self):
 			self.transaction.close()
 			self.connection.close()
-
-	def __post_init__(self):
-		self._t = Thread(target=self._looper.run)
-		self._t.start()
-		if self.clear:
-			self.truncate_all()
 
 	@mutexed
 	def call(self, string, *args, **kwargs):
@@ -1047,9 +1084,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Iterate over (key, value) pairs in the ``globals`` table."""
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		dumped = self.call("global_dump")
 		for k, v in dumped:
-			yield (unpack(k), unpack(v))
+			yield unpack_key(k), unpack(v)
 
 	def get_branch(self) -> Branch:
 		v = self.call("global_get", self.pack("branch"))[0]
@@ -1077,15 +1115,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the graph_val table."""
 		self._graphvals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, key, value in self.call(
 			"graph_val_dump"
 		):
 			yield (
-				unpack(graph),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1127,11 +1166,19 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		):
 			yield unpack(graph), branch, turn, tick, typ
 
-	def graphs_dump(self):
+	def graphs_dump(self) -> Iterator[GraphRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, typ in self.call("graphs_dump"):
-			yield unpack(graph), branch, turn, tick, typ
+			if not isinstance(typ, str) or typ not in ("DiGraph", "Deleted"):
+				raise TypeError("Invalid graph type", str)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				typ,
+			)
 
 	def nodes_del_time(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		super().nodes_del_time(branch, turn, tick)
@@ -1140,14 +1187,14 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	def nodes_dump(self) -> Iterator[NodeRowType]:
 		"""Dump the entire contents of the nodes table."""
 		self._nodes2set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, node, extant in self.call("nodes_dump"):
 			yield (
-				unpack(graph),
-				unpack(node),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(node)),
 				bool(extant),
 			)
 
@@ -1187,56 +1234,17 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the node_val table."""
 		self._nodevals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, graph, node, key, value in self.call(
 			"node_val_dump"
 		):
 			yield (
-				unpack(graph),
-				unpack(node),
-				unpack(key),
-				branch,
-				turn,
-				tick,
-				unpack(value),
-			)
-
-	def _iter_node_val(
-		self, graph, branch, turn_from, tick_from, turn_to=None, tick_to=None
-	) -> Iterator[NodeValRowType]:
-		if (turn_to is None) ^ (tick_to is None):
-			raise TypeError("I need both or neither of turn_to and tick_to")
-		self._nodevals2set()
-		pack = self.pack
-		unpack = self.unpack
-		if turn_to is None:
-			it = self.call(
-				"load_node_val_tick_to_end",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-			)
-		else:
-			it = self.call(
-				"load_node_val_tick_to_tick",
-				pack(graph),
-				branch,
-				turn_from,
-				turn_from,
-				tick_from,
-				turn_to,
-				turn_to,
-				tick_to,
-			)
-		for node, key, turn, tick, value in it:
-			yield (
-				graph,
-				unpack(node),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(node)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1249,7 +1257,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	def edges_dump(self) -> Iterator[EdgeRowType]:
 		"""Dump the entire contents of the edges table."""
 		self._edges2set()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			graph,
 			orig,
@@ -1260,12 +1268,12 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			extant,
 		) in self.call("edges_dump"):
 			yield (
-				branch,
-				turn,
-				tick,
-				unpack(graph),
-				unpack(orig),
-				unpack(dest),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
 				bool(extant),
 			)
 
@@ -1277,6 +1285,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		"""Yield the entire contents of the edge_val table."""
 		self._edgevals2set()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1288,13 +1297,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			value,
 		) in self.call("edge_val_dump"):
 			yield (
-				unpack(graph),
-				unpack(orig),
-				unpack(dest),
-				unpack(key),
-				branch,
-				turn,
-				tick,
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(graph)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				Stat(unpack_key(key)),
 				unpack(value),
 			)
 
@@ -1358,24 +1367,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		if (got := self.echo("committed")) != "committed":
 			raise RuntimeError("Failed commit", got)
 
-	def close(self):
-		"""Commit the transaction, then close the connection"""
-		self._inq.put("shutdown")
-		self._looper.existence_lock.acquire()
-		self._looper.existence_lock.release()
-		self._t.join()
-
-	def _init_db(self) -> dict:
-		if hasattr(self, "_initialized"):
+	def __attrs_post_init__(self):
+		if self._initialized:
 			raise RuntimeError("Tried to initialize database twice")
 		self._initialized = True
+		self._t.start()
 		with self.mutex():
 			self._inq.put("initdb")
 			got = self._outq.get()
 			if isinstance(got, Exception):
 				raise got
-			elif not isinstance(got, dict):
-				raise TypeError("initdb didn't return a dictionary", got)
 			globals = {
 				self.unpack(k): self.unpack(v) for (k, v) in got.items()
 			}
@@ -1431,19 +1432,34 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			unpack(rulebook),
 		)
 
-	def universals_dump(self):
+	def universals_dump(self) -> Iterator[UniversalRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, key, value in self.call("universals_dump"):
-			yield unpack(key), branch, turn, tick, unpack(value)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				UniversalKey(unpack_key(key)),
+				unpack(value),
+			)
 
-	def rulebooks_dump(self):
+	def rulebooks_dump(self) -> Iterator[RulebookRowType]:
 		self.flush()
 		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, rulebook, rules, prio in self.call(
 			"rulebooks_dump"
 		):
-			yield unpack(rulebook), branch, turn, tick, (unpack(rules), prio)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RulebookName(unpack_key(rulebook)),
+				list(map(RuleName, unpack(rules))),
+				RulebookPriority(prio),
+			)
 
 	def _rule_dump(self, typ):
 		self.flush()
@@ -1451,43 +1467,82 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for branch, turn, tick, rule, lst in self.call(
 			"rule_{}_dump".format(typ)
 		):
-			yield rule, branch, turn, tick, unpack(lst)
+			yield branch, turn, tick, rule, unpack(lst)
 
-	def rule_triggers_dump(self):
-		return self._rule_dump("triggers")
+	def rule_triggers_dump(self) -> Iterator[TriggerRowType]:
+		for branch, turn, tick, rule, trigs in self._rule_dump("triggers"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(TriggerFuncName, trigs)),
+			)
 
-	def rule_prereqs_dump(self):
-		return self._rule_dump("prereqs")
+	def rule_prereqs_dump(self) -> Iterator[PrereqRowType]:
+		for branch, turn, tick, rule, preqs in self._rule_dump("prereqs"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(PrereqFuncName, preqs)),
+			)
 
-	def rule_actions_dump(self):
-		return self._rule_dump("actions")
+	def rule_actions_dump(self) -> Iterator[ActionRowType]:
+		for branch, turn, tick, rule, acts in self._rule_dump("actions"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				list(map(ActionFuncName, acts)),
+			)
 
-	def rule_neighborhood_dump(self):
+	def rule_neighborhood_dump(self) -> Iterator[RuleNeighborhoodRowType]:
 		self.flush()
-		return self.call("rule_neighborhood_dump")
+		for branch, turn, tick, rule, nbrs in self.call(
+			"rule_neighborhood_dump"
+		):
+			if nbrs is not None and not isinstance(nbrs, int):
+				raise TypeError("Invalid neighborhood", nbrs)
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				nbrs,
+			)
 
-	def rule_big_dump(self):
+	def rule_big_dump(self) -> Iterator[RuleBigRowType]:
 		self.flush()
-		return self.call("rule_big_dump")
+		for branch, turn, tick, rule, big in self.call("rule_big_dump"):
+			yield (
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				RuleName(rule),
+				RuleBig(big),
+			)
 
-	def node_rulebook_dump(self):
+	def node_rulebook_dump(self) -> Iterator[NodeRulebookRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for branch, turn, tick, character, node, rulebook in self.call(
 			"node_rulebook_dump"
 		):
 			yield (
-				unpack(character),
-				unpack(node),
-				branch,
-				turn,
-				tick,
-				unpack(rulebook),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(node)),
+				RulebookName(unpack_key(rulebook)),
 			)
 
-	def portal_rulebook_dump(self):
+	def portal_rulebook_dump(self) -> Iterator[PortalRulebookRowType]:
 		self.flush()
-		unpack = self.unpack
+		unpack_key = self.unpack_key
 		for (
 			branch,
 			turn,
@@ -1498,13 +1553,13 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			rulebook,
 		) in self.call("portal_rulebook_dump"):
 			yield (
-				unpack(character),
-				unpack(orig),
-				unpack(dest),
-				branch,
-				turn,
-				tick,
-				unpack(rulebook),
+				Branch(branch),
+				Turn(turn),
+				Tick(tick),
+				CharName(unpack_key(character)),
+				NodeName(unpack_key(orig)),
+				NodeName(unpack_key(dest)),
+				RulebookName(unpack_key(rulebook)),
 			)
 
 	def _charactery_rulebook_dump(self, qry) -> Iterator[CharRulebookRowType]:

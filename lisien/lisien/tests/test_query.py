@@ -32,7 +32,8 @@ def college24_sql(tmp_path, college24_sql_tar):
 		college24_sql_tar,
 		tmp_path,
 		partial(
-			SQLAlchemyDatabaseConnector, f"sqlite:///{tmp_path}/world.sqlite3"
+			SQLAlchemyDatabaseConnector,
+			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 		),
 		None,
 	) as eng:

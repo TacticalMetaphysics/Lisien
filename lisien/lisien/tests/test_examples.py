@@ -66,9 +66,7 @@ def test_polygons(engy):
 
 
 def test_char_stat_startup(tmp_path, database_connector_part):
-	with Engine(
-		tmp_path, workers=0, database=database_connector_part()
-	) as eng:
+	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -82,9 +80,7 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(
-		tmp_path, workers=0, database=database_connector_part()
-	) as eng:
+	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
@@ -101,15 +97,13 @@ def test_wolfsheep(
 	tmp_path,
 	serial_or_executor,
 	database_connector_part,
-	random_seed,
 ):
 	workers = 0 if serial_or_executor is None else 2
 	with Engine.from_archive(
-		DATA_DIR + "/wolfsheep.lisien",
+		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
-		random_seed=random_seed,
-		database=database_connector_part(),
+		database=database_connector_part,
 		executor=serial_or_executor,
 	) as engine:
 		sheep = engine.character["sheep"]
@@ -138,7 +132,7 @@ def test_wolfsheep(
 		tmp_path,
 		workers=workers,
 		executor=serial_or_executor,
-		database=database_connector_part(),
+		database=database_connector_part,
 	)
 	try:
 		hand.next_turn()

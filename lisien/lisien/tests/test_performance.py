@@ -20,7 +20,7 @@ import pytest
 
 from lisien.proxy.manager import EngineProxyManager
 
-from .data import DATA_DIR
+from lisien.tests.data import DATA_DIR
 
 
 @pytest.mark.parquetdb
@@ -40,3 +40,10 @@ def test_follow_path(tmp_path):
 		assert elapsed < 20, (
 			f"Took too long to follow a path of length {len(straightly)}: {elapsed:.2} seconds"
 		)
+
+
+if __name__ == "__main__":
+	from tempfile import TemporaryDirectory
+
+	with TemporaryDirectory() as tmp_path:
+		test_follow_path(tmp_path)

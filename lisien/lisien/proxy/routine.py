@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
+from os import PathLike
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
@@ -29,9 +31,10 @@ from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 def worker_subroutine(
 	i: int,
-	prefix: str,
+	prefix: PathLike[str],
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	get_input_bytes: Callable[[], bytes],
 	send_output_bytes: Callable[[bytes], None],
 	logq: Queue,
@@ -52,7 +55,8 @@ def worker_subroutine(
 		prefix=prefix,
 		worker_index=i,
 		eternal=eternal,
-		branches=branches,
+		branches_d=branches,
+		random_seed=random_seed,
 		function=function,
 		method=method,
 		trigger=trigger,
@@ -61,7 +65,6 @@ def worker_subroutine(
 	)
 	pack = eng.pack
 	unpack = eng.unpack
-	eng._initialized = False
 
 	while True:
 		inst = get_input_bytes()
@@ -98,6 +101,7 @@ def worker_subprocess(
 	prefix: str,
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	in_pipe: Connection,
 	out_pipe: Connection,
 	logq: Queue,
@@ -113,6 +117,7 @@ def worker_subprocess(
 		prefix,
 		branches,
 		eternal,
+		random_seed,
 		in_pipe.recv_bytes,
 		out_pipe.send_bytes,
 		logq,
@@ -126,9 +131,10 @@ def worker_subprocess(
 
 def worker_subthread(
 	i: int,
-	prefix: str,
+	prefix: PathLike[str],
 	branches: dict,
 	eternal: dict,
+	random_seed: int | None,
 	in_queue: Queue,
 	out_queue: Queue,
 	logq: Queue,
@@ -144,6 +150,7 @@ def worker_subthread(
 		prefix,
 		branches,
 		eternal,
+		random_seed,
 		in_queue.get,
 		out_queue.put,
 		logq,
@@ -212,6 +219,10 @@ def engine_subroutine(
 	while True:
 		recvd = get_input_bytes()
 		if recvd == b"shutdown":
+			for th in threading.enumerate():
+				if th.name == "rundb":
+					raise RuntimeError("Still running a database thread")
+			send_output_bytes(b"shutdown")
 			return 0
 		if recvd.startswith(b"echo"):
 			send_output_bytes(recvd.removeprefix(b"echo"))
@@ -222,7 +233,6 @@ def engine_subroutine(
 			engine_handle = EngineHandle.from_archive(
 				recvd.removeprefix(b"from_archive"), log_queue=log_queue
 			)
-			send_output("get_btt", engine_handle.get_btt())
 			continue
 		if engine_handle is None:
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)

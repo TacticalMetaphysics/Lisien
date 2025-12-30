@@ -175,12 +175,12 @@ def test_import_game(kobold_sim_exported, elide_app_main_menu):
 		"Never filled the stack of file icons",
 	)
 	for file_icon in stacklayout.children:
-		if file_icon.path == kobold_sim_exported:
+		if file_icon.path == str(kobold_sim_exported):
 			x, y = file_icon.center
 			break
 	else:
 		raise RuntimeError(
-			"File isn't visible to the chooser: " + kobold_sim_exported
+			f"File isn't visible to the chooser: {kobold_sim_exported}"
 		)
 	x, y = chooser.parent.to_parent(*scrollview.to_parent(x, y))
 	touch = UnitTestTouch(x, y)

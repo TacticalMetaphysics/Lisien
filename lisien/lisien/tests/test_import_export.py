@@ -23,6 +23,7 @@ import pytest
 
 from ..db import AbstractDatabaseConnector, PythonDatabaseConnector
 from ..engine import Engine
+from ..facade import EngineFacade
 from ..pqdb import ParquetDatabaseConnector
 from ..sql import SQLAlchemyDatabaseConnector
 from .data import DATA_DIR
@@ -55,7 +56,7 @@ def engine_and_exported_xml(
 	tmp_path, random_seed, persistent_database, request, turns
 ):
 	install = get_install_func(request.param, random_seed)
-	prefix = os.path.join(tmp_path, "game")
+	prefix = tmp_path.joinpath("game")
 	with Engine(
 		prefix,
 		workers=0,
@@ -68,42 +69,41 @@ def engine_and_exported_xml(
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-		yield eng, str(os.path.join(DATA_DIR, request.param + f"_{turns}.xml"))
+		yield eng, DATA_DIR.joinpath(request.param + f"_{turns}.xml")
 
 
 def test_export_db(tmp_path, engine_and_exported_xml):
-	test_xml = os.path.join(tmp_path, "test.xml")
+	test_xml = tmp_path.joinpath("test.xml")
 	eng, outpath = engine_and_exported_xml
 	eng.to_xml(test_xml, name="test_export")
 
 	if not filecmp.cmp(outpath, test_xml):
 		with (
-			open(test_xml, "rt") as testfile,
-			open(outpath, "rt") as goodfile,
+			test_xml.open("rt") as testfile,
+			outpath.open("rt") as goodfile,
 		):
 			differences = list(
 				difflib.unified_diff(
 					goodfile.readlines(),
 					testfile.readlines(),
-					test_xml,
-					outpath,
+					test_xml.name,
+					outpath.name,
 				)
 			)
-		assert filecmp.cmp(outpath, test_xml), "".join(differences)
+		assert filecmp.cmp(outpath.absolute(), test_xml.absolute()), "".join(
+			differences
+		)
 
 
 @pytest.fixture(params=["kobold", "polygons", "wolfsheep"])
-def exported(
-	tmp_path, random_seed, persistent_database_connector_part, request, turns
-):
+def exported(tmp_path, random_seed, database_connector_part, request, turns):
 	install = get_install_func(request.param, random_seed)
-	prefix = os.path.join(tmp_path, "game")
 	with Engine(
-		prefix,
+		tmp_path,
 		workers=0,
 		random_seed=random_seed,
 		keyframe_on_close=False,
-		database=persistent_database_connector_part(),
+		database=database_connector_part,
 	) as eng:
 		install(eng)
 		for _ in range(turns):
@@ -112,62 +112,36 @@ def exported(
 	yield archive_name
 
 
-def test_round_trip(tmp_path, exported, non_null_database, random_seed, turns):
-	prefix1 = os.path.join(tmp_path, "game")
-	os.makedirs(prefix1, exist_ok=True)
-	prefix2 = os.path.join(tmp_path, "game2")
-	os.makedirs(prefix2, exist_ok=True)
-	match non_null_database:
-		case "python":
-			db1 = PythonDatabaseConnector()
-			db2 = PythonDatabaseConnector()
-		case "sqlite":
-			db1 = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{prefix1}/world.sqlite3"
-			)
-			db2 = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{prefix2}/world.sqlite3"
-			)
-		case "parquetdb":
-			db1 = ParquetDatabaseConnector(os.path.join(prefix1, "world"))
-			db2 = ParquetDatabaseConnector(os.path.join(prefix2, "world"))
-		case _:
-			raise RuntimeError("Unknown database", database_connector_part)
-	if exported.endswith("kobold.lisien"):
-		from lisien.examples.kobold import inittest as install
-	elif exported.endswith("wolfsheep.lisien"):
-		from lisien.examples.wolfsheep import install
-
-		install = partial(install, seed=random_seed)
-	elif exported.endswith("polygons.lisien"):
-		from lisien.examples.polygons import install
-	else:
-		raise pytest.fail(f"Unknown export: {exported}")
+def test_round_trip(
+	tmp_path,
+	exported,
+	database_connector_part,
+	database_connector_part2,
+	random_seed,
+):
+	prefix2 = tmp_path.joinpath("game2")
+	prefix2.mkdir(parents=True, exist_ok=True)
+	db1 = database_connector_part
+	db2 = database_connector_part2
 	with (
-		Engine.from_archive(
-			exported,
-			prefix1,
+		Engine(
+			tmp_path,
 			workers=0,
 			database=db1,
 			keyframe_on_close=False,
 		) as eng1,
-		Engine(
+		Engine.from_archive(
+			exported,
 			prefix2,
 			workers=0,
 			database=db2,
 			keyframe_on_close=False,
-			random_seed=random_seed,
 		) as eng2,
 	):
-		install(eng2)
-		for _ in range(turns):
-			eng2.next_turn()
 		compare_engines_world_state(eng1, eng2)
-	db1.close()
-	db2.close()
 
-	compare_stored_strings(prefix2, prefix1)
-	compare_stored_python_code(prefix2, prefix1)
+	compare_stored_strings(prefix2, tmp_path)
+	compare_stored_python_code(prefix2, tmp_path)
 
 
 def compare_engines_world_state(
@@ -176,21 +150,26 @@ def compare_engines_world_state(
 ):
 	test_engine.commit()
 	correct_engine.commit()
-	test_engine = getattr(test_engine, "db", test_engine)
-	correct_engine = getattr(correct_engine, "db", test_engine)
+	test_engine = getattr(test_engine, "database", test_engine)
+	correct_engine = getattr(correct_engine, "database", test_engine)
 	test_dump = test_engine.dump_everything()
 	correct_dump = correct_engine.dump_everything()
 	assert test_dump.keys() == correct_dump.keys()
+	# PythonDatabaseConnector doesn't really serialize its data, meaning
+	# it sorts differently. So, for testing, use our own serializer.
+	fake = EngineFacade(None, mock=True)
 	for k, test_data in test_dump.items():
 		if k.endswith("rules_handled"):
 			continue
 		correct_data = correct_dump[k]
 		print(k)
+		test_data.sort(key=fake.pack)
+		correct_data.sort(key=fake.pack)
 		assert correct_data == test_data, f"{k} tables differ"
 
 
 def compare_stored_strings(
-	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
+	correct_prefix: os.PathLike[str], test_prefix: os.PathLike[str]
 ):
 	langs = os.listdir(os.path.join(test_prefix, "strings"))
 	assert langs == os.listdir(os.path.join(correct_prefix, "strings")), (
@@ -207,7 +186,7 @@ def compare_stored_strings(
 
 
 def compare_stored_python_code(
-	correct_prefix: str | os.PathLike, test_prefix: str | os.PathLike
+	correct_prefix: os.PathLike[str], test_prefix: os.PathLike[str]
 ):
 	test_ls = os.listdir(test_prefix)
 	correct_ls = os.listdir(correct_prefix)
@@ -235,10 +214,8 @@ def compare_stored_python_code(
 @pytest.fixture
 def pqdb_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld")
-	connector = ParquetDatabaseConnector(test_world)
-	(connector.pack, connector.unpack) = (
-		engine_facade.pack,
-		engine_facade.unpack,
+	connector = ParquetDatabaseConnector(
+		engine_facade.pack, engine_facade.unpack, path=test_world
 	)
 	yield connector
 	connector.close()
@@ -247,10 +224,8 @@ def pqdb_connector_under_test(tmp_path, engine_facade):
 @pytest.fixture
 def pqdb_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world")
-	connector = ParquetDatabaseConnector(correct_world)
-	(connector.pack, connector.unpack) = (
-		engine_facade.pack,
-		engine_facade.unpack,
+	connector = ParquetDatabaseConnector(
+		engine_facade.pack, engine_facade.unpack, path=correct_world
 	)
 	yield connector
 	connector.close()
@@ -274,11 +249,9 @@ def test_import_parquetdb(
 def sql_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		"sqlite:///" + test_world,
-	)
-	(connector.pack, connector.unpack) = (
 		engine_facade.pack,
 		engine_facade.unpack,
+		"sqlite:///" + test_world,
 	)
 	yield connector
 	connector.close()
@@ -288,11 +261,9 @@ def sql_connector_under_test(tmp_path, engine_facade):
 def sql_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		"sqlite:///" + correct_world,
-	)
-	(connector.pack, connector.unpack) = (
 		engine_facade.pack,
 		engine_facade.unpack,
+		"sqlite:///" + correct_world,
 	)
 	yield connector
 	connector.close()

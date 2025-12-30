@@ -9,6 +9,7 @@ from functools import wraps, partial
 from itertools import product
 from logging import getLogger
 from os import PathLike
+from pathlib import Path
 from queue import Empty, SimpleQueue
 from threading import Thread
 from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING, Iterator
@@ -106,26 +107,6 @@ def make_test_engine_kwargs(
 	return kwargs
 
 
-def restart_executor(
-	executor: LisienExecutor, prefix: str | PathLike | None, random_seed: int
-):
-	if isinstance(prefix, PathLike):
-		prefix = str(prefix)
-	executor.call_every_worker(
-		packb("_restart"),
-		packb(
-			[
-				prefix,
-				("trunk", 0, 0),
-				{"language": "eng"},
-				{"trunk": (None, 0, 0, 0, 0)},
-				random_seed,
-			]
-		),
-		packb({}),
-	)
-
-
 def make_test_engine(
 	path,
 	execution,
@@ -135,7 +116,7 @@ def make_test_engine(
 	**kw_args,
 ):
 	if executor is not None:
-		restart_executor(executor, path, random_seed)
+		executor.restart()
 	kwargs = {"random_seed": random_seed}
 	kwargs.update(**kw_args)
 	if execution == "proxy":
@@ -169,12 +150,13 @@ def make_test_engine(
 		case "python":
 			kwargs["database"] = PythonDatabaseConnector()
 		case "sqlite":
-			kwargs["database"] = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{path}/world.sqlite3"
+			kwargs["database"] = partial(
+				SQLAlchemyDatabaseConnector,
+				connect_string=f"sqlite:///{path}/world.sqlite3",
 			)
 		case "parquetdb":
-			kwargs["database"] = ParquetDatabaseConnector(
-				os.path.join(path, "world")
+			kwargs["database"] = partial(
+				ParquetDatabaseConnector, path=os.path.join(path, "world")
 			)
 		case "nodb":
 			kwargs["database"] = NullDatabaseConnector()
@@ -216,32 +198,6 @@ def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
 		else:
 			raise TypeError("Invalid loaded dictionary")
 	return hashes
-
-
-def get_database_connector_part(
-	tmp_path: str | PathLike, s: Literal["python", "sqlite", "parquetdb"]
-):
-	def get_python_connector():
-		if not hasattr(get_database_connector_part, "_pyconnector"):
-			get_database_connector_part._pyconnector = (
-				PythonDatabaseConnector()
-			)
-		pyconnector = get_database_connector_part._pyconnector
-		pyconnector._plan_times = {}
-		return pyconnector
-
-	match s:
-		case "python":
-			return get_python_connector
-		case "sqlite":
-			return partial(
-				SQLAlchemyDatabaseConnector,
-				f"sqlite:///{tmp_path}/world.sqlite3",
-			)
-		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, os.path.join(tmp_path, "world")
-			)
 
 
 @contextmanager
@@ -292,35 +248,44 @@ def college_engine(
 
 @contextmanager
 def tar_cache(
-	name: str, non_null_database: str, make_engine: Callable | None = None
+	name: str,
+	non_null_database: Literal["python", "sqlite", "parquetdb"],
+	make_engine: Callable | None = None,
 ) -> Iterator[str]:
 	with tempfile.TemporaryDirectory() as tmpdir:
 		gamedir = os.path.join(tmpdir, name)
 		os.makedirs(gamedir, exist_ok=True)
-		if non_null_database == "sqlite":
-			connector = SQLAlchemyDatabaseConnector(
-				f"sqlite:///{gamedir}/world.sqlite3"
-			)
-		elif non_null_database == "parquetdb":
-			connector = ParquetDatabaseConnector(
-				os.path.join(gamedir, "world")
-			)
-		else:
-			assert non_null_database == "python"
-			connector = PythonDatabaseConnector()
+		match non_null_database:
+			case "python":
+				db = PythonDatabaseConnector()
+
+				def part(*_):
+					return db
+			case "sqlite":
+				part = partial(
+					SQLAlchemyDatabaseConnector,
+					connect_string=f"sqlite:///{gamedir}/world.sqlite3",
+				)
+			case "parquetdb":
+				part = partial(
+					ParquetDatabaseConnector,
+					path=os.path.join(gamedir, "world"),
+				)
+			case _:
+				raise RuntimeError("Unknown database", non_null_database)
 		if make_engine:
-			with make_engine(f"{name}.lisien", gamedir, "serial", connector):
+			with make_engine(f"{name}.lisien", gamedir, "serial", part):
 				pass
 		else:
 			Engine.from_archive(
 				os.path.join(DATA_DIR, f"{name}.lisien"),
 				gamedir,
 				workers=0,
-				database=connector,
+				database=part,
 			).close()
 		if non_null_database == "python":
 			with open(os.path.join(gamedir, "database.pkl"), "wb") as f:
-				pickle.dump(connector, f)
+				pickle.dump(db, f)
 		archive_name = shutil.make_archive(
 			f"{name}_{non_null_database}", "tar", gamedir
 		)
@@ -336,10 +301,11 @@ def untar_cache(
 	serial_or_executor: LisienExecutor | None,
 ) -> Iterator[Engine]:
 	shutil.unpack_archive(tar_path, tmp_path, "tar")
-	database_connector = database_connector_part()
-	if isinstance(database_connector, PythonDatabaseConnector):
+	if hasattr(database_connector_part, "is_python"):
 		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
 			database_connector = pickle.load(f)
+	else:
+		database_connector = database_connector_part
 	with Engine(
 		tmp_path,
 		workers=0,  # in case serial_or_executor is None

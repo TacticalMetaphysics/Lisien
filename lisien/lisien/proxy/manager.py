@@ -23,6 +23,7 @@ import sys
 import time
 import zlib
 from enum import Enum
+from pathlib import Path
 from threading import Thread
 from zipfile import ZipFile
 
@@ -37,9 +38,6 @@ class Sub(Enum):
 	process = "process"
 	interpreter = "interpreter"
 	thread = "thread"
-
-
-GET_TIME = b"\x81\xa7command\xa8get_time"
 
 
 class EngineProxyManager:
@@ -102,12 +100,10 @@ class EngineProxyManager:
 		elif "prefix" in kwargs:
 			prefix = kwargs.pop("prefix")
 		else:
-			raise RuntimeError("No prefix")
+			prefix = None
+		if prefix is not None:
+			prefix = Path(prefix)
 		self._make_proxy(prefix, **kwargs)
-		if hasattr(self, "_proxy_out_pipe"):
-			self._proxy_out_pipe.send_bytes(GET_TIME)
-		else:
-			self._output_queue.put(GET_TIME)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
@@ -146,7 +142,7 @@ class EngineProxyManager:
 		)
 
 	def _initialize_proxy_db(
-		self, prefix, **kwargs
+		self, prefix: Path | None, **kwargs
 	) -> tuple[
 		dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]],
 		dict[EternalKey, Value],
@@ -214,10 +210,10 @@ class EngineProxyManager:
 		else:
 			from parquetdb import ParquetDB
 
-			pqdb_prefix = os.path.join(prefix, "world")
+			pqdb_prefix = prefix.joinpath("world")
 
 			for d in (
-				ParquetDB(f"{pqdb_prefix}/branches")
+				ParquetDB(pqdb_prefix.joinpath("branches"))
 				.read(
 					columns=[
 						"branch",
@@ -261,8 +257,21 @@ class EngineProxyManager:
 		if hasattr(self, "engine_proxy"):
 			self.engine_proxy.close()
 			self.engine_proxy.send_bytes(b"shutdown")
+			if (
+				got := self.engine_proxy.recv_bytes(timeout=5.0)
+			) != b"shutdown":
+				raise RuntimeError(
+					"Subprocess didn't respond to shutdown signal", got
+				)
 			if hasattr(self, "_p"):
-				self._p.join(timeout=1)
+				self._p.join(timeout=5.0)
+				if self._p.exitcode is None:
+					raise TimeoutError("Couldn't join core process")
+				self._p.close()
+			if hasattr(self, "_t"):
+				self._t.join(timeout=5.0)
+				if self._t.is_alive():
+					raise TimeoutError("Couldn't join thread")
 			del self.engine_proxy
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
@@ -272,14 +281,6 @@ class EngineProxyManager:
 		if hasattr(self, "_logq"):
 			self._logq.put(b"shutdown")
 			self._log_thread.join()
-		if hasattr(self, "_t"):
-			self._t.join(timeout=1.0)
-			if self._t.is_alive():
-				raise TimeoutError("Couldn't join thread")
-		if hasattr(self, "_terp_thread") and self._terp_thread.is_alive():
-			self._terp_thread.join(timeout=1.0)
-			if self._terp_thread.is_alive():
-				raise TimeoutError("Couldn't join interpreter thread")
 		self.logger.debug("EngineProxyManager: shutdown")
 
 	def _config_logger(self, kwargs):
@@ -514,7 +515,7 @@ class EngineProxyManager:
 		self._logq: Queue = create_queue()
 
 		self._terp = create()
-		self._terp_thread = self._terp.call_in_thread(
+		self._t = self._terp.call_in_thread(
 			engine_subthread,
 			args or self._args,
 			self._kwargs | kwargs,
@@ -527,17 +528,28 @@ class EngineProxyManager:
 
 	def _make_proxy(
 		self,
-		prefix,
+		prefix: Path | None,
 		install_modules=(),
 		enforce_end_of_time=False,
 		game_source_code: dict[str, str] | None = None,
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
+		if hasattr(self, "_input_queue"):
+			self._output_queue.put(b"echoReadyToMakeProxy")
+			if (got := self._input_queue.get()) != b"ReadyToMakeProxy":
+				raise RuntimeError("Subthread isn't ready", got)
+		else:
+			self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
+			if (
+				got := self._proxy_in_pipe.recv_bytes()
+			) != b"ReadyToMakeProxy":
+				raise RuntimeError("Subprocess isn't ready", got)
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
 			if prefix is not None:
+				prefix = Path(prefix)
 				for store in (
 					"function",
 					"method",
@@ -545,8 +557,8 @@ class EngineProxyManager:
 					"prereq",
 					"action",
 				):
-					pyfile = os.path.join(prefix, store + ".py")
-					if os.path.exists(pyfile) and os.stat(pyfile).st_size:
+					pyfile = prefix.joinpath(store + ".py")
+					if pyfile.exists() and pyfile.stat().st_size:
 						code = game_source_code[store] = {}
 						with open(pyfile, "rt") as inf:
 							parsed = ast.parse(inf.read(), pyfile)
@@ -554,10 +566,10 @@ class EngineProxyManager:
 						for funk in parsed.body:
 							code[funk.name] = ast.unparse(funk)
 		if game_strings is None:
-			if prefix and os.path.isdir(os.path.join(prefix, "strings")):
+			if prefix and prefix.joinpath("strings").is_dir():
 				lang = eternal_d.get(EternalKey(Key("language")), "eng")
-				jsonpath = os.path.join(prefix, "strings", str(lang) + ".json")
-				if os.path.isfile(jsonpath):
+				jsonpath = prefix.joinpath("strings", str(lang) + ".json")
+				if jsonpath.is_file():
 					with open(jsonpath) as inf:
 						game_strings = json.load(inf)
 
@@ -570,7 +582,7 @@ class EngineProxyManager:
 				self.logger,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
-				branches=branches_d,
+				branches_d=branches_d,
 				eternal=eternal_d,
 				strings=game_strings,
 				**game_source_code,
@@ -582,7 +594,7 @@ class EngineProxyManager:
 				self.logger,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
-				branches=branches_d,
+				branches_d=branches_d,
 				eternal=eternal_d,
 				strings=game_strings,
 				**game_source_code,
@@ -604,8 +616,13 @@ class EngineProxyManager:
 		**kwargs,
 	) -> EngineProxy:
 		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
-		if not archive_path.endswith(".lisien"):
+		if isinstance(archive_path, Path):
+			if not archive_path.name.endswith(".lisien"):
+				raise RuntimeError("Not a .lisien archive")
+		elif not archive_path.endswith(".lisien"):
 			raise RuntimeError("Not a .lisien archive")
+		archive_path = Path(archive_path)
+		prefix = Path(prefix)
 		game_code = {}
 		with ZipFile(archive_path) as zf:
 			namelist = zf.namelist()

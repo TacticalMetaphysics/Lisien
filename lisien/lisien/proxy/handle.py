@@ -405,7 +405,7 @@ class EngineHandle:
 		return self._real._get_slow_delta(btt_from, btt_to)
 
 	def bookmarks_dump(self) -> list[tuple[Key, Time]]:
-		return list(self._real.db.bookmarks_dump())
+		return list(self._real.database.bookmarks_dump())
 
 	def set_bookmark(self, key: Key, time: Time | None = None) -> Time:
 		if time is None:
@@ -476,7 +476,7 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real._enforce_end_of_time:
+			if self._real.enforce_end_of_time:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)
@@ -489,28 +489,30 @@ class EngineHandle:
 						turn_end,
 						tick_end,
 					)
+			if tick is None:
+				if self._real._planning:
+					tick = self._real.turn_end_plan(branch, turn)
+				else:
+					tick = self._real.turn_end(branch, turn)
+			if LinearTime(turn, tick) < self._real._branch_start(branch):
+				raise OutOfTimelineError(
+					"Not traveling to before the beginning of the branch",
+					branch,
+					turn,
+					tick,
+					*self._real._branch_start(branch),
+				)
 			self._real.load_at(branch, turn, tick)
+		elif tick is None:
+			tick = 0
 		branch_from, turn_from, tick_from = self._real.time
-		if tick is None:
-			if (
-				branch,
-				turn,
-				self._real.turn_end(branch, turn),
-			) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, self._real.turn_end(branch, turn))
-		else:
-			if (branch, turn, tick) == (
-				branch_from,
-				turn_from,
-				tick_from,
-			):
-				return NONE, EMPTY_MAPPING
-			self._real.time = (branch, turn, tick)
+		if (branch, turn, tick) == (
+			branch_from,
+			turn_from,
+			tick_from,
+		):
+			return NONE, EMPTY_MAPPING
+		self._real.time = (branch, turn, tick)
 		if turn_from != turn and (
 			branch_from != branch
 			or None in (turn_from, turn)
