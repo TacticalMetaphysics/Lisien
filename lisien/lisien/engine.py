@@ -5451,117 +5451,12 @@ class Engine(AbstractEngine, BaseExecutor):
 				),
 			}
 
+		pack = self.pack
 		delta: dict[bytes, Any] = {
 			UNIVERSAL: PickierDefaultDict(bytes, bytes),
 			RULES: PickierDefaultDict(bytes, PickierDefaultDict[bytes, bytes]),
 			RULEBOOK: PickierDefaultDict(bytes, bytes),
 		}
-		pack = self.pack
-		now = tuple(self.time)
-		self._set_btt(*btt_from)
-		kf_from = self.snap_keyframe()
-		self._set_btt(*btt_to)
-		kf_to = self.snap_keyframe()
-		self._set_btt(*now)
-		keys = []
-		ids_from = []
-		ids_to = []
-		values_from = []
-		values_to = []
-		# Comparing object IDs is guaranteed never to give a false equality,
-		# because of the way keyframes are constructed.
-		# It may give a false inequality.
-		non_graph_kf_keys = [
-			"universal",
-			"triggers",
-			"prereqs",
-			"actions",
-			"neighborhood",
-			"big",
-			"rulebook",
-		]
-		for kfkey in non_graph_kf_keys:
-			for k in (
-				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
-			):
-				keys.append((kfkey, k))
-				va = kf_from[kfkey].get(k, ...)
-				vb = kf_to[kfkey].get(k, ...)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
-			a = kf_from["graph_val"].get(graph, {})
-			b = kf_to["graph_val"].get(graph, {})
-			key_union = a.keys() | b.keys()
-			if "units" in key_union:
-				units_a = a.get("units", {})
-				units_b = b.get("units", {})
-				for g in units_a.keys() | units_b.keys():
-					keys.append(("units", graph, g))
-					va = frozenset(units_a.get(g, {}).keys())
-					vb = frozenset(units_b.get(g, {}).keys())
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-			for k in (a.keys() | b.keys()) - {"units"}:
-				keys.append(("graph", graph, k))
-				va = a.get(k, ...)
-				vb = b.get(k, ...)
-				ids_from.append(id(va))
-				ids_to.append(id(vb))
-				values_from.append(va)
-				values_to.append(vb)
-		for graph in kf_from["node_val"].keys() | kf_to["node_val"].keys():
-			nodes = set()
-			if graph in kf_from["node_val"]:
-				nodes.update(kf_from["node_val"][graph].keys())
-			if graph in kf_to["node_val"]:
-				nodes.update(kf_to["node_val"][graph].keys())
-			for node in nodes:
-				a = kf_from["node_val"].get(graph, {}).get(node, {})
-				b = kf_to["node_val"].get(graph, {}).get(node, {})
-				for k in a.keys() | b.keys():
-					keys.append(("node", graph, node, k))
-					va = a.get(k, ...)
-					vb = b.get(k, ...)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
-		for graph in kf_from["edge_val"].keys() | kf_to["edge_val"].keys():
-			edges = set()
-			if graph in kf_from["edge_val"]:
-				for orig in kf_from["edge_val"][graph]:
-					for dest in kf_from["edge_val"][graph][orig]:
-						edges.add((orig, dest))
-			if graph in kf_to["edge_val"]:
-				for orig in kf_to["edge_val"][graph]:
-					for dest in kf_to["edge_val"][graph][orig]:
-						edges.add((orig, dest))
-			for orig, dest in edges:
-				a = (
-					kf_from["edge_val"]
-					.get(graph, {})
-					.get(orig, {})
-					.get(dest, {})
-				)
-				b = (
-					kf_to["edge_val"]
-					.get(graph, {})
-					.get(orig, {})
-					.get(dest, {})
-				)
-				for k in a.keys() | b.keys():
-					keys.append(("edge", graph, orig, dest, k))
-					va = a.get(k, ...)
-					vb = b.get(k, ...)
-					ids_from.append(id(va))
-					ids_to.append(id(vb))
-					values_from.append(va)
-					values_to.append(vb)
 
 		def pack_one(k, va, vb, deleted_nodes, deleted_edges):
 			if va == vb:
@@ -5639,6 +5534,21 @@ class Engine(AbstractEngine, BaseExecutor):
 			assert EDGES in delta[graph]
 			assert orig in delta[graph][EDGES]
 			assert delta[graph][EDGES][orig][dest] == existence
+
+		try:
+			import numpy as np
+
+			def id_array_delta(
+				arr0: list[int], arr1: list[int]
+			) -> Iterator[bool]:
+				return iter(np.array(arr0) != np.array(arr1))
+		except ImportError:
+			from pyscript.js_modules import compare_arrays
+
+			def id_array_delta(
+				arr0: list[int], arr1: list[int]
+			) -> Iterator[bool]:
+				return iter(compare_arrays(arr0, arr1))
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
@@ -5746,6 +5656,126 @@ class Engine(AbstractEngine, BaseExecutor):
 			if graphn not in delta:
 				delta[graphn] = {}
 		return delta
+
+	def _extract_keyframe_data_for_delta(
+		self, btt_from: Time, btt_to: Time
+	) -> tuple[
+		Keyframe,
+		Keyframe,
+		list[Key],
+		list[int],
+		list[int],
+		list[Value],
+		list[Value],
+	]:
+		now = tuple(self.time)
+		self._set_btt(*btt_from)
+		kf_from = self.snap_keyframe()
+		self._set_btt(*btt_to)
+		kf_to = self.snap_keyframe()
+		self._set_btt(*now)
+		keys = []
+		ids_from = []
+		ids_to = []
+		values_from = []
+		values_to = []
+		# Comparing object IDs is guaranteed never to give a false equality,
+		# because of the way keyframes are constructed.
+		# It may give a false inequality.
+		non_graph_kf_keys = [
+			"universal",
+			"triggers",
+			"prereqs",
+			"actions",
+			"neighborhood",
+			"big",
+			"rulebook",
+		]
+		for kfkey in non_graph_kf_keys:
+			for k in (
+				kf_from.get(kfkey, {}).keys() | kf_to.get(kfkey, {}).keys()
+			):
+				keys.append((kfkey, k))
+				va = kf_from[kfkey].get(k, ...)
+				vb = kf_to[kfkey].get(k, ...)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
+
+		for graph in kf_from["graph_val"].keys() | kf_to["graph_val"].keys():
+			a = kf_from["graph_val"].get(graph, {})
+			b = kf_to["graph_val"].get(graph, {})
+			key_union = a.keys() | b.keys()
+			if "units" in key_union:
+				units_a = a.get("units", {})
+				units_b = b.get("units", {})
+				for g in units_a.keys() | units_b.keys():
+					keys.append(("units", graph, g))
+					va = frozenset(units_a.get(g, {}).keys())
+					vb = frozenset(units_b.get(g, {}).keys())
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+			for k in (a.keys() | b.keys()) - {"units"}:
+				keys.append(("graph", graph, k))
+				va = a.get(k, ...)
+				vb = b.get(k, ...)
+				ids_from.append(id(va))
+				ids_to.append(id(vb))
+				values_from.append(va)
+				values_to.append(vb)
+
+		for graph in kf_from["node_val"].keys() | kf_to["node_val"].keys():
+			nodes = set()
+			if graph in kf_from["node_val"]:
+				nodes.update(kf_from["node_val"][graph].keys())
+			if graph in kf_to["node_val"]:
+				nodes.update(kf_to["node_val"][graph].keys())
+			for node in nodes:
+				a = kf_from["node_val"].get(graph, {}).get(node, {})
+				b = kf_to["node_val"].get(graph, {}).get(node, {})
+				for k in a.keys() | b.keys():
+					keys.append(("node", graph, node, k))
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+		for graph in kf_from["edge_val"].keys() | kf_to["edge_val"].keys():
+			edges = set()
+			if graph in kf_from["edge_val"]:
+				for orig in kf_from["edge_val"][graph]:
+					for dest in kf_from["edge_val"][graph][orig]:
+						edges.add((orig, dest))
+			if graph in kf_to["edge_val"]:
+				for orig in kf_to["edge_val"][graph]:
+					for dest in kf_to["edge_val"][graph][orig]:
+						edges.add((orig, dest))
+			for orig, dest in edges:
+				a = (
+					kf_from["edge_val"]
+					.get(graph, {})
+					.get(orig, {})
+					.get(dest, {})
+				)
+				b = (
+					kf_to["edge_val"]
+					.get(graph, {})
+					.get(orig, {})
+					.get(dest, {})
+				)
+				for k in a.keys() | b.keys():
+					keys.append(("edge", graph, orig, dest, k))
+					va = a.get(k, ...)
+					vb = b.get(k, ...)
+					ids_from.append(id(va))
+					ids_to.append(id(vb))
+					values_from.append(va)
+					values_to.append(vb)
+		return kf_from, kf_to, keys, ids_from, ids_to, values_from, values_to
 
 	def _del_rulebook(self, rulebook):
 		raise NotImplementedError("Can't delete rulebooks yet")
