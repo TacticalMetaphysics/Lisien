@@ -7,7 +7,7 @@
         <!-- PyScript CSS -->
         <link rel="stylesheet" href="https://pyscript.net/releases/2025.11.2/core.css">
         <!-- mini-coi works around CORS issues -->
-        <script src="/mini-coi-fd.js"></script>
+        <script src="./mini-coi-fd.js"></script>
         <!-- This script tag bootstraps PyScript -->
         <script type="module" src="https://pyscript.net/releases/2025.11.2/core.js"></script>
     </head>
@@ -15,7 +15,7 @@
         <script type="mpy" src="main.py" config='{
             "js_modules": {
                 "main": {
-                    "compare_arrays": "compare_arrays"
+                    "compare_arrays.js": "compare_arrays"
                 }
             }
         }'></script>
