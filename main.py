@@ -1,5 +1,5 @@
 from pyscript import document
-from pyscript.js_modules import compare_arrays
+from pyscript.js_modules.compare_arrays import compare_arrays
 
 
 array0 = [1, 2, 4, 8, 15, 16, 23, 42]
