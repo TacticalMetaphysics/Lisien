@@ -28,12 +28,12 @@ for env in $(tox -c elide/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; th
 for env in $(tox -c lisien/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; pyclean .; tox -c lisien/tox.ini -e $env; done
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android update clean debug
-cd docs
+cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
 git push
 git push --tags
-cd ..
+cd ../..
 git commit -am "Release v${VERSION}"
 git tag "v${VERSION}"
 git push
