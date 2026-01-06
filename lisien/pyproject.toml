@@ -38,6 +38,7 @@ dependencies = [
 	"parquetdb",
 	"annotated-types~=0.7.0",
 	"lxml~=6.0",
+	"zict~=3.0.0",
 ]
 
 [project.urls]
