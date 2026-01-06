@@ -28,7 +28,6 @@ from time import sleep
 from typing import ClassVar, Callable
 
 from attrs import Factory, define, field
-from sqlalchemy import Connection
 
 from lisien.proxy.routine import worker_subthread, worker_subprocess
 from lisien.proxy.worker_subinterpreter import worker_subinterpreter
