@@ -142,7 +142,6 @@ from .futures import (
 from .node import Place, Thing
 from .portal import Portal
 from .proxy.manager import Sub
-from .query import _make_side_sel
 from .rule import AllRuleBooks, AllRules, Rule
 from .types import (
 	AbstractBookmarkMapping,
@@ -7491,6 +7490,7 @@ class Engine(AbstractEngine, Executor):
 		"""
 		if not hasattr(self.database, "execute"):
 			raise NotImplementedError("turns_when only works with SQL for now")
+		from .query import _make_side_sel
 		from .sql import meta
 
 		unpack = self.unpack
