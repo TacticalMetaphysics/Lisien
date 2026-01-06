@@ -1213,7 +1213,7 @@ class AbstractDatabaseConnector(ABC):
 		rulebook: RulebookName,
 		rule: RuleName,
 		tick: Tick,
-	) -> tuple[Branch, Turn, bytes, bytes, RuleName, bytes, Tick]: ...
+	) -> tuple[Branch, Turn, bytes, bytes, bytes, RuleName, Tick]: ...
 
 	@batched("character_place_rules_handled", key_len=6, inc_rec_counter=False)
 	def _char_place_rules_handled(
