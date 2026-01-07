@@ -1017,7 +1017,16 @@ class Engine(AbstractEngine, Executor):
 	the time that's been simulated. Default ``True``. You normally want this, 
 	but it could cause problems if you use something other than Lisien's 
 	rules engine for game logic."""
-	workers: int = field(kw_only=True, default=os.cpu_count())
+
+	@staticmethod
+	def _convert_workers(workers: int | None):
+		if workers is None:
+			return os.cpu_count()
+		return workers
+
+	workers: int = field(
+		kw_only=True, converter=_convert_workers, default=None
+	)
 	"""How many processes, interpreters, or threads to use as workers for 
 	parallel processing. By default, Lisien will use as many subprocesses as 
 	we have CPU cores. When ``0``, parallel processing is disabled. Note that 
