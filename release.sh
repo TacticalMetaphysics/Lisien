@@ -19,7 +19,7 @@ if [ ! -z "$(git clean -n)" ]; then
   git clean -n
   exit 1
 fi
-if [ ! -z "$CC" ]; then
+if [ ! -z "${CC+x}" ]; then
   echo "Nonstandard C compiler selected."
   echo "$CC"
   exit 1
