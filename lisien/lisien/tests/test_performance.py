@@ -77,14 +77,15 @@ def test_pathfind(tmp_path, kind):
 				place = grid.place[place_n]
 			print(f"Removing {place_n}")
 			del grid.place[place_n]
-		with timer("Found 8 paths") as timed:
+		cpus = os.cpu_count()
+		with timer(f"Found {cpus} paths") as timed:
 			futs = []
-			for _ in range(8):
+			for _ in range(cpus):
 				futs.append(
 					eng.submit(eng.find_path, places.pop(), places.pop())
 				)
 			wait(futs)
-		assert timed.get() < 100, "Took too long to find 8 paths"
+		assert timed.get() < 100, f"Took too long to find {cpus} paths"
 
 
 if __name__ == "__main__":
