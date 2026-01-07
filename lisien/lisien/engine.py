@@ -1028,7 +1028,7 @@ class Engine(AbstractEngine, Executor):
 		kw_only=True, converter=_convert_workers, default=None
 	)
 	"""How many processes, interpreters, or threads to use as workers for 
-	parallel processing. By default, Lisien will use as many subprocesses as 
+	parallel processing. By default, Lisien will use as many workers as 
 	we have CPU cores. When ``0``, parallel processing is disabled. Note that 
 	``workers=0`` implies that trigger functions operate on bare Lisien 
 	objects, and can therefore have side effects. If you don't want this, 
