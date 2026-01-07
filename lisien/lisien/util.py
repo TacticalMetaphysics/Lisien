@@ -21,6 +21,7 @@ import sys
 from contextlib import contextmanager
 from functools import wraps
 from pprint import pformat
+from queue import SimpleQueue
 from textwrap import dedent
 from time import monotonic
 from typing import Callable, Iterable, Protocol, TypeVar
@@ -71,9 +72,12 @@ EMPTY_MAPPING: bytes = msgpack.packb({})
 def timer(msg="", logfun: Callable | None = None):
 	if logfun is None:
 		logfun = print
+	outq = SimpleQueue()
 	start = monotonic()
-	yield
-	logfun("{:,.3f} {}".format(monotonic() - start, msg))
+	yield outq
+	elapsed = monotonic() - start
+	outq.put(elapsed)
+	logfun("{:,.3f} {}".format(elapsed, msg))
 
 
 _T = TypeVar("_T")
