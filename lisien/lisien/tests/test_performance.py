@@ -88,7 +88,7 @@ def test_pathfind(tmp_path, kind):
 					eng.submit(eng.find_path, places.pop(), places.pop())
 				)
 			wait(futs)
-		assert timed.get() < 100, f"Took too long to find {cpus} paths"
+		assert timed.get() < 10, f"Took too long to find {cpus} paths"
 
 
 if __name__ == "__main__":
