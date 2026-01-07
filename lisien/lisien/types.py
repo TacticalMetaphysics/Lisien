@@ -224,7 +224,7 @@ class _KeyMeta(_ValueMeta):
 	def __call__(obj: KeyHint) -> Key:
 		if is_valid_key(obj):
 			return obj
-		raise TypeError("Not a valid key", obj)
+		raise TypeError(f"Not a valid key: {obj}", obj)
 
 	def __class_getitem__(cls, item):
 		return GenericAlias(cls, item)
