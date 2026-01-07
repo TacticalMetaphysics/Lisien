@@ -19,6 +19,11 @@ if [ ! -z "$(git clean -n)" ]; then
   git clean -n
   exit 1
 fi
+if [ ! -z "$CC" ]; then
+  echo "Nonstandard C compiler selected."
+  echo "$CC"
+  exit 1
+fi
 isort lisien
 isort elide
 ruff format lisien
