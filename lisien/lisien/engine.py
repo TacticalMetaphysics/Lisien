@@ -507,7 +507,6 @@ class Engine(AbstractEngine, Executor):
 	_planning: bool = field(init=False, default=False)
 	_forward: bool = field(init=False, default=False)
 	_no_kc: bool = field(init=False, default=False)
-	_top_uid: int = field(init=False, default=0)
 
 	@staticmethod
 	def _convert_prefix(prefix: Path | PathLike[str] | None):
@@ -1091,51 +1090,30 @@ class Engine(AbstractEngine, Executor):
 	) -> LisienExecutor | None:
 		if executor:
 			self._shutdown_executor = False
-			executor.prefix = self._prefix
-			executor.logger = self.logger
-			executor.eternal = eternal = self.eternal.copy()
-			executor.time = eternal["branch"], eternal["turn"], eternal["tick"]
+			executor.engine = self
 			return executor
 		elif self.workers > 0:
 			for store in self.stores:
 				if hasattr(store, "save"):
 					store.save(reimport=False)
 			self._shutdown_executor = True
-			time = (
-				Branch(self.eternal.get("branch", "trunk")),
-				Turn(self.eternal.get("turn", 0)),
-				Tick(self.eternal.get("tick", 0)),
-			)
-			try:
-				rando_state = self.database.universal_get("rando_state", *time)
-			except KeyError:
-				rando_state = self.random_seed
-			executor_args = (
-				self._prefix,
-				self.logger,
-				time,
-				dict(self.eternal),
-				dict(self._branches_d),
-				self.workers,
-				rando_state,
-			)
 			match self.sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
-					return LisienInterpreterExecutor(*executor_args)
+					return LisienInterpreterExecutor(self)
 				case Sub.process:
-					return LisienProcessExecutor(*executor_args)
+					return LisienProcessExecutor(self)
 				case Sub.thread:
-					return LisienThreadExecutor(*executor_args)
+					return LisienThreadExecutor(self)
 				case None:
 					if sys.version_info[1] >= 14:
 						try:
-							return LisienInterpreterExecutor(*executor_args)
+							return LisienInterpreterExecutor(self)
 						except ModuleNotFoundError:
 							pass
 					if get_all_start_methods():
-						return LisienProcessExecutor(*executor_args)
+						return LisienProcessExecutor(self)
 					else:
-						return LisienThreadExecutor(*executor_args)
+						return LisienThreadExecutor(self)
 		return None
 
 	executor: LisienExecutor | None = field(
@@ -4177,41 +4155,6 @@ class Engine(AbstractEngine, Executor):
 			)
 		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
-	def _call_in_worker(
-		self,
-		uid,
-		method,
-		future: Future,
-		*args,
-		update=True,
-		**kwargs,
-	):
-		i = uid % len(self._worker_inputs)
-		uidbytes = uid.to_bytes(8, "little")
-		argbytes = self.pack((method, args, kwargs))
-		with self._worker_locks[i]:
-			if update:
-				self._update_worker_process_state(i, lock=False)
-			input = self._worker_inputs[i]
-			output = self._worker_outputs[i]
-			if hasattr(input, "send_bytes"):
-				input.send_bytes(uidbytes + argbytes)
-			else:
-				input.put(uidbytes + argbytes)
-			if hasattr(output, "recv_bytes"):
-				output_bytes: bytes = output.recv_bytes()
-			else:
-				output_bytes: bytes = output.get()
-		got_uid = int.from_bytes(output_bytes[:8], "little")
-		result = self.unpack(output_bytes[8:])
-		assert got_uid == uid
-		self._how_many_futs_running -= 1
-		del self._uid_to_fut[uid]
-		if isinstance(result, Exception):
-			future.set_exception(result)
-		else:
-			future.set_result(result)
-
 	def _build_loading_windows(
 		self,
 		branch_from: str,
@@ -5054,24 +4997,14 @@ class Engine(AbstractEngine, Executor):
 				"Function is not stored in this lisien engine. "
 				"Use, eg., the engine's attribute `function` to store it."
 			)
-		uid = self._top_uid
-		if hasattr(self, "_worker_processes") or hasattr(
-			self, "_worker_interpreters"
-		):
-			ret = Future()
-			ret._t = Thread(
-				target=self._call_in_worker,
-				args=(uid, fn, ret, *args),
-				kwargs=kwargs,
-			)
-			self._uid_to_fut[uid] = ret
-			self._futs_to_start.put(ret)
+		if self.executor is not None:
+			return self.executor.submit(fn, *args, **kwargs)
 		else:
 			builtins = __builtins__.copy()
 			builtins["set"] = OrderlySet
 			builtins["frozenset"] = OrderlyFrozenSet
 			globls = globals().copy()
-			ret = eval(
+			return eval(
 				"fake_submit(fn, *args, **kwargs)",
 				globls,
 				{
@@ -5081,9 +5014,6 @@ class Engine(AbstractEngine, Executor):
 					"kwargs": kwargs,
 				},
 			)
-		ret.uid = uid
-		self._top_uid += 1
-		return ret
 
 	def _detect_kf_interval_override(self):
 		if self._planning:
@@ -5177,9 +5107,9 @@ class Engine(AbstractEngine, Executor):
 
 	@_all_code_stores_saved
 	def _call_every_worker(self, method: str, *args, **kwargs):
-		if not hasattr(self, "_executor"):
+		if self.executor is None:
 			raise RuntimeError("Not parallel")
-		self._executor.call_every_worker(
+		self.executor.call_every_worker(
 			self.pack(method), self.pack(args), self.pack(kwargs)
 		)
 
@@ -5286,10 +5216,10 @@ class Engine(AbstractEngine, Executor):
 			if len(data) != 3 or not all(isinstance(d, dict) for d in data):
 				raise TypeError("Invalid graph data")
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
-		if hasattr(self, "_worker_processes") or hasattr(
-			self, "_worker_interpreters"
-		):
-			self._call_every_worker("_add_character", name, data)
+		if self.executor is not None:
+			self.executor.call_every_worker(
+				self.pack("_add_character"), self.pack(name), self.pack(data)
+			)
 
 	@world_locked
 	def _complete_turn(self, branch: Branch, turn: Turn) -> None:
@@ -6064,52 +5994,6 @@ class Engine(AbstractEngine, Executor):
 		if self.executor and self._shutdown_executor:
 			self.executor.shutdown(wait, cancel_futures=cancel_futures)
 			del self.executor
-
-	@world_locked
-	def _update_worker_process_state(self, i, lock=True):
-		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
-		if (branch_from, turn_from, tick_from) == self.time:
-			return
-		old_eternal = self._worker_last_eternal
-		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
-		eternal_delta = {
-			k: new_eternal.get(k, ...)
-			for k in old_eternal.keys() | new_eternal.keys()
-			if old_eternal.get(k, ...) != new_eternal.get(k, ...)
-		}
-		if branch_from == self.branch:
-			delt = self._get_branch_delta(
-				branch_from, turn_from, tick_from, self.turn, self.tick
-			)
-			delt["eternal"] = eternal_delta
-			argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
-				(
-					"_upd",
-					(
-						None,
-						self.branch,
-						self.turn,
-						self.tick,
-						(None, delt),
-					),
-					{},
-				)
-			)
-		else:
-			argbytes = self._get_worker_kf_payload()
-		input = self._worker_inputs[i]
-		if hasattr(input, "send_bytes"):
-			put = input.send_bytes
-		else:
-			put = input.put
-		if lock:
-			with self._worker_locks[i]:
-				put(argbytes)
-				self._worker_updated_btts[i] = tuple(self.time)
-		else:
-			put(argbytes)
-			self._worker_updated_btts[i] = tuple(self.time)
-		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:

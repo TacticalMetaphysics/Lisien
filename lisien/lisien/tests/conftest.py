@@ -289,29 +289,13 @@ def reusing_database_connector_part2(
 
 @pytest.fixture(scope="session")
 def process_executor(random_seed):
-	with LisienProcessExecutorProxy(
-		None,
-		getLogger("lisien"),
-		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
-		{"trunk": (None, 0, 0, 0, 0)},
-		2,
-		random_seed=random_seed,
-	) as x:
+	with LisienProcessExecutorProxy(None) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
 def thread_executor(random_seed):
-	with LisienThreadExecutorProxy(
-		None,
-		getLogger("lisien"),
-		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
-		{"trunk": (None, 0, 0, 0, 0)},
-		2,
-		random_seed=random_seed,
-	) as x:
+	with LisienThreadExecutorProxy(None) as x:
 		yield x
 
 
@@ -320,15 +304,7 @@ def interpreter_executor(random_seed):
 	if sys.version_info.minor < 14:
 		yield None
 		return
-	with LisienInterpreterExecutorProxy(
-		None,
-		getLogger("lisien"),
-		("trunk", 0, 0),
-		{"branch": "trunk", "turn": 0, "tick": 0, "trunk": "trunk"},
-		{"trunk": (None, 0, 0, 0, 0)},
-		2,
-		random_seed=random_seed,
-	) as x:
+	with LisienInterpreterExecutorProxy(None) as x:
 		yield x
 
 

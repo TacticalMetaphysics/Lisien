@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import signal
 from abc import ABC, abstractmethod
 from concurrent.futures import Executor, Future, wait as futwait
@@ -22,6 +23,7 @@ from contextlib import contextmanager
 from functools import cached_property, wraps, partial
 from logging import Logger, LogRecord
 from multiprocessing import Pipe
+from pathlib import Path
 from queue import SimpleQueue, Empty
 from threading import Lock, Thread
 from time import sleep
@@ -30,10 +32,10 @@ from typing import ClassVar, Callable
 from attrs import Factory, define, field
 from sqlalchemy import Connection
 
-from lisien.proxy.routine import worker_subthread, worker_subprocess
-from lisien.proxy.worker_subinterpreter import worker_subinterpreter
-from lisien.types import Time, EternalKey, Value, Branch, Turn, Tick
-from lisien.util import msgpack_array_header
+from .proxy.routine import worker_subthread, worker_subprocess
+from .proxy.worker_subinterpreter import worker_subinterpreter
+from .types import AbstractEngine, Time, EternalKey, Value, Branch, Turn, Tick
+from .util import msgpack_array_header
 
 
 SUBPROCESS_TIMEOUT = 30
@@ -60,13 +62,14 @@ class LisienExecutor(Executor, ABC):
 
 	"""
 
-	prefix: os.PathLike[str] | None
-	logger: Logger
-	time: Time
-	eternal: dict[EternalKey, Value]
-	branches: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]
-	workers: int
-	random_seed: int | None = None
+	engine: AbstractEngine = field()
+
+	@engine.validator
+	def _validate_engine(self, _, engine):
+		if engine is None:
+			return
+		self._setup_workers(engine)
+
 	_top_uid: int = field(init=False, default=0)
 	_uid_to_fut: dict[int, Future] = field(init=False, factory=dict)
 	_worker_last_eternal: dict[EternalKey, Value] = field(
@@ -76,13 +79,76 @@ class LisienExecutor(Executor, ABC):
 		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
 	] = field(init=False, factory=dict)
 
-	@staticmethod
-	def _make_worker_updated_btts(self):
+	@property
+	def prefix(self) -> Path | None:
+		return self.engine._prefix
+
+	@property
+	def logger(self) -> Logger:
+		return self.engine.logger
+
+	def log(self, *args):
+		self.logger.log(*args)
+
+	def debug(self, *args):
+		self.logger.debug(*args)
+
+	def info(self, *args):
+		self.logger.info(*args)
+
+	def warning(self, *args):
+		self.logger.warning(*args)
+
+	def error(self, *args):
+		self.logger.error(*args)
+
+	def critical(self, *args):
+		self.logger.critical(*args)
+
+	@property
+	def time(self) -> Time:
+		return self.engine.branch, self.engine.turn, self.engine.tick
+
+	@property
+	def branch(self) -> Branch:
+		return self.engine.branch
+
+	@property
+	def turn(self) -> Turn:
+		return self.engine.turn
+
+	@property
+	def tick(self) -> Tick:
+		return self.engine.tick
+
+	@property
+	def eternal(self) -> dict[EternalKey, Value]:
+		return dict(self.engine.eternal)
+
+	@property
+	def branches(
+		self,
+	) -> dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]]:
+		return dict(self.engine._branches_d)
+
+	@property
+	def workers(self) -> int:
+		return self.engine.workers
+
+	@property
+	def random_seed(self) -> int:
+		return self.engine.random_seed
+
+	def pack(self, obj: Value) -> bytes:
+		return self.engine.pack(obj)
+
+	def unpack(self, b: bytes) -> Value:
+		return self.engine.unpack(b)
+
+	@cached_property
+	def _worker_updated_btts(self):
 		return [self.time] * self.workers
 
-	_worker_updated_btts: list[Time] = field(
-		init=False, default=Factory(_make_worker_updated_btts, takes_self=True)
-	)
 	_futs_to_start: SimpleQueue[Future] = field(
 		init=False, factory=SimpleQueue
 	)
@@ -103,6 +169,86 @@ class LisienExecutor(Executor, ABC):
 	_worker_inputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
 	_worker_outputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
 
+	def _call_in_worker(
+		self,
+		uid,
+		method,
+		future: Future,
+		*args,
+		update=True,
+		**kwargs,
+	):
+		i = uid % len(self._worker_inputs)
+		uidbytes = uid.to_bytes(8, "little")
+		argbytes = self.pack((method, args, kwargs))
+		with self._worker_locks[i]:
+			if update:
+				self._update_worker_process_state(i, lock=False)
+			input = self._worker_inputs[i]
+			output = self._worker_outputs[i]
+			if hasattr(input, "send_bytes"):
+				input.send_bytes(uidbytes + argbytes)
+			else:
+				input.put(uidbytes + argbytes)
+			if hasattr(output, "recv_bytes"):
+				output_bytes: bytes = output.recv_bytes()
+			else:
+				output_bytes: bytes = output.get()
+		got_uid = int.from_bytes(output_bytes[:8], "little")
+		result = self.unpack(output_bytes[8:])
+		assert got_uid == uid
+		self._how_many_futs_running -= 1
+		del self._uid_to_fut[uid]
+		if isinstance(result, Exception):
+			future.set_exception(result)
+		else:
+			future.set_result(result)
+
+	def _update_worker_process_state(self, i, lock=True):
+		branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+		if (branch_from, turn_from, tick_from) == self.time:
+			return
+		old_eternal = self._worker_last_eternal
+		new_eternal = self._worker_last_eternal = dict(self.eternal.items())
+		eternal_delta = {
+			k: new_eternal.get(k, ...)
+			for k in old_eternal.keys() | new_eternal.keys()
+			if old_eternal.get(k, ...) != new_eternal.get(k, ...)
+		}
+		if branch_from == self.branch:
+			delt = self.engine._get_branch_delta(
+				branch_from, turn_from, tick_from, self.turn, self.tick
+			)
+			delt["eternal"] = eternal_delta
+			argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
+				(
+					"_upd",
+					(
+						None,
+						self.branch,
+						self.turn,
+						self.tick,
+						(None, delt),
+					),
+					{},
+				)
+			)
+		else:
+			argbytes = self._get_worker_kf_payload()
+		input = self._worker_inputs[i]
+		if hasattr(input, "send_bytes"):
+			put = input.send_bytes
+		else:
+			put = input.put
+		if lock:
+			with self._worker_locks[i]:
+				put(argbytes)
+				self._worker_updated_btts[i] = tuple(self.time)
+		else:
+			put(argbytes)
+			self._worker_updated_btts[i] = tuple(self.time)
+		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
+
 	@cached_property
 	def lock(self) -> Lock:
 		return Lock()
@@ -113,15 +259,21 @@ class LisienExecutor(Executor, ABC):
 		return ret
 
 	def submit(self, fn: Callable, /, *args, **kwargs) -> Future:
-		if not hasattr(self, "_fut_manager_thread"):
-			self._setup_workers()
-			self._fut_manager_thread.start()
-		return super().submit(fn, *args, **kwargs)
+		ret = Future()
+		uid = self.get_uid()
+		ret._t = Thread(
+			target=self._call_in_worker,
+			args=(uid, fn, ret, *args),
+			kwargs=kwargs,
+		)
+		self._uid_to_fut[uid] = ret
+		self._futs_to_start.put(ret)
+		return ret
 
 	@abstractmethod
-	def _setup_workers(self) -> None:
+	def _setup_workers(self, engine) -> None:
 		self._worker_last_branches.clear()
-		self._worker_last_branches.update(self.branches)
+		self._worker_last_branches.update(engine._branches_d)
 		self._worker_last_eternal.clear()
 		self._worker_last_eternal.update(self.eternal)
 
@@ -249,7 +401,7 @@ class LisienExecutor(Executor, ABC):
 		a unit test.
 
 		:param keyframe_cb: Function to get the initial payload. If omitted,
-		the workers will have only the state expressed in my attributes.
+		the workers will have only the state expressed in the engine's attributes.
 		Should be the :meth:`_get_worker_kf_payload` method of
 		:class:`lisien.Engine`.
 
@@ -258,7 +410,7 @@ class LisienExecutor(Executor, ABC):
 			self._futs_to_start.put(b"shutdown")
 			self._fut_manager_thread.join()
 			self._fut_manager_thread = self._make_fut_manager_thread()
-		self._setup_workers()
+		self._setup_workers(self.engine)
 
 		from umsgpack import packb
 
@@ -288,8 +440,8 @@ class LisienExecutor(Executor, ABC):
 
 @define
 class LisienThreadExecutor(LisienExecutor):
-	def _setup_workers(self):
-		super()._setup_workers()
+	def _setup_workers(self, engine):
+		super()._setup_workers(engine)
 
 		self._stop_sync_log = True
 		wi = self._worker_inputs
@@ -312,10 +464,10 @@ class LisienThreadExecutor(LisienExecutor):
 				name=f"lisien worker {i}",
 				args=(
 					i,
-					self.prefix,
+					engine._prefix,
 					self._worker_last_branches,
 					self._worker_last_eternal,
-					self.random_seed,
+					engine.random_seed,
 					inq,
 					outq,
 					logq,
@@ -391,8 +543,8 @@ class LisienProcessExecutor(LisienExecutor):
 	)
 	_worker_log_threads: list[Thread] = field(init=False, factory=list)
 
-	def _setup_workers(self):
-		super()._setup_workers()
+	def _setup_workers(self, engine):
+		super()._setup_workers(engine)
 		wp = self._worker_processes
 		wi = self._worker_inputs
 		wo = self._worker_outputs
@@ -413,10 +565,10 @@ class LisienProcessExecutor(LisienExecutor):
 				target=worker_subprocess,
 				args=(
 					i,
-					self.prefix,
+					engine._prefix,
 					self._worker_last_branches,
 					self._worker_last_eternal,
-					self.random_seed,
+					engine.random_seed,
 					inpipe_there,
 					outpipe_there,
 					logq,
@@ -494,8 +646,8 @@ class LisienInterpreterExecutor(LisienExecutor):
 		init=False, factory=list
 	)
 
-	def _setup_workers(self) -> None:
-		super()._setup_workers()
+	def _setup_workers(self, engine) -> None:
+		super()._setup_workers(engine)
 		from concurrent.interpreters import (
 			Interpreter,
 			Queue,
@@ -533,10 +685,10 @@ class LisienInterpreterExecutor(LisienExecutor):
 			terp_args = (
 				worker_subinterpreter,
 				i,
-				self.prefix,
+				engine._prefix,
 				self._worker_last_branches,
 				self._worker_last_eternal,
-				self.random_seed,
+				engine.random_seed,
 				input,
 				output,
 				logq,
@@ -612,16 +764,8 @@ class LisienExecutorProxy(LisienExecutor):
 		init=False, default=Factory(_make_listen_thread, takes_self=True)
 	)
 
-	def _setup_workers(self):
-		self._real = self.executor_class(
-			self.prefix,
-			self.logger,
-			self.time,
-			self.eternal,
-			self.branches,
-			self.workers,
-			self.random_seed,
-		)
+	def _setup_workers(self, engine):
+		self._real = self.executor_class(engine)
 		self._pipe_here, self._pipe_there = Pipe()
 		try:
 			self._listen_thread.start()
@@ -669,7 +813,7 @@ class LisienExecutorProxy(LisienExecutor):
 
 	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
 		if not hasattr(self, "_real"):
-			self._setup_workers()
+			self._setup_workers(self.engine)
 		self._real.restart(keyframe_cb)
 
 	def call_every_worker(
