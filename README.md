@@ -399,3 +399,6 @@ Python interpreter embedded into your application, the Lisien
 license only covers Lisien itself, and not any code run outside
 of that Python interpreter. You must still release any modifications
 you make to Lisien, but the embedding application remains your own.
+
+If you need a different license, or a new exception to the AGPL3 license,
+please email [public@zacharyspector.com](mailto:public@zacharyspector.com).
