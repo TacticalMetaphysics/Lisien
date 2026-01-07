@@ -47,13 +47,16 @@ def test_follow_path(tmp_path):
 @pytest.mark.parametrize(
 	"kind",
 	[
-		"process",
+		pytest.param("process", marks=pytest.mark.subprocess),
 		pytest.param(
 			"interpreter",
-			marks=pytest.mark.skipif(
-				lambda: sys.version_info.minor < 14,
-				reason="Interpreters are only available in Python 3.14+",
-			),
+			marks=[
+				pytest.mark.subinterpreter,
+				pytest.mark.skipif(
+					lambda: sys.version_info.minor < 14,
+					reason="Interpreters are only available in Python 3.14+",
+				),
+			],
 		),
 	],
 )
