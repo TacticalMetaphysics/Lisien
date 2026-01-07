@@ -13,14 +13,16 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
-import shutil
+import sys
+from concurrent.futures import wait
 from time import monotonic
 
 import pytest
 
 from lisien.proxy.manager import EngineProxyManager
-
+from lisien import Engine
 from lisien.tests.data import DATA_DIR
+from lisien.util import timer
 
 
 @pytest.mark.parquetdb
@@ -40,6 +42,49 @@ def test_follow_path(tmp_path):
 		assert elapsed < 20, (
 			f"Took too long to follow a path of length {len(straightly)}: {elapsed:.2} seconds"
 		)
+
+
+@pytest.mark.parametrize(
+	"kind",
+	[
+		"process",
+		pytest.param(
+			"interpreter",
+			marks=pytest.mark.skipif(
+				lambda: sys.version_info.minor < 14,
+				reason="Interpreters are only available in Python 3.14+",
+			),
+		),
+	],
+)
+def test_pathfind(tmp_path, kind):
+	with Engine.from_archive(
+		os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path
+	) as eng:
+		grid = eng.character["grid"]
+		them = grid.thing["them"]
+		places = list(grid.place.keys())
+		places.remove(them.location.name)
+		eng.shuffle(places)
+		for i in range(20):
+			place_n = places.pop()
+			place = grid.place[place_n]
+			while place.content:
+				print(
+					f"Not removing {place_n} because there's {', '.join(map(str, place.content.keys()))} in it"
+				)
+				place_n = places.pop()
+				place = grid.place[place_n]
+			print(f"Removing {place_n}")
+			del grid.place[place_n]
+		with timer("Found 8 paths") as timed:
+			futs = []
+			for _ in range(8):
+				futs.append(
+					eng.submit(eng.find_path, places.pop(), places.pop())
+				)
+			wait(futs)
+		assert timed.get() < 100, "Took too long to find 8 paths"
 
 
 if __name__ == "__main__":
