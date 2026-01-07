@@ -115,7 +115,7 @@ def make_test_engine(
 	executor: LisienExecutor | None = None,
 	**kw_args,
 ):
-	if executor is not None:
+	if executor is not None and executor.engine is not None:
 		executor.restart()
 	kwargs = {"random_seed": random_seed}
 	kwargs.update(**kw_args)

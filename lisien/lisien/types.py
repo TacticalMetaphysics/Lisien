@@ -2726,7 +2726,7 @@ class AbstractEngine(ABC):
 
 	@property
 	@abstractmethod
-	def eternal(self) -> MutableMapping[KeyHint | EternalKey, ValueHint]: ...
+	def eternal(self) -> MutableMapping[EternalKey, Value]: ...
 
 	@property
 	@abstractmethod
