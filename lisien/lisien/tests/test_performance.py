@@ -62,7 +62,7 @@ def test_follow_path(tmp_path):
 )
 def test_pathfind(tmp_path, kind):
 	with Engine.from_archive(
-		os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path
+		os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path, sub_mode=kind
 	) as eng:
 		grid = eng.character["grid"]
 		them = grid.thing["them"]
