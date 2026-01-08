@@ -4882,7 +4882,10 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def get_keyframe_extensions(
 		self, branch: Branch, turn: Turn, tick: Tick
 	) -> tuple[UniversalKeyframe, RuleKeyframe, RulebooksKeyframe]:
-		return self._keyframe_extensions[branch].retrieve_exact(turn, tick)
+		try:
+			return self._keyframe_extensions[branch].retrieve_exact(turn, tick)
+		except KeyError:
+			raise KeyframeError("No keyframe at that time", branch, turn, tick)
 
 	def keyframes_dump(self) -> Iterator[Time]:
 		with self._lock:
