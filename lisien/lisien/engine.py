@@ -324,9 +324,7 @@ class NextTurn(Signal):
 			if getattr(store, "_need_save", None):
 				stores_to_reimport.add(store.__name__)
 				store.save(reimport=False)
-		if hasattr(engine, "_worker_processes") or hasattr(
-			engine, "_worker_interpreters"
-		):
+		if engine.executor is not None:
 			engine._update_all_worker_process_states(
 				stores_to_reimport=stores_to_reimport
 			)
@@ -5888,7 +5886,7 @@ class Engine(AbstractEngine, Executor):
 	def _update_all_worker_process_states(
 		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
 	):
-		if not hasattr(self, "_executor"):
+		if self.executor is None:
 			raise RuntimeError("Not parallel")
 		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
@@ -5900,15 +5898,15 @@ class Engine(AbstractEngine, Executor):
 					store.save()
 		kf_payload = None
 		deltas = {}
-		n = self._executor.workers
+		n = self.executor.workers
 		for i in range(n):
-			branch_from, turn_from, tick_from = self._worker_updated_btts[i]
+			branch_from, turn_from, tick_from = self.executor._worker_updated_btts[i]
 			if (
 				not clobber
 				and (branch_from, turn_from, tick_from) == self.time
 			):
 				continue
-			input = self._worker_inputs[i]
+			input = self.executor._worker_inputs[i]
 			if hasattr(input, "send_bytes"):
 				put = input.send_bytes
 			else:
@@ -5925,8 +5923,8 @@ class Engine(AbstractEngine, Executor):
 					kf_payload = self._get_worker_kf_payload()
 				put(kf_payload)
 			else:
-				old_eternal = self._worker_last_eternal
-				new_eternal = self._worker_last_eternal = dict(
+				old_eternal = self.executor._worker_last_eternal
+				new_eternal = self.executor._worker_last_eternal = dict(
 					self.eternal.items()
 				)
 				eternal_delta = {
@@ -5981,10 +5979,10 @@ class Engine(AbstractEngine, Executor):
 				)
 
 				put(argbytes)
-			self._worker_updated_btts[i] = tuple(self.time)
+			self.executor._worker_updated_btts[i] = tuple(self.time)
 			self.debug(
 				"Updated all worker process states at "
-				+ repr(self._worker_updated_btts[i])
+				+ repr(self.executor._worker_updated_btts[i])
 				+ f" ({len(deltas)} distinct deltas)"
 			)
 
