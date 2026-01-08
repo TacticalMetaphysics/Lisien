@@ -1797,6 +1797,10 @@ class PortalObjCache:
 		else:
 			pred[char] = {v: {u: obj}}
 
+	def clear(self):
+		self.successors.clear()
+		self.predecessors.clear()
+
 	def delete(self, char: CharName, u: NodeName, v: NodeName) -> None:
 		succ = self.successors
 		if char in succ:
