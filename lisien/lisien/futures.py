@@ -79,6 +79,7 @@ class LisienExecutor(Executor, ABC):
 	_worker_last_branches: dict[
 		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
 	] = field(init=False, factory=dict)
+	_stop_managing_futs: bool = False
 
 	@property
 	def prefix(self) -> Path | None:
@@ -271,11 +272,8 @@ class LisienExecutor(Executor, ABC):
 		self._worker_last_eternal.update(self.eternal)
 
 	def _manage_futs(self):
-		if hasattr(self, "_stop_managing_futs"):
-			del self._stop_managing_futs
-		while not (
-			hasattr(self, "_closed") or hasattr(self, "_stop_managing_futs")
-		):
+		self._stop_managing_futs = False
+		while not self._stop_managing_futs:
 			while self._how_many_futs_running < self.workers:
 				try:
 					fut = self._futs_to_start.get()
