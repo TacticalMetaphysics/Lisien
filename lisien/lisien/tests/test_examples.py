@@ -46,7 +46,7 @@ def test_college_nodb(serial_or_executor):
 
 
 @pytest.mark.slow
-def test_college_premade(tmp_path, college10):
+def test_college_premade(college10):
 	"""The college example still works when loaded from disk"""
 	# Caught a nasty loader bug once. Worth keeping.
 	for i in range(3):
