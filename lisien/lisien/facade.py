@@ -1735,18 +1735,6 @@ class EngineFacade(AbstractEngine):
 	def tick(self, tick: int | Tick) -> None:
 		self._otick = tick
 
-	@property
-	def _branches_d(
-		self,
-	) -> dict[Branch, tuple[Optional[Branch], Turn, Tick, Turn, Tick]]:
-		if self._real:
-			return self._real._branches_d
-		if not hasattr(self, "_branches_d_"):
-			self._branches_d_ = {
-				Branch("trunk"): (None, Turn(0), Tick(0), Turn(0), Tick(0))
-			}
-		return self._branches_d_
-
 	def _validate_random(self, attr, rando):
 		if self._real:
 			rando.setstate(self._real._rando.getstate())
