@@ -35,7 +35,7 @@ from sqlalchemy import Connection
 from .proxy.routine import worker_subthread, worker_subprocess
 from .proxy.worker_subinterpreter import worker_subinterpreter
 from .types import AbstractEngine, Time, EternalKey, Value, Branch, Turn, Tick
-from .util import msgpack_array_header
+from .util import msgpack_array_header, msgpack_map_header
 
 
 SUBPROCESS_TIMEOUT = 30
@@ -427,7 +427,7 @@ class LisienExecutor(Executor, ABC):
 					self.random_seed,
 				)
 			),
-			msgpack_array_header(0),
+			msgpack_map_header(0),
 		)
 		if keyframe_cb:
 			initial_payload = keyframe_cb()
