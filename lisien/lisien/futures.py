@@ -330,6 +330,8 @@ class LisienExecutor(Executor, ABC):
 				fut.cancel()
 		if wait:
 			futwait(self._uid_to_fut.values())
+		for fut in self._uid_to_fut.values():
+			fut._t.join()
 		self._uid_to_fut.clear()
 		self._stop_managing_futs = True
 		self._stop_sync_log = True
