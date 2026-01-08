@@ -828,7 +828,8 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 	) -> None:
 		if hasattr(self, "_real"):
 			self._real.shutdown(wait, cancel_futures=cancel_futures)
-			self._pipe_here.send(
+		if hasattr(self, "_pipe_there"):
+			self._pipe_there.send(
 				("shutdown", (wait,), {"cancel_futures": cancel_futures})
 			)
 
