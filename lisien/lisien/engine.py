@@ -5889,6 +5889,7 @@ class Engine(AbstractEngine, Executor):
 	):
 		if self.executor is None:
 			raise RuntimeError("Not parallel")
+		assert len(self.executor._worker_inputs) == self.workers
 		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
 			if getattr(store, "_need_save", None):

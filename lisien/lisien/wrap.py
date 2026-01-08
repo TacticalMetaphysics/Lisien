@@ -691,6 +691,7 @@ class MutableWrapperSet[_T](
 			+ "}>"
 		)
 
+
 @define(repr=False, eq=False, order=False)
 class SubSetWrapper[_T](MutableWrapperSet[_T]):
 	_getter: Callable[[], MutableSet[_T]]
