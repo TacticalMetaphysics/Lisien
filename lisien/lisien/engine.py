@@ -214,6 +214,7 @@ from .util import (
 	ETERNAL,
 	FALSE,
 	ILLEGAL_CHARACTER_NAMES,
+	EMPTY,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,
@@ -5216,7 +5217,7 @@ class Engine(AbstractEngine, Executor):
 			self._snap_keyframe_de_novo_graph(name, branch, turn, tick, *data)
 		if self.executor is not None:
 			self.executor.call_every_worker(
-				self.pack("_add_character"), self.pack(name), self.pack(data)
+				self.pack("_add_character"), self.pack([name, data]), EMPTY
 			)
 
 	@world_locked
@@ -5900,7 +5901,9 @@ class Engine(AbstractEngine, Executor):
 		deltas = {}
 		n = self.executor.workers
 		for i in range(n):
-			branch_from, turn_from, tick_from = self.executor._worker_updated_btts[i]
+			branch_from, turn_from, tick_from = (
+				self.executor._worker_updated_btts[i]
+			)
 			if (
 				not clobber
 				and (branch_from, turn_from, tick_from) == self.time
@@ -6857,9 +6860,7 @@ class Engine(AbstractEngine, Executor):
 		self._init_graph(name, "DiGraph", data)
 		if tuple(self.time) not in self._keyframes_times:
 			self.snap_keyframe(silent=True, update_worker_processes=False)
-		if hasattr(self, "_worker_processes") or hasattr(
-			self, "_worker_interpreters"
-		):
+		if self.executor is not None:
 			self._update_all_worker_process_states(clobber=True)
 
 	@world_locked
