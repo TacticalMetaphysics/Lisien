@@ -1128,6 +1128,8 @@ class Engine(AbstractEngine, Executor):
 	@executor.validator
 	def _validate_executor(self, attribute, executor: LisienExecutor | None):
 		if executor:
+			if executor.engine is not self:
+				executor.engine = self
 			executor.lock.acquire()
 			executor.restart(self._get_worker_kf_payload)
 		elif self.workers > 0:
