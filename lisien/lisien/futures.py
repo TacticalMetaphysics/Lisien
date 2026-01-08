@@ -68,7 +68,8 @@ class LisienExecutor(Executor, ABC):
 	def _validate_engine(self, _, engine):
 		if engine is None:
 			return
-		self._setup_workers(engine)
+		if hasattr(engine, "workers"):
+			self._setup_workers(engine)
 
 	_top_uid: int = field(init=False, default=0)
 	_uid_to_fut: dict[int, Future] = field(init=False, factory=dict)
