@@ -557,7 +557,7 @@ class LisienProcessExecutor(LisienExecutor):
 		wl = self._worker_log_queues
 		wlt = self._worker_log_threads
 		ctx = self._mp_ctx
-		for i in range(self.workers - len(wp)):
+		for i in range(engine.workers - len(wp)):
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
 			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
 			logq = ctx.SimpleQueue()
