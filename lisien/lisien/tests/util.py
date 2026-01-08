@@ -306,10 +306,8 @@ def untar_cache(
 			database_connector = pickle.load(f)
 	else:
 		database_connector = database_connector_part
-	with Engine(
-		tmp_path,
-		workers=0,  # in case serial_or_executor is None
-		database=database_connector,
-		executor=serial_or_executor,
-	) as eng:
+	kwargs = {"database": database_connector, "executor": serial_or_executor}
+	if serial_or_executor is None:
+		kwargs["workers"] = 0
+	with Engine(tmp_path, **kwargs) as eng:
 		yield eng
