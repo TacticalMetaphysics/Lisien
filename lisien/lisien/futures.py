@@ -160,14 +160,6 @@ class LisienExecutor(Executor, ABC):
 	_fut_manager_thread: Thread = field(
 		init=False, default=Factory(_make_fut_manager_thread, takes_self=True)
 	)
-	_worker_locks: list[Lock] = field(init=False, factory=list)
-	_worker_log_queues: list[SimpleQueue[LogRecord]] = field(
-		init=False, factory=list
-	)
-	_worker_threads: list[Thread] = field(init=False, factory=list)
-	_worker_log_threads: list[Thread] = field(init=False, factory=list)
-	_worker_inputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
-	_worker_outputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
 
 	def _call_in_worker(
 		self,
@@ -413,6 +405,7 @@ class LisienExecutor(Executor, ABC):
 			self._fut_manager_thread.join()
 			self._fut_manager_thread = self._make_fut_manager_thread()
 		self._setup_workers(self.engine)
+		assert len(self._worker_inputs) == self.workers
 
 		from umsgpack import packb
 
@@ -442,6 +435,15 @@ class LisienExecutor(Executor, ABC):
 
 @define
 class LisienThreadExecutor(LisienExecutor):
+	_worker_inputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
+	_worker_outputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
+	_worker_threads: list[Thread] = field(init=False, factory=list)
+	_worker_locks: list[Lock] = field(init=False, factory=list)
+	_worker_log_threads: list[Thread] = field(init=False, factory=list)
+	_worker_log_queues: list[SimpleQueue[LogRecord]] = field(
+		init=False, factory=list
+	)
+
 	def _setup_workers(self, engine):
 		super()._setup_workers(engine)
 
@@ -452,7 +454,7 @@ class LisienThreadExecutor(LisienExecutor):
 		wlt = self._worker_log_threads
 		wl = self._worker_log_queues
 		wo = self._worker_outputs
-		for i in range(self.workers - len(wi)):
+		for i in range(self.workers - len(self._worker_inputs)):
 			inq = SimpleQueue()
 			outq = SimpleQueue()
 			logq = SimpleQueue()
@@ -540,6 +542,7 @@ class LisienProcessExecutor(LisienExecutor):
 	)
 	_worker_inputs: list[Connection] = field(init=False, factory=list)
 	_worker_outputs: list[Connection] = field(init=False, factory=list)
+	_worker_locks: list[Lock] = field(init=False, factory=list)
 	_worker_log_queues: list[SimpleQueue[LogRecord]] = field(
 		init=False, factory=list
 	)
@@ -645,6 +648,14 @@ class LisienProcessExecutor(LisienExecutor):
 @define
 class LisienInterpreterExecutor(LisienExecutor):
 	_worker_interpreters: list["concurrent.interpreters.Interpreter"] = field(
+		init=False, factory=list
+	)
+	_worker_inputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
+	_worker_outputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
+	_worker_threads: list[Thread] = field(init=False, factory=list)
+	_worker_locks: list[Lock] = field(init=False, factory=list)
+	_worker_log_threads: list[Thread] = field(init=False, factory=list)
+	_worker_log_queues: list[SimpleQueue[LogRecord]] = field(
 		init=False, factory=list
 	)
 
@@ -765,6 +776,14 @@ class LisienExecutorProxy(LisienExecutor):
 	_listen_thread: Thread = field(
 		init=False, default=Factory(_make_listen_thread, takes_self=True)
 	)
+
+	@property
+	def _worker_inputs(self) -> list[Connection]:
+		return self._real._worker_inputs
+
+	@property
+	def _worker_locks(self) -> list[Lock]:
+		return self._real._worker_locks
 
 	def _setup_workers(self, engine):
 		self._real = self.executor_class(engine)
