@@ -503,7 +503,6 @@ def college10_tar(non_null_database):
 def college10(
 	college10_tar,
 	tmp_path,
-	serial_or_parallel,
 	database_connector_part,
 	serial_or_executor,
 ):
