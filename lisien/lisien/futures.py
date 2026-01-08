@@ -50,37 +50,7 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 
 
 @define
-class LisienExecutor(Executor, ABC):
-	"""Lisien's parallelism
-
-	Starts workers in threads, processes, or interpreters, as needed.
-
-	Usually, you don't want to instantiate these directly -- :class:`Engine`
-	will do it for you -- but if you want many :class:`Engine` to share
-	the same pool of workers, you can pass the same :class:`LisienExecutor`
-	into each.
-
-	"""
-
-	engine: AbstractEngine = field()
-
-	@engine.validator
-	def _validate_engine(self, _, engine):
-		if engine is None:
-			return
-		if hasattr(engine, "workers"):
-			self._setup_workers(engine)
-
-	_top_uid: int = field(init=False, default=0)
-	_uid_to_fut: dict[int, Future] = field(init=False, factory=dict)
-	_worker_last_eternal: dict[EternalKey, Value] = field(
-		init=False, factory=dict
-	)
-	_worker_last_branches: dict[
-		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
-	] = field(init=False, factory=dict)
-	_stop_managing_futs: bool = False
-
+class _BaseLisienExecutor(Executor, ABC):
 	@property
 	def prefix(self) -> Path | None:
 		return self.engine._prefix
@@ -151,6 +121,37 @@ class LisienExecutor(Executor, ABC):
 	def _worker_updated_btts(self):
 		return [self.time] * self.workers
 
+
+@define
+class LisienExecutor(_BaseLisienExecutor, ABC):
+	"""Lisien's parallelism
+
+	Starts workers in threads, processes, or interpreters, as needed.
+
+	Usually, you don't want to instantiate these directly -- :class:`Engine`
+	will do it for you -- but if you want many :class:`Engine` to share
+	the same pool of workers, you can pass the same :class:`LisienExecutor`
+	into each.
+
+	"""
+
+	engine: AbstractEngine = field()
+
+	@engine.validator
+	def _validate_engine(self, _, engine):
+		if hasattr(engine, "workers"):
+			self._setup_workers(engine)
+
+	lock: Lock = field(init=False, factory=Lock)
+	_top_uid: int = field(init=False, default=0)
+	_uid_to_fut: dict[int, Future] = field(init=False, factory=dict)
+	_worker_last_eternal: dict[EternalKey, Value] = field(
+		init=False, factory=dict
+	)
+	_worker_last_branches: dict[
+		Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]
+	] = field(init=False, factory=dict)
+	_stop_managing_futs: bool = False
 	_futs_to_start: SimpleQueue[Future] = field(
 		init=False, factory=SimpleQueue
 	)
@@ -243,10 +244,6 @@ class LisienExecutor(Executor, ABC):
 			self._worker_updated_btts[i] = tuple(self.time)
 		self.debug(f"Updated worker {i} at {self._worker_updated_btts[i]}")
 
-	@cached_property
-	def lock(self) -> Lock:
-		return Lock()
-
 	def get_uid(self):
 		ret = self._top_uid
 		self._top_uid += 1
@@ -260,6 +257,7 @@ class LisienExecutor(Executor, ABC):
 			args=(uid, fn, ret, *args),
 			kwargs=kwargs,
 		)
+		ret.uid = uid
 		self._uid_to_fut[uid] = ret
 		self._futs_to_start.put(ret)
 		return ret
@@ -761,10 +759,16 @@ class LisienInterpreterExecutor(LisienExecutor):
 
 
 @define
-class LisienExecutorProxy(LisienExecutor):
+class LisienExecutorProxy(_BaseLisienExecutor):
 	"""A :class:`LisienExecutor` that can itself be shared between processes"""
 
 	executor_class: ClassVar[type[LisienExecutor]]
+	engine: AbstractEngine = field()
+
+	@engine.validator
+	def _validate_engine(self, _, engine):
+		self._real = self.executor_class(engine)
+
 	_real: executor_class = field(init=False)
 	_pipe_here: Connection = field(init=False)
 	_pipe_there: Connection = field(init=False)
@@ -777,12 +781,26 @@ class LisienExecutorProxy(LisienExecutor):
 	)
 
 	@property
-	def _worker_inputs(self) -> list[Connection]:
+	def lock(self) -> Lock:
+		return self._real.lock
+
+	@property
+	def _worker_inputs(self) -> list[Connection] | list[SimpleQueue[bytes]]:
 		return self._real._worker_inputs
 
 	@property
 	def _worker_locks(self) -> list[Lock]:
 		return self._real._worker_locks
+
+	@property
+	def _worker_last_eternal(self) -> dict[EternalKey, Value]:
+		return self._real._worker_last_eternal
+
+	@_worker_last_eternal.setter
+	def _worker_last_eternal(self, v):
+		if not isinstance(v, dict):
+			raise TypeError("Invalid eternal dict", v)
+		self._real._worker_last_eternal = v
 
 	def _setup_workers(self, engine):
 		self._real = self.executor_class(engine)
@@ -830,6 +848,9 @@ class LisienExecutorProxy(LisienExecutor):
 	@property
 	def workers(self):
 		return self._real.workers
+
+	def submit(self, fn, /, *args, **kwargs):
+		return self._real.submit(fn, *args, **kwargs)
 
 	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
 		if not hasattr(self, "_real"):
