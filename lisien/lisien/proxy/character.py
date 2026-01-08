@@ -1487,12 +1487,12 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 		units = delta.pop("units", {})
 		unit_graphs = self.engine._character_units_cache[self.name]
 		for unit_graph in units:
-			graph_units = unit_graphs.setdefault(unit_graph, {})
+			graph_units = unit_graphs[unit_graph]
 			for unit, is_unit in units[unit_graph].items():
 				if is_unit:
-					graph_units[unit] = True
+					graph_units.add(unit)
 				elif unit in graph_units:
-					del graph_units[unit]
+					graph_units.remove(unit)
 		self.stat._apply_delta(delta)
 
 	def add_place(self, name: NodeName, **kwargs: StatDict) -> None:
