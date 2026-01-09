@@ -774,11 +774,10 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 	executor_class: ClassVar[type[LisienExecutor]]
 	engine: AbstractEngine = field()
 
-	@engine.validator
-	def _validate_engine(self, _, engine):
-		self._real = self.executor_class(engine)
+	@cached_property
+	def _real(self):
+		return self.executor_class(self.engine)
 
-	_real: executor_class = field(init=False)
 	_pipe_here: Connection = field(init=False)
 	_pipe_there: Connection = field(init=False)
 
