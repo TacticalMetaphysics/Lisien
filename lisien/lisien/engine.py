@@ -1089,7 +1089,6 @@ class Engine(AbstractEngine, Executor):
 	) -> LisienExecutor | None:
 		if executor:
 			self._shutdown_executor = False
-			executor.engine = self
 			return executor
 		elif self.workers > 0:
 			for store in self.stores:
