@@ -309,5 +309,7 @@ def untar_cache(
 	kwargs = {"database": database_connector, "executor": serial_or_executor}
 	if serial_or_executor is None:
 		kwargs["workers"] = 0
+	else:
+		kwargs["workers"] = serial_or_executor.workers
 	with Engine(tmp_path, **kwargs) as eng:
 		yield eng
