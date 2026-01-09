@@ -862,8 +862,6 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 		return self._real.submit(fn, *args, **kwargs)
 
 	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
-		if not hasattr(self, "_real"):
-			self._setup_workers(self.engine)
 		self._real.restart(keyframe_cb)
 
 	def call_every_worker(
