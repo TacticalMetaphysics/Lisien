@@ -809,13 +809,13 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 		self._real._worker_last_eternal = v
 
 	def _setup_workers(self, engine):
-		self._real = self.executor_class(engine)
-		self._pipe_here, self._pipe_there = Pipe()
-		try:
+		if not hasattr(self, "_real"):
+			self._real = self.executor_class(engine)
+			self._pipe_here, self._pipe_there = Pipe()
+			if self._listen_thread.is_alive():
+				self._listen_thread = self._make_listen_thread()
 			self._listen_thread.start()
-		except RuntimeError:
-			self._listen_thread = self._make_listen_thread()
-			self._listen_thread.start()
+		self._real._setup_workers(engine)
 
 	def _listen_here(self):
 		inst = None
