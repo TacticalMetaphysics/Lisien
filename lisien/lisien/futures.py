@@ -229,7 +229,7 @@ class LisienExecutor(_BaseLisienExecutor, ABC):
 				)
 			)
 		else:
-			argbytes = self._get_worker_kf_payload()
+			argbytes = self.engine._get_worker_kf_payload()
 		input = self._worker_inputs[i]
 		if hasattr(input, "send_bytes"):
 			put = input.send_bytes
