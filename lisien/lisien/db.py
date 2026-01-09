@@ -72,6 +72,7 @@ else:
 
 import lisien.types
 
+from .exc import KeyframeError
 from .facade import EngineFacade
 from .types import (
 	AbstractEngine,
