@@ -450,6 +450,7 @@ class LisienThreadExecutor(LisienExecutor):
 		wlt = self._worker_log_threads
 		wl = self._worker_log_queues
 		wo = self._worker_outputs
+		assert len(wi) == len(wt) == len(wlk) == len(wlt) == len(wl) == len(wo)
 		for i in range(self.workers - len(self._worker_inputs)):
 			inq = SimpleQueue()
 			outq = SimpleQueue()
@@ -552,6 +553,7 @@ class LisienProcessExecutor(LisienExecutor):
 		wlk = self._worker_locks
 		wl = self._worker_log_queues
 		wlt = self._worker_log_threads
+		assert len(wp) == len(wi) == len(wo) == len(wlk) == len(wlt)
 		ctx = self._mp_ctx
 		for i in range(engine.workers - len(wp)):
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
