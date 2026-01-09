@@ -761,7 +761,12 @@ class LisienInterpreterExecutor(LisienExecutor):
 
 @define
 class LisienExecutorProxy(_BaseLisienExecutor):
-	"""A :class:`LisienExecutor` that can itself be shared between processes"""
+	"""A :class:`LisienExecutor` that can itself be shared between processes
+
+	Computation is performed in the host process, but all processes may
+	submit work here.
+
+	"""
 
 	executor_class: ClassVar[type[LisienExecutor]]
 	engine: AbstractEngine = field()
