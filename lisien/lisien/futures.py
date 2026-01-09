@@ -137,11 +137,6 @@ class LisienExecutor(_BaseLisienExecutor, ABC):
 
 	engine: AbstractEngine = field()
 
-	@engine.validator
-	def _validate_engine(self, _, engine):
-		if hasattr(engine, "workers"):
-			self._setup_workers(engine)
-
 	lock: Lock = field(init=False, factory=Lock)
 	_top_uid: int = field(init=False, default=0)
 	_uid_to_fut: dict[int, Future] = field(init=False, factory=dict)
