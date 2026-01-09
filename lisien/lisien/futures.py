@@ -268,6 +268,10 @@ class LisienExecutor(_BaseLisienExecutor, ABC):
 		self._worker_last_branches.update(engine._branches_d)
 		self._worker_last_eternal.clear()
 		self._worker_last_eternal.update(self.eternal)
+		self._worker_updated_btts.clear()
+		self._worker_updated_btts.extend(
+			[tuple(self.engine.time)] * self.workers
+		)
 
 	def _manage_futs(self):
 		self._stop_managing_futs = False
