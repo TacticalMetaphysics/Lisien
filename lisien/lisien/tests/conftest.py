@@ -288,19 +288,19 @@ def reusing_database_connector_part2(
 
 
 @pytest.fixture(scope="session")
-def process_executor(random_seed):
+def session_process_executor():
 	with LisienProcessExecutorProxy(None) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def thread_executor(random_seed):
+def session_thread_executor():
 	with LisienThreadExecutorProxy(None) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
-def interpreter_executor(random_seed):
+def session_interpreter_executor():
 	if sys.version_info.minor < 14:
 		yield None
 		return
@@ -309,17 +309,20 @@ def interpreter_executor(random_seed):
 
 
 @pytest.fixture(scope="session")
-def executor(
-	execution, process_executor, thread_executor, interpreter_executor
+def session_executor(
+	execution,
+	session_process_executor,
+	session_thread_executor,
+	session_interpreter_executor,
 ):
 	ex = None
 	match execution:
 		case "process":
-			ex = process_executor
+			ex = session_process_executor
 		case "thread":
-			ex = thread_executor
+			ex = session_thread_executor
 		case "interpreter":
-			ex = interpreter_executor
+			ex = session_interpreter_executor
 		case _:
 			ex = None
 	yield ex
@@ -333,16 +336,19 @@ def executor(
 
 @pytest.fixture(scope="session")
 def serial_or_executor(
-	serial_or_parallel, process_executor, thread_executor, interpreter_executor
+	serial_or_parallel,
+	session_process_executor,
+	session_thread_executor,
+	session_interpreter_executor,
 ):
 	ex = None
 	match serial_or_parallel:
 		case "process":
-			ex = process_executor
+			ex = session_process_executor
 		case "thread":
-			ex = thread_executor
+			ex = session_thread_executor
 		case "interpreter":
-			ex = interpreter_executor
+			ex = session_interpreter_executor
 		case _:
 			ex = None
 	yield ex
@@ -354,17 +360,23 @@ def serial_or_executor(
 		assert not ex._fut_manager_thread.is_alive()
 
 
-@pytest.fixture(scope="session", params=KINDS_OF_PARALLEL)
+@pytest.fixture(scope="function", params=KINDS_OF_PARALLEL)
 def parallel_executor(
-	request, process_executor, thread_executor, interpreter_executor
+	request,
+	session_process_executor,
+	session_thread_executor,
+	session_interpreter_executor,
 ):
 	match request.param:
 		case "thread":
-			yield interpreter_executor
+			with session_thread_executor:
+				yield session_thread_executor
 		case "process":
-			yield process_executor
+			with session_process_executor:
+				yield session_process_executor
 		case "interpreter":
-			yield interpreter_executor
+			with session_interpreter_executor:
+				yield session_interpreter_executor
 
 
 @pytest.fixture(

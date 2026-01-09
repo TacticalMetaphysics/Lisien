@@ -544,8 +544,11 @@ class LisienProcessExecutor(LisienExecutor):
 		init=False, factory=list
 	)
 	_worker_log_threads: list[Thread] = field(init=False, factory=list)
+	_in_subprocess: bool = False
 
 	def _setup_workers(self, engine):
+		if self._in_subprocess:
+			return
 		super()._setup_workers(engine)
 		wp = self._worker_processes
 		wi = self._worker_inputs
@@ -888,6 +891,7 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 
 	def __setstate__(self, state):
 		assert not hasattr(self, "_listen_thread")
+		self._in_subprocess = True
 		self._pipe_there = state
 		self._listen_thread = Thread(target=self._listen_there)
 		self._listen_thread.start()
