@@ -834,6 +834,8 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 	) -> None:
 		if hasattr(self, "_real"):
 			self._real.shutdown(wait, cancel_futures=cancel_futures)
+		if self._listen_thread.is_alive():
+			self._listen_thread.join(timeout=SUBPROCESS_TIMEOUT)
 		if hasattr(self, "_pipe_there"):
 			self._pipe_there.send(
 				("shutdown", (wait,), {"cancel_futures": cancel_futures})
