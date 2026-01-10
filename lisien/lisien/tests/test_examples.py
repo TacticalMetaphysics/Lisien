@@ -34,11 +34,12 @@ pytestmark = [pytest.mark.big]
 
 
 @pytest.mark.slow
-def test_college_nodb(serial_or_executor):
+def test_college_nodb(serial_or_parallel):
 	kwargs = {
-		"executor": serial_or_executor,
-		"workers": 0 if serial_or_executor is None else 2,
+		"workers": 0 if serial_or_parallel == "serial" else 2,
 	}
+	if serial_or_parallel != "serial":
+		kwargs["sub_mode"] = serial_or_parallel
 	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
 		college.install(eng)
 		for i in range(3):
@@ -95,16 +96,17 @@ def test_sickle(sickle):
 @pytest.mark.slow
 def test_wolfsheep(
 	tmp_path,
-	serial_or_executor,
+	serial_or_parallel,
 	database_connector_part,
 ):
-	workers = 0 if serial_or_executor is None else 2
+	workers = 0 if serial_or_parallel == "serial" else 2
+	sub_mode = None if serial_or_parallel == "serial" else serial_or_parallel
 	with Engine.from_archive(
 		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
 		database=database_connector_part,
-		executor=serial_or_executor,
+		sub_mode=sub_mode,
 	) as engine:
 		sheep = engine.character["sheep"]
 		physical = engine.character["physical"]
@@ -131,7 +133,7 @@ def test_wolfsheep(
 	hand = EngineHandle(
 		tmp_path,
 		workers=workers,
-		executor=serial_or_executor,
+		sub_mode=sub_mode,
 		database=database_connector_part,
 	)
 	try:

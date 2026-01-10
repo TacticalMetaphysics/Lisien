@@ -382,10 +382,10 @@ def parallel_executor(
 @pytest.fixture(
 	scope="function",
 )
-def engy(tmp_path, execution, database, random_seed, executor):
+def engy(tmp_path, execution, database, random_seed):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
 	with make_test_engine(
-		tmp_path, execution, database, random_seed, executor=executor
+		tmp_path, execution, database, random_seed
 	) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -406,7 +406,6 @@ def engine(
 	local_or_remote,
 	non_null_database,
 	random_seed,
-	serial_or_executor,
 ):
 	"""Engine or EngineProxy with a subprocess"""
 	if local_or_remote == "remote":
@@ -417,7 +416,6 @@ def engine(
 				serial_or_parallel,
 				non_null_database,
 				random_seed,
-				executor=serial_or_executor,
 			)
 		) as proxy:
 			yield proxy
@@ -429,14 +427,13 @@ def engine(
 				serial_or_parallel,
 				non_null_database,
 				random_seed,
-				executor=serial_or_executor,
 			)
 		) as eng:
 			yield eng
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
-def sqleng(tmp_path, request, execution, executor):
+def sqleng(tmp_path, request, execution):
 	if execution == "proxy":
 		eng = EngineProxy(
 			None,
@@ -463,7 +460,6 @@ def sqleng(tmp_path, request, execution, executor):
 			workers=0 if execution == "serial" else 2,
 			sub_mode=Sub(execution) if execution != "serial" else None,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			executor=executor,
 		) as eng:
 			yield eng
 	if hasattr(eng, "_worker_log_threads"):
@@ -516,10 +512,10 @@ def college10(
 	college10_tar,
 	tmp_path,
 	database_connector_part,
-	serial_or_executor,
+	serial_or_parallel,
 ):
 	with untar_cache(
-		college10_tar, tmp_path, database_connector_part, serial_or_executor
+		college10_tar, tmp_path, database_connector_part, serial_or_parallel
 	) as eng:
 		yield eng
 
@@ -565,10 +561,10 @@ def college24(
 	college24_tar,
 	tmp_path,
 	database_connector_part,
-	serial_or_executor,
+	serial_or_parallel,
 ):
 	with untar_cache(
-		college24_tar, tmp_path, database_connector_part, serial_or_executor
+		college24_tar, tmp_path, database_connector_part, serial_or_parallel
 	) as eng:
 		yield eng
 
@@ -580,12 +576,12 @@ def sickle_tar(non_null_database):
 
 
 @pytest.fixture
-def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_executor):
+def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_parallel):
 	with untar_cache(
 		sickle_tar,
 		tmp_path,
 		database_connector_part,
-		serial_or_executor,
+		serial_or_parallel,
 	) as eng:
 		yield eng
 
@@ -601,13 +597,13 @@ def wolfsheep(
 	wolfsheep_tar,
 	tmp_path,
 	database_connector_part,
-	serial_or_executor,
+	serial_or_parallel,
 ):
 	with untar_cache(
 		wolfsheep_tar,
 		tmp_path,
 		database_connector_part,
-		serial_or_executor,
+		serial_or_parallel,
 	) as eng:
 		yield eng
 
@@ -618,15 +614,13 @@ def pathfind_tar(non_null_database):
 		yield path
 
 
-@pytest.fixture
-def pathfind(
-	pathfind_tar, tmp_path, database_connector_part, parallel_executor
-):
+@pytest.fixture(params=KINDS_OF_PARALLEL)
+def pathfind(pathfind_tar, tmp_path, database_connector_part, request):
 	with untar_cache(
 		pathfind_tar,
 		tmp_path,
 		database_connector_part,
-		parallel_executor,
+		request.param,
 	) as eng:
 		yield eng
 
