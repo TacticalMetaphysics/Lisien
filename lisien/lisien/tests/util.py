@@ -310,6 +310,6 @@ def untar_cache(
 	if serial_or_executor is None:
 		kwargs["workers"] = 0
 	else:
-		kwargs["workers"] = serial_or_executor.workers
+		kwargs["workers"] = 2
 	with Engine(tmp_path, **kwargs) as eng:
 		yield eng
