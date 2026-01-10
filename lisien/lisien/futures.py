@@ -864,6 +864,8 @@ class LisienExecutorProxy(_BaseLisienExecutor):
 		return self._real.submit(fn, *args, **kwargs)
 
 	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
+		if self.engine is not self._real.engine:
+			self._real.engine = self.engine
 		self._real.restart(keyframe_cb)
 
 	def call_every_worker(
