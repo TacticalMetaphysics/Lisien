@@ -104,6 +104,8 @@ def make_test_engine_kwargs(
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
 	kwargs.update(**kw_args)
+	if "executor" in kwargs:
+		del kwargs["executor"]
 	return kwargs
 
 
@@ -115,8 +117,6 @@ def make_test_engine(
 	executor: LisienExecutor | None = None,
 	**kw_args,
 ):
-	if executor is not None and executor.engine is not None:
-		executor.restart()
 	kwargs = {"random_seed": random_seed}
 	kwargs.update(**kw_args)
 	if execution == "proxy":
@@ -298,7 +298,7 @@ def untar_cache(
 	tar_path: str,
 	tmp_path: str | os.PathLike,
 	database_connector_part: Callable[[], AbstractDatabaseConnector],
-	serial_or_executor: LisienExecutor | None,
+	serial_or_parallel: str,
 ) -> Iterator[Engine]:
 	shutil.unpack_archive(tar_path, tmp_path, "tar")
 	if hasattr(database_connector_part, "is_python"):
@@ -306,10 +306,11 @@ def untar_cache(
 			database_connector = pickle.load(f)
 	else:
 		database_connector = database_connector_part
-	kwargs = {"database": database_connector, "executor": serial_or_executor}
-	if serial_or_executor is None:
+	kwargs = {"database": database_connector}
+	if serial_or_parallel == "serial":
 		kwargs["workers"] = 0
 	else:
 		kwargs["workers"] = 2
+		kwargs["sub_mode"] = serial_or_parallel
 	with Engine(tmp_path, **kwargs) as eng:
 		yield eng
