@@ -236,7 +236,7 @@ class PrereqStoreProxy(FuncStoreProxy):
 
 @define
 class ActionStoreProxy(FuncStoreProxy):
-	_store: ClassVar[FuncStoreName]
+	_store: ClassVar[FuncStoreName] = "action"
 
 
 class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
