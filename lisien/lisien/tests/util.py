@@ -114,7 +114,6 @@ def make_test_engine(
 	execution,
 	database,
 	random_seed,
-	executor: LisienExecutor | None = None,
 	**kw_args,
 ):
 	kwargs = {"random_seed": random_seed}

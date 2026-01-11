@@ -27,6 +27,7 @@ import importlib.util
 import json
 import os
 import sys
+from abc import ABC
 from collections import UserDict
 from collections.abc import MutableMapping
 from contextlib import contextmanager
@@ -1094,7 +1095,7 @@ class CodeHasher(ast.NodeVisitor):
 
 @define(on_setattr=False, getstate_setstate=False)
 class FunctionStore[_K: str, _T: FunctionType | MethodType](
-	AbstractFunctionStore[_K, _T], AttrSignal
+	AbstractFunctionStore[_K, _T], AttrSignal, ABC
 ):
 	"""A module-like object that lets you alter its code and save your changes.
 
@@ -1108,6 +1109,8 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	the function itself.
 
 	"""
+
+	__slots__ = ()
 
 	@staticmethod
 	def _convert_filename(fn: Path | None):
@@ -1316,7 +1319,19 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 
 @define(on_setattr=False, getstate_setstate=False)
+class GenericFunctionStore(FunctionStore[str, FunctionType]):
+	_store: ClassVar[str] = "function"
+
+
+@define(on_setattr=False, getstate_setstate=False)
+class MethodStore(FunctionStore[str, MethodType]):
+	_store: ClassVar[str] = "method"
+
+
+@define(on_setattr=False, getstate_setstate=False)
 class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
+	_store: ClassVar[str] = "trigger"
+
 	def get_source(self, name: str) -> str:
 		if name == "truth":
 			return "def truth(*args):\n\treturn True"
@@ -1328,11 +1343,13 @@ class TriggerStore(FunctionStore[TriggerFuncName, TriggerFunc]):
 
 
 @define(on_setattr=False, getstate_setstate=False)
-class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]): ...
+class PrereqStore(FunctionStore[PrereqFuncName, PrereqFunc]):
+	_store: ClassVar[str] = "prereq"
 
 
 @define(on_setattr=False, getstate_setstate=False)
-class ActionStore(FunctionStore[ActionFuncName, ActionFunc]): ...
+class ActionStore(FunctionStore[ActionFuncName, ActionFunc]):
+	_store: ClassVar[str] = "action"
 
 
 @define(repr=False)

@@ -115,6 +115,8 @@ from .collections import (
 	ChangeTrackingDict,
 	CharacterMapping,
 	FunctionStore,
+	GenericFunctionStore,
+	MethodStore,
 	PrereqStore,
 	StringStore,
 	TriggerStore,
@@ -323,7 +325,7 @@ class NextTurn(Signal):
 		stores_to_reimport = set()
 		for store in engine.stores:
 			if getattr(store, "_need_save", None):
-				stores_to_reimport.add(store.__name__)
+				stores_to_reimport.add(store._store)
 				store.save(reimport=False)
 		if engine.executor is not None:
 			engine._update_all_worker_process_states(
@@ -555,12 +557,12 @@ class Engine(AbstractEngine, Executor):
 			py_fn: Path = self._prefix.joinpath(module_s + ".py")
 			if self.clear and py_fn.exists():
 				py_fn.unlink()
-			return store_type(py_fn, module=module_s)
+			return store_type(py_fn)
 
-	function: ModuleType | FunctionStore = field(
+	function: ModuleType | GenericFunctionStore = field(
 		kw_only=True,
 		converter=Converter(
-			partial(_convert_func_store, FunctionStore, "function"),
+			partial(_convert_func_store, GenericFunctionStore, "function"),
 			takes_self=True,
 		),
 		default=None,
@@ -568,10 +570,10 @@ class Engine(AbstractEngine, Executor):
 	"""Module containing utility functions; if absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
 	the ``prefix``."""
-	method: ModuleType | FunctionStore = field(
+	method: ModuleType | MethodStore = field(
 		kw_only=True,
 		converter=Converter(
-			partial(_convert_func_store, FunctionStore, "method"),
+			partial(_convert_func_store, MethodStore, "method"),
 			takes_self=True,
 		),
 		default=None,
@@ -591,7 +593,7 @@ class Engine(AbstractEngine, Executor):
 	returning a boolean for whether to run a rule. If absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
 	the ``prefix``."""
-	prereq: ModuleType | FunctionStore = field(
+	prereq: ModuleType | PrereqStore = field(
 		kw_only=True,
 		converter=Converter(
 			partial(_convert_func_store, PrereqStore, "prereq"),
@@ -603,7 +605,7 @@ class Engine(AbstractEngine, Executor):
 	returning a boolean for whether to permit a rule to run. If absent, 
 	we'll use a :class:`lisien.collections.FunctionStore` to keep them in a 
 	.py file in the ``prefix``."""
-	action: ModuleType | FunctionStore = field(
+	action: ModuleType | ActionStore = field(
 		kw_only=True,
 		converter=Converter(
 			partial(_convert_func_store, ActionStore, "action"),
@@ -7575,11 +7577,11 @@ class Engine(AbstractEngine, Executor):
 		prefix: os.PathLike[str] | Path | None = None,
 		*,
 		string: StringStore | dict | None = None,
-		trigger: FunctionStore | ModuleType | None = None,
-		prereq: FunctionStore | ModuleType | None = None,
-		action: FunctionStore | ModuleType | None = None,
-		function: FunctionStore | ModuleType | None = None,
-		method: FunctionStore | ModuleType | None = None,
+		trigger: TriggerStore | ModuleType | None = None,
+		prereq: PrereqStore | ModuleType | None = None,
+		action: ActionStore | ModuleType | None = None,
+		function: GenericFunctionStore | ModuleType | None = None,
+		method: MethodStore | ModuleType | None = None,
 		trunk: Branch | None = None,
 		connect_string: str | None = None,
 		connect_args: dict | None = None,
