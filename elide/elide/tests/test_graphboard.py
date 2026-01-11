@@ -9,7 +9,14 @@ from kivy.tests.common import UnitTestTouch
 from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
-from lisien.collections import FunctionStore
+from lisien.collections import (
+	FunctionStore,
+	GenericFunctionStore,
+	MethodStore,
+	TriggerStore,
+	PrereqStore,
+	ActionStore,
+)
 from lisien.facade import CharacterFacade, EngineFacade
 from lisien.types import SignalDict
 
@@ -89,10 +96,21 @@ def fake_string_store(monkeypatch):
 
 @pytest.fixture
 def fake_function_stores(monkeypatch):
-	for store in ["trigger", "prereq", "action", "function", "method"]:
-		fake = FunctionStore(None)
-		fake._cache = {}
-		monkeypatch.setattr(EngineFacade, store, fake, raising=False)
+	fake_func = GenericFunctionStore(None)
+	fake_func._cache = {}
+	monkeypatch.setattr(EngineFacade, "function", fake_func, raising=False)
+	fake_meth = MethodStore(None)
+	fake_meth._cache = {}
+	monkeypatch.setattr(EngineFacade, "method", fake_meth, raising=False)
+	fake_trig = TriggerStore(None)
+	fake_trig._cache = {}
+	monkeypatch.setattr(EngineFacade, "trigger", fake_trig, raising=False)
+	fake_preq = PrereqStore(None)
+	fake_preq._cache = {}
+	monkeypatch.setattr(EngineFacade, "prereq", fake_preq, raising=False)
+	fake_act = ActionStore(None)
+	fake_act._cache = {}
+	monkeypatch.setattr(EngineFacade, "action", fake_act, raising=False)
 
 
 @pytest.mark.usefixtures(
