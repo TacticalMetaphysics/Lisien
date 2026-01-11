@@ -1131,7 +1131,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 					"FunctionStore can only work with pure Python source code"
 				)
 			self._filename = file.resolve().absolute()
-			self._store = file.name.removesuffix(".py")
+			self._module = file.name.removesuffix(".py")
 			try:
 				self.reimport()
 			except (FileNotFoundError, ModuleNotFoundError):
