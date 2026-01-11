@@ -63,8 +63,10 @@ except ImportError:
 
 from ..collections import (
 	FunctionStore,
-	StringStore,
 	TriggerStore,
+	GenericFunctionStore,
+	MethodStore,
+	ActionStore,
 )
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..types import (
@@ -121,6 +123,120 @@ from ..util import (
 from ..wrap import UnwrappingDict
 from .abc import FuncListProxy, FuncProxy, RuleBookProxy, RuleProxy
 from .character import CharacterProxy, PlaceProxy, PortalProxy, ThingProxy
+
+
+@define
+class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
+	_store: ClassVar[FuncStoreName]
+	engine: EngineProxy
+	_cache: dict[str, str] = field(alias="initial", factory=dict)
+	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
+
+	def save(self, reimport: bool = True) -> None:
+		self.engine.handle("save_code", reimport=reimport)
+
+	def reimport(self) -> None:
+		self.engine.handle("reimport_code")
+
+	def iterplain(self) -> Iterator[tuple[str, str]]:
+		return iter(self._cache.items())
+
+	def store_source(self, v: str, name: str | None = None) -> None:
+		self._cache[name] = v
+		self.engine.handle("store_source", v=v, name=name, store=self._store)
+
+	def _worker_check(self):
+		self.engine._worker_check()
+
+	def load(self):
+		self._cache = self.engine.handle("source_copy", store=self._store)
+
+	def __getattr__(self, k: str) -> FuncProxy:
+		k = FuncName(k)
+		if k in super().__getattribute__("_cache"):
+			proxcache = super().__getattribute__("_proxy_cache")
+			if k not in proxcache:
+				proxcache[k] = FuncProxy(self, k)
+			return proxcache[k]
+		else:
+			raise AttributeError(k)
+
+	def __call__(self, func: Callable):
+		src = getsource(func)
+		self.engine.handle(
+			"store_source", v=src, name=func.__name__, store=self._store
+		)
+		funcname = func.__name__
+		self._cache[funcname] = src
+		self._proxy_cache[funcname] = FuncProxy(self, funcname)
+
+	def __setattr__(self, func_name: str, func: Callable | str):
+		if func_name in ("_cache", "_proxy_cache"):
+			if not isinstance(func, dict):
+				raise TypeError("Invalid FuncStoreProxy cache", func)
+			return super().__setattr__(func_name, func)
+		if func_name in (
+			"engine",
+			"_store",
+			"receivers",
+			"_by_sender",
+			"_by_receiver",
+			"_weak_senders",
+			"is_muted",
+		):
+			super().__setattr__(func_name, func)
+			return
+		if callable(func):
+			source = getsource(func)
+		else:
+			source = func
+		self.engine.handle(
+			command="store_source", store=self._store, v=source, name=func_name
+		)
+		self._cache[func_name] = source
+
+	def __delattr__(self, func_name: str):
+		self.engine.handle(
+			command="del_source", store=self._store, k=func_name
+		)
+		del self._cache[func_name]
+
+	def get_source(self, func_name: str) -> str:
+		return self.engine.handle(
+			command="get_source", store=self._store, name=func_name
+		)
+
+
+@define
+class GenericFunctionStoreProxy(FuncStoreProxy):
+	_store: ClassVar[FuncStoreName] = "function"
+
+
+@define
+class MethodStoreProxy(FuncStoreProxy):
+	_store: ClassVar[FuncStoreName] = "method"
+
+
+@define
+class TriggerStoreProxy(FuncStoreProxy):
+	_store: ClassVar[FuncStoreName] = "trigger"
+
+	def __attrs_post_init__(self):
+		self._cache["truth"] = dedent_source(
+			"""
+		def truth(*args):
+			return True""".strip("\n")
+		)
+
+
+@define
+class PrereqStoreProxy(FuncStoreProxy):
+	_store: ClassVar[FuncStoreName] = "prereq"
+
+
+@define
+class ActionStoreProxy(FuncStoreProxy):
+	_store: ClassVar[FuncStoreName]
 
 
 class BookmarkMappingProxy(AbstractBookmarkMapping, UserDict):
@@ -203,38 +319,40 @@ class EngineProxy(AbstractEngine):
 		return self.i is not None
 
 	@staticmethod
-	def _convert_func_store_proxy(store_name, src_d, self):
+	def _convert_function_store_proxy(cls, src_d, self):
 		if self.i is None:
-			return FuncStoreProxy(self, store_name, initial=src_d or {})
+			return cls(self, initial=src_d or {})
 		else:
-			return FunctionStore(
-				self.prefix.joinpath(store_name + ".py")
-				if self.prefix
-				else None,
+			return cls(
+				self.prefix.joinpath("function.py") if self.prefix else None,
 				initial=src_d or {},
 			)
 
-	function: FuncStoreProxy | FunctionStore = field(
+	function: GenericFunctionStoreProxy | GenericFunctionStore = field(
 		converter=Converter(
-			partial(_convert_func_store_proxy, "function"), takes_self=True
+			partial(_convert_function_store_proxy, GenericFunctionStoreProxy),
+			takes_self=True,
 		),
 		default=None,
 	)
-	method: FuncStoreProxy | FunctionStore = field(
+	method: MethodStoreProxy | MethodStore = field(
 		converter=Converter(
-			partial(_convert_func_store_proxy, "method"), takes_self=True
+			partial(_convert_function_store_proxy, MethodStoreProxy),
+			takes_self=True,
 		),
 		default=None,
 	)
-	action: FuncStoreProxy | FunctionStore = field(
+	action: ActionStoreProxy | ActionStore = field(
 		converter=Converter(
-			partial(_convert_func_store_proxy, "action"), takes_self=True
+			partial(_convert_function_store_proxy, ActionStoreProxy),
+			takes_self=True,
 		),
 		default=None,
 	)
-	prereq: FuncStoreProxy | FunctionStore = field(
+	prereq: PrereqStoreProxy | PrereqStore = field(
 		converter=Converter(
-			partial(_convert_func_store_proxy, "prereq"), takes_self=True
+			partial(_convert_function_store_proxy, PrereqStoreProxy),
+			takes_self=True,
 		),
 		default=None,
 	)
@@ -246,14 +364,14 @@ class EngineProxy(AbstractEngine):
 		elif "truth" not in src_d:
 			src_d["truth"] = "def truth(obj):\n\treturn True"
 		if self.i is None:
-			return TrigStoreProxy(self, "trigger", initial=src_d)
+			return TriggerStoreProxy(self, "trigger", initial=src_d)
 		else:
 			return TriggerStore(
 				self.prefix.joinpath("trigger.py") if self.prefix else None,
 				initial=src_d,
 			)
 
-	trigger: TrigStoreProxy | TriggerStore = field(
+	trigger: TriggerStoreProxy | TriggerStore = field(
 		converter=Converter(_convert_trig_store_proxy, takes_self=True),
 		default=None,
 	)
@@ -1825,98 +1943,6 @@ class PortalObjCache:
 		if char in self.successors:
 			del self.successors[char]
 			del self.predecessors[char]
-
-
-@define
-class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
-	engine: EngineProxy
-	_store: FuncStoreName
-	_cache: dict[str, str] = field(alias="initial", factory=dict)
-	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
-
-	def save(self, reimport: bool = True) -> None:
-		self.engine.handle("save_code", reimport=reimport)
-
-	def reimport(self) -> None:
-		self.engine.handle("reimport_code")
-
-	def iterplain(self) -> Iterator[tuple[str, str]]:
-		return iter(self._cache.items())
-
-	def store_source(self, v: str, name: str | None = None) -> None:
-		self._cache[name] = v
-		self.engine.handle("store_source", v=v, name=name, store=self._store)
-
-	def _worker_check(self):
-		self.engine._worker_check()
-
-	def load(self):
-		self._cache = self.engine.handle("source_copy", store=self._store)
-
-	def __getattr__(self, k: str) -> FuncProxy:
-		k = FuncName(k)
-		if k in super().__getattribute__("_cache"):
-			proxcache = super().__getattribute__("_proxy_cache")
-			if k not in proxcache:
-				proxcache[k] = FuncProxy(self, k)
-			return proxcache[k]
-		else:
-			raise AttributeError(k)
-
-	def __call__(self, func: Callable):
-		src = getsource(func)
-		self.engine.handle(
-			"store_source", v=src, name=func.__name__, store=self._store
-		)
-		funcname = func.__name__
-		self._cache[funcname] = src
-		self._proxy_cache[funcname] = FuncProxy(self, funcname)
-
-	def __setattr__(self, func_name: str, func: Callable | str):
-		if func_name in ("_cache", "_proxy_cache"):
-			if not isinstance(func, dict):
-				raise TypeError("Invalid FuncStoreProxy cache", func)
-			return super().__setattr__(func_name, func)
-		if func_name in (
-			"engine",
-			"_store",
-			"receivers",
-			"_by_sender",
-			"_by_receiver",
-			"_weak_senders",
-			"is_muted",
-		):
-			super().__setattr__(func_name, func)
-			return
-		if callable(func):
-			source = getsource(func)
-		else:
-			source = func
-		self.engine.handle(
-			command="store_source", store=self._store, v=source, name=func_name
-		)
-		self._cache[func_name] = source
-
-	def __delattr__(self, func_name: str):
-		self.engine.handle(
-			command="del_source", store=self._store, k=func_name
-		)
-		del self._cache[func_name]
-
-	def get_source(self, func_name: str) -> str:
-		return self.engine.handle(
-			command="get_source", store=self._store, name=func_name
-		)
-
-
-@define
-class TrigStoreProxy(FuncStoreProxy):
-	def __attrs_post_init__(self):
-		self._cache["truth"] = dedent_source(
-			"""
-		def truth(*args):
-			return True""".strip("\n")
-		)
 
 
 @define
