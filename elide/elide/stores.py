@@ -119,7 +119,7 @@ class StoreList(RecycleView):
 			return
 		binds = App.get_running_app()._bindings
 		for uid in devour(
-			binds["StoreList", self.store._module, "boxl", "selected_nodes"]
+			binds["StoreList", self.store._store, "boxl", "selected_nodes"]
 		):
 			self.boxl.unbind_uid("selected_nodes", uid)
 
@@ -145,7 +145,7 @@ class StoreList(RecycleView):
 		if not app:
 			return
 		binds = app._bindings[
-			"StoreList", self.store._module, "boxl", "selected_nodes"
+			"StoreList", self.store._store, "boxl", "selected_nodes"
 		]
 		for uid in devour(binds):
 			self.boxl.unbind_uid("selected_nodes", uid)
