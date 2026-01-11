@@ -1159,8 +1159,11 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		yield from super().__dir__()
 
 	def __getattr__(self, k):
-		if k == "__name__" and isinstance(self._module, str):
-			return self._module
+		if k == "__name__":
+			if isinstance(self._module, str):
+				return self._module
+			else:
+				return super().__getattribute__("__name__")
 		elif k in self._locl:
 			return self._locl[k]
 		elif k in dir(self):
