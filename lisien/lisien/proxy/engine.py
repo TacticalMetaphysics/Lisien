@@ -364,7 +364,7 @@ class EngineProxy(AbstractEngine):
 		elif "truth" not in src_d:
 			src_d["truth"] = "def truth(obj):\n\treturn True"
 		if self.i is None:
-			return TriggerStoreProxy(self, "trigger", initial=src_d)
+			return TriggerStoreProxy(self, initial=src_d)
 		else:
 			return TriggerStore(
 				self.prefix.joinpath("trigger.py") if self.prefix else None,
