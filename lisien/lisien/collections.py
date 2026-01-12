@@ -1129,9 +1129,10 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			self._ast_idx = {}
 			self._need_save = False
 		else:
-			if not file.name.endswith(".py"):
+			if file.suffix != ".py":
 				raise ValueError(
-					"FunctionStore can only work with pure Python source code"
+					"FunctionStore can only work with pure Python source code",
+					file,
 				)
 			self._filename = file.resolve().absolute()
 			self._module = file.name.removesuffix(".py")
