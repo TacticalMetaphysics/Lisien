@@ -27,11 +27,11 @@ def test_resume(tmp_path, persistent_database, random_seed):
 		tmp_path, "serial", persistent_database, random_seed
 	)
 	ekwargs["keyframe_on_close"] = False
-	with Engine(**ekwargs) as eng:
+	with Engine(tmp_path, **ekwargs) as eng:
 		install(eng)
 		eng.next_turn()
 		last_branch, last_turn, last_tick = eng.time
-	with Engine(**ekwargs) as eng:
+	with Engine(tmp_path, **ekwargs) as eng:
 		assert eng.time == (last_branch, last_turn, last_tick)
 		curturn = eng.turn
 		eng.next_turn()
