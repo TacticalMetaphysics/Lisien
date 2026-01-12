@@ -5898,7 +5898,7 @@ class Engine(AbstractEngine, Executor):
 			if getattr(store, "_need_save", None):
 				if hasattr(store, "reimport"):
 					store.save(reimport=False)
-					stores_to_reimport.add(store.__name__)
+					stores_to_reimport.add(store._store)
 				else:
 					store.save()
 		kf_payload = None
