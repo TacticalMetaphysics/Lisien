@@ -67,6 +67,7 @@ from ..collections import (
 	GenericFunctionStore,
 	MethodStore,
 	ActionStore,
+	PrereqStore,
 )
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..types import (
