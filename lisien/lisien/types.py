@@ -3060,7 +3060,7 @@ class AbstractEngine(ABC):
 		def unpack_exception(ext: bytes) -> Exception:
 			exctyp, excargs, tb = self.unpack(getattr(ext, "data", ext))
 			if exctyp not in excs:
-				return Exception(exctyp, *data)
+				return Exception(exctyp, *excargs)
 			ret = excs[exctyp](*excargs)
 			if tb is not None:
 				ret.__traceback__ = Traceback.from_dict(tb).to_traceback()
