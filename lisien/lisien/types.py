@@ -3029,6 +3029,7 @@ class AbstractEngine(ABC):
 			"NonUniqueError": exc.NonUniqueError,
 			"AmbiguousUserError": exc.AmbiguousLeaderError,
 			"AmbiguousLeaderError": exc.AmbiguousLeaderError,
+			"BadTimeException": exc.BadTimeException,
 			"RulesEngineError": exc.RulesEngineError,
 			"RuleError": exc.RuleError,
 			"RedundantRuleError": exc.RedundantRuleError,
