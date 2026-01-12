@@ -175,8 +175,11 @@ class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
 			if not isinstance(func, dict):
 				raise TypeError("Invalid FuncStoreProxy cache", func)
 			return super().__setattr__(func_name, func)
+		if func_name == "engine":
+			if not isinstance(func, EngineProxy):
+				raise TypeError("EngineProxy only", func)
+			return super().__setattr__(func_name, func)
 		if func_name in (
-			"engine",
 			"_store",
 			"receivers",
 			"_by_sender",
@@ -320,13 +323,7 @@ class EngineProxy(AbstractEngine):
 
 	@staticmethod
 	def _convert_function_store_proxy(cls, src_d, self):
-		if self.i is None:
-			return cls(self, initial=src_d or {})
-		else:
-			return cls(
-				self.prefix.joinpath("function.py") if self.prefix else None,
-				initial=src_d or {},
-			)
+		return cls(self, initial=src_d or {})
 
 	function: GenericFunctionStoreProxy | GenericFunctionStore = field(
 		converter=Converter(
