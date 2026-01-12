@@ -43,6 +43,7 @@ def test_start(tmp_path, sim, persistent_database, sub_mode, random_seed):
 				polygons.install(eng)
 
 	mgr = EngineProxyManager(
+		tmp_path,
 		sub_mode=sub_mode,
 		**make_test_engine_kwargs(
 			tmp_path, "serial", persistent_database, random_seed
