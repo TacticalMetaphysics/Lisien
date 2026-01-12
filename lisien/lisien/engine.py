@@ -7824,7 +7824,7 @@ class Engine(AbstractEngine, Executor):
 					continue
 				if isinstance(store, FunctionStore):
 					with (
-						zf.open(store.__name__ + ".py", "w") as outfb,
+						zf.open(store._store + ".py", "w") as outfb,
 						TextIOWrapper(outfb) as outf,
 					):
 						for _, function in store.iterplain():
