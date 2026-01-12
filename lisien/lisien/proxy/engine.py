@@ -329,7 +329,10 @@ class EngineProxy(AbstractEngine):
 	def _convert_function_store_proxy(cls, proxy_cls, src_d, self):
 		if self._worker:
 			return cls(
-				self.prefix.joinpath(cls._store + ".py"), initial=src_d or {}
+				self.prefix.joinpath(cls._store + ".py")
+				if self.prefix
+				else None,
+				initial=src_d or {},
 			)
 		return proxy_cls(self, initial=src_d or {})
 
