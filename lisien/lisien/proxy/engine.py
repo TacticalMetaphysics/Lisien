@@ -194,7 +194,7 @@ class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
 			source = getsource(func)
 		else:
 			source = func
-		self._set_source(func_name, v)
+		self._set_source(func_name, source)
 
 	def __delattr__(self, func_name: str):
 		self.engine.handle(
