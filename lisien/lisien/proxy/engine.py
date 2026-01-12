@@ -328,7 +328,9 @@ class EngineProxy(AbstractEngine):
 	@staticmethod
 	def _convert_function_store_proxy(cls, proxy_cls, src_d, self):
 		if self._worker:
-			return cls(self.prefix, initial=src_d or {})
+			return cls(
+				self.prefix.joinpath(cls._store + ".py"), initial=src_d or {}
+			)
 		return proxy_cls(self, initial=src_d or {})
 
 	function: GenericFunctionStoreProxy | GenericFunctionStore = field(
