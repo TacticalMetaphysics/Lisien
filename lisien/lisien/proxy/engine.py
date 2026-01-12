@@ -326,33 +326,45 @@ class EngineProxy(AbstractEngine):
 		return self.i is not None
 
 	@staticmethod
-	def _convert_function_store_proxy(cls, src_d, self):
-		return cls(self, initial=src_d or {})
+	def _convert_function_store_proxy(cls, proxy_cls, src_d, self):
+		if self._worker:
+			return cls(self.prefix, initial=src_d or {})
+		return proxy_cls(self, initial=src_d or {})
 
 	function: GenericFunctionStoreProxy | GenericFunctionStore = field(
 		converter=Converter(
-			partial(_convert_function_store_proxy, GenericFunctionStoreProxy),
+			partial(
+				_convert_function_store_proxy,
+				GenericFunctionStore,
+				GenericFunctionStoreProxy,
+			),
 			takes_self=True,
 		),
 		default=None,
 	)
 	method: MethodStoreProxy | MethodStore = field(
 		converter=Converter(
-			partial(_convert_function_store_proxy, MethodStoreProxy),
+			partial(
+				_convert_function_store_proxy, MethodStore, MethodStoreProxy
+			),
 			takes_self=True,
 		),
 		default=None,
 	)
 	action: ActionStoreProxy | ActionStore = field(
 		converter=Converter(
-			partial(_convert_function_store_proxy, ActionStoreProxy),
+			partial(
+				_convert_function_store_proxy, ActionStore, ActionStoreProxy
+			),
 			takes_self=True,
 		),
 		default=None,
 	)
 	prereq: PrereqStoreProxy | PrereqStore = field(
 		converter=Converter(
-			partial(_convert_function_store_proxy, PrereqStoreProxy),
+			partial(
+				_convert_function_store_proxy, PrereqStore, PrereqStoreProxy
+			),
 			takes_self=True,
 		),
 		default=None,
