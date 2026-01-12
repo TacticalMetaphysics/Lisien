@@ -384,9 +384,7 @@ def parallel_executor(
 )
 def engy(tmp_path, execution, database, random_seed):
 	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	with make_test_engine(
-		tmp_path, execution, database, random_seed
-	) as eng:
+	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
 		yield eng
 	if hasattr(eng, "_worker_log_threads"):
 		for t in eng._worker_log_threads:
@@ -411,23 +409,25 @@ def engine(
 	if local_or_remote == "remote":
 		procman = EngineProxyManager()
 		with procman.start(
+			tmp_path,
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
 				non_null_database,
 				random_seed,
-			)
+			),
 		) as proxy:
 			yield proxy
 		procman.shutdown()
 	else:
 		with Engine(
+			tmp_path,
 			**make_test_engine_kwargs(
 				tmp_path,
 				serial_or_parallel,
 				non_null_database,
 				random_seed,
-			)
+			),
 		) as eng:
 			yield eng
 
