@@ -19,6 +19,8 @@ RUN set -eux; \
 		cmake \
 		ninja-build \
 		libx11-dev \
+		libwayland-dev \
+		libgles-dev \
 	; \
 	apt-get dist-clean
 
