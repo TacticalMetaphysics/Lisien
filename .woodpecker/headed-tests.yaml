@@ -1,0 +1,27 @@
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+    repo: clayote/Lisien
+
+matrix:
+  PYTHON_VERSION:
+    - 3.12
+    - 3.13
+
+steps:
+  - name: headed_${PYTHON_VERSION}
+    image: zacharyspector/elide:latest
+    pull: true
+    commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - DISPLAY=:0
+      - echo "DISPLAY=$DISPLAY"
+      - export DISPLAY
+      - python -m venv .venv
+      - . .venv/bin/activate
+      - python -m pip install --upgrade pip
+      - python -m pip install pytest lisien/ elide/
+      - pytest -vvx elide/elide/tests
