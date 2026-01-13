@@ -19,6 +19,8 @@ RUN set -eux; \
 		cmake \
 		ninja-build \
 		libx11-dev \
+		libwayland-dev \
+		libgles-dev \
 	; \
 	apt-get dist-clean
 
@@ -294,8 +296,6 @@ RUN set -eux; \
 
 # compile kivy
 RUN set -eux; \
-	apt-get update; \
-	apt-get install -y cmake ninja-build; \
 	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
 	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
 	unzip kivy.zip; \
