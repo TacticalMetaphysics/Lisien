@@ -9,6 +9,9 @@ matrix:
     - 3.12
     - 3.13
 
+variables:
+  - &python python${PYTHON_VERSION}
+
 steps:
   - name: headed_${PYTHON_VERSION}
     image: zacharyspector/elide:latest
@@ -20,8 +23,8 @@ steps:
       - DISPLAY=:0
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
-      - python -m venv .venv
+      - *python -m venv .venv
       - . .venv/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install pytest lisien/ elide/
+      - *python -m pip install --upgrade pip
+      - *python -m pip install pytest lisien/ elide/
       - pytest -vvx elide/elide/tests
