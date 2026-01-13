@@ -18,6 +18,6 @@ with open("Dockerfile", "w") as f:
 		resp = conn.getresponse()
 		docker_body = resp.read().decode()
 		start = docker_body.index("ENV PYTHON_VERSION")
-		end = docker_body.rindex("RUN set -eux")
+		end = docker_body.rindex("# make some useful symlinks that are expected to exist")
 		f.write(docker_body[start:end])
 	f.write(docker_foot)

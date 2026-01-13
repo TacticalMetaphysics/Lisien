@@ -16,6 +16,9 @@ RUN set -eux; \
 		tk-dev \
 		uuid-dev \
 		xorg \
+		cmake \
+		ninja-build \
+		libx11-dev \
 	; \
 	apt-get dist-clean
 
