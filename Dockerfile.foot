@@ -1,3 +1,17 @@
+# compile kivy
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y cmake ninja-build; \
+	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
+	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
+	unzip kivy.zip; \
+	cd kivy-$COMMIT_HASH; \
+	for minor in $(seq 12 14); do \
+		python3.$minor -m pip install Cython; \
+		USE_X11=1 python3.$minor -m pip install .; \
+	done; \
+	cd ..
+
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
 	for src in idle3 pip3 pydoc3 python3 python3-config; do \

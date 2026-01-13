@@ -16,6 +16,9 @@ RUN set -eux; \
 		tk-dev \
 		uuid-dev \
 		xorg \
+		cmake \
+		ninja-build \
+		libx11-dev \
 	; \
 	apt-get dist-clean
 
@@ -105,7 +108,6 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-# make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 ENV PYTHON_VERSION 3.13.11
 ENV PYTHON_SHA256 16ede7bb7cdbfa895d11b0642fa0e523f291e6487194d53cf6d3b338c3a17ea2
 
@@ -191,7 +193,6 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-# make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 ENV PYTHON_VERSION 3.14.2
 ENV PYTHON_SHA256 ce543ab854bc256b61b71e9b27f831ffd1bfd60a479d639f8be7f9757cf573e9
 
@@ -291,7 +292,20 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-# make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
+# compile kivy
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y cmake ninja-build; \
+	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
+	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
+	unzip kivy.zip; \
+	cd kivy-$COMMIT_HASH; \
+	for minor in $(seq 12 14); do \
+		python3.$minor -m pip install Cython; \
+		USE_X11=1 python3.$minor -m pip install .; \
+	done; \
+	cd ..
+
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
 	for src in idle3 pip3 pydoc3 python3 python3-config; do \
