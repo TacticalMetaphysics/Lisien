@@ -8,6 +8,7 @@ matrix:
   PYTHON_VERSION:
     - 3.12
     - 3.13
+    - 3.14
 
 variables:
   - &python python${PYTHON_VERSION}
