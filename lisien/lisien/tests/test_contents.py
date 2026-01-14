@@ -104,5 +104,6 @@ def test_contents_in_plan(chara_chron):
 	# but this does
 	chara.thing[9].location = there
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
-	engine.turn = 10
-	assert set(place.content) == (correct_contents - {9}) | {15}
+	with engine.plan():
+		engine.turn = 10
+		assert set(place.content) == (correct_contents - {9}) | {15}
