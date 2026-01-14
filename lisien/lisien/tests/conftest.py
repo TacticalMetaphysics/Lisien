@@ -22,9 +22,9 @@ import pytest
 
 from lisien.engine import Engine
 from ..futures import (
-	LisienThreadExecutorProxy,
-	LisienProcessExecutorProxy,
-	LisienInterpreterExecutorProxy,
+	LisienThreadExecutor,
+	LisienProcessExecutor,
+	LisienInterpreterExecutor,
 )
 from lisien.db import (
 	NullDatabaseConnector,
@@ -289,13 +289,13 @@ def reusing_database_connector_part2(
 
 @pytest.fixture(scope="session")
 def session_process_executor():
-	with LisienProcessExecutorProxy(None) as x:
+	with LisienProcessExecutor(None) as x:
 		yield x
 
 
 @pytest.fixture(scope="session")
 def session_thread_executor():
-	with LisienThreadExecutorProxy(None) as x:
+	with LisienThreadExecutor(None) as x:
 		yield x
 
 
@@ -304,7 +304,7 @@ def session_interpreter_executor():
 	if sys.version_info.minor < 14:
 		yield None
 		return
-	with LisienInterpreterExecutorProxy(None) as x:
+	with LisienInterpreterExecutor(None) as x:
 		yield x
 
 
