@@ -7643,7 +7643,10 @@ class Engine(AbstractEngine, Executor):
 		if import_database is not database:
 			if hasattr(import_database, "_t"):
 				assert import_database._t.is_alive()
-			import_database.close()
+			if hasattr(import_database, "is_python"):
+				database = import_database
+			else:
+				import_database.close()
 		if logger is None:
 			logger = getLogger("lisien")
 		return cls(
