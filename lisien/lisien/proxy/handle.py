@@ -476,7 +476,7 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real.enforce_end_of_time:
+			if self._real.enforce_end_of_time and not self._real._planning:
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)
