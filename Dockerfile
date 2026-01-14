@@ -302,7 +302,8 @@ RUN set -eux; \
 	cd kivy-$COMMIT_HASH; \
 	for minor in $(seq 12 14); do \
 		python3.$minor -m pip install Cython; \
-		USE_X11=1 python3.$minor -m pip install .; \
+		USE_X11=1 python3.$minor -m pip wheel .; \
+		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl; \
 	done; \
 	cd ..
 
