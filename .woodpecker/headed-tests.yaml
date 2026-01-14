@@ -24,7 +24,7 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
-      - *python -m venv .venv
+      - *python -m venv --system-site-packages .venv
       - . .venv/bin/activate
       - *python -m pip install --upgrade pip
       - *python -m pip install pytest lisien/ elide/
