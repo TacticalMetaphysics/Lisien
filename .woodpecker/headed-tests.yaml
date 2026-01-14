@@ -23,6 +23,7 @@ steps:
       - DISPLAY=:0
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
+      - Xvfb $DISPLAY &
       - *python -m venv .venv
       - . .venv/bin/activate
       - *python -m pip install --upgrade pip
