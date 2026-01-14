@@ -15,7 +15,7 @@ RUN set -eux; \
 		libbluetooth-dev \
 		tk-dev \
 		uuid-dev \
-		xorg \
+		xvfb \
 		cmake \
 		ninja-build \
 		libx11-dev \
