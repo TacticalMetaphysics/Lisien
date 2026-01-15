@@ -77,6 +77,31 @@ def test_build_keyframe_window(null_engine):
 	)
 
 
+def test_plan_block(engine):
+	char = engine.new_character("somebody")
+	assert engine.turn == engine.tick == 0
+	char.stat["evil"] = True
+	assert engine.tick == 1
+	with engine.plan():
+		char.stat["cool"] = False
+		assert engine.tick == 2
+		engine.turn = 1
+		char.stat["evil"] = False
+		assert engine.turn == 1
+		assert engine.tick == 1
+	assert engine.turn == 0
+	assert engine.tick == 1
+	with pytest.raises(OutOfTimelineError):
+		engine.turn = 1
+	with pytest.raises(OutOfTimelineError):
+		engine.tick = 2
+	with engine.plan():
+		assert engine.tick == 1
+		assert "cool" not in char.stat
+		engine.tick = 2
+		assert char.stat["cool"] is False
+
+
 def test_bookmark(engine):
 	engine.bookmark("a")
 	engine.next_turn()
