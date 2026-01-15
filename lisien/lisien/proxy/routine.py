@@ -216,8 +216,7 @@ def engine_subroutine(
 			)
 		)
 
-	while True:
-		recvd = get_input_bytes()
+	while (recvd := get_input_bytes()) != b"shutdown":
 		if recvd == b"shutdown":
 			for th in threading.enumerate():
 				if th.name == "rundb":
@@ -238,12 +237,16 @@ def engine_subroutine(
 			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
 			send_output("get_btt", engine_handle.get_btt())
 			continue
+		unpacked = engine_handle.unpack(recvd)
+		print(f"received: {unpacked}")
 		_engine_subroutine_step(
 			engine_handle,
-			engine_handle.unpack(recvd),
+			unpacked,
 			send_output,
 			send_output_prepacked,
 		)
+	send_output_bytes(b"shutdown")
+	return 0
 
 
 def engine_subprocess(args, kwargs, in_pipe, out_pipe, log_queue):

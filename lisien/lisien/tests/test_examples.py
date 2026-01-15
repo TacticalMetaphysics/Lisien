@@ -54,16 +54,16 @@ def test_college_premade(college10):
 		college10.next_turn()
 
 
-def test_kobold(engy):
-	kobold.inittest(engy, shrubberies=20, kobold_sprint_chance=0.9)
+def test_kobold(engine):
+	kobold.inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
 	for i in range(10):
-		engy.next_turn()
+		engine.next_turn()
 
 
-def test_polygons(engy):
-	polygons.install(engy)
+def test_polygons(engine):
+	polygons.install(engine)
 	for i in range(10):
-		engy.next_turn()
+		engine.next_turn()
 
 
 def test_char_stat_startup(tmp_path, database_connector_part):

@@ -544,11 +544,8 @@ class LisienProcessExecutor(LisienExecutor):
 		init=False, factory=list
 	)
 	_worker_log_threads: list[Thread] = field(init=False, factory=list)
-	_in_subprocess: bool = False
 
 	def _setup_workers(self, engine):
-		if self._in_subprocess:
-			return
 		super()._setup_workers(engine)
 		wp = self._worker_processes
 		wi = self._worker_inputs
@@ -557,6 +554,20 @@ class LisienProcessExecutor(LisienExecutor):
 		wl = self._worker_log_queues
 		wlt = self._worker_log_threads
 		assert len(wp) == len(wi) == len(wo) == len(wlk) == len(wlt)
+		while len(wp) > engine.workers:
+			excess_proc = wp.pop()
+			inpt = wi.pop()
+			wo.pop()
+			wlk.pop()
+			wlt.pop()
+			inpt.send_bytes(b"shutdown")
+			excess_proc.join(timeout=10.0)
+			if excess_proc.is_alive():
+				excess_proc.kill()
+				excess_proc.join(timeout=10.0)
+				if excess_proc.is_alive():
+					excess_proc.terminate()
+			excess_proc.close()
 		ctx = self._mp_ctx
 		for i in range(engine.workers - len(wp)):
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
@@ -643,7 +654,7 @@ class LisienProcessExecutor(LisienExecutor):
 					logt.join(timeout=SUBPROCESS_TIMEOUT)
 				pipein.close()
 				pipeout.close()
-		del self._worker_processes
+		self._worker_processes.clear()
 
 
 @define

@@ -15,6 +15,7 @@
 import pickle
 import resource
 import sys
+from contextlib import contextmanager
 from functools import partial
 from logging import getLogger
 
@@ -41,10 +42,6 @@ from . import data
 from .util import (
 	make_test_engine,
 	make_test_engine_facade,
-	make_test_engine_kwargs,
-	college_engine,
-	tar_cache,
-	untar_cache,
 )
 
 
@@ -242,13 +239,7 @@ def database_connector_partial(tmp_path, database):
 					pydb = pickle.load(f)
 				return pydb
 			except FileNotFoundError:
-				db = PythonDatabaseConnector()
-
-				def part(*_):
-					return db
-
-				part.is_python = True
-				return part
+				return PythonDatabaseConnector
 		case "sqlite":
 			return partial(
 				SQLAlchemyDatabaseConnector,
@@ -287,109 +278,66 @@ def reusing_database_connector_part2(
 			yield reusing_parquetdb_database_connector_part
 
 
-@pytest.fixture(scope="session")
-def session_process_executor():
-	with LisienProcessExecutor(None) as x:
-		yield x
+@pytest.fixture(
+	scope="session",
+	params=[
+		"no_manager",
+		"thread_manager",
+		"process_manager",
+		pytest.param(
+			"interpreter_manager",
+			marks=pytest.mark.skipif(
+				lambda: sys.version_info.minor < 14,
+				reason="Subinterpreters are only available in Python 3.14 or newer",
+			),
+		),
+	],
+)
+def kind_of_proxy_manager(request):
+	yield request.param
 
 
 @pytest.fixture(scope="session")
-def session_thread_executor():
-	with LisienThreadExecutor(None) as x:
-		yield x
-
-
-@pytest.fixture(scope="session")
-def session_interpreter_executor():
-	if sys.version_info.minor < 14:
+def proxy_manager(
+	serial_or_parallel,
+	kind_of_proxy_manager,
+):
+	# The initial instantiation of the proxy manager doesn't reflect
+	# what type of parallelism the core uses. You need to indicate that in the
+	# ``sub_mode`` keyword argument to the ``start`` method of the proxy manager
+	# -- not the proxy manager's own initializer.
+	# We make a new, session-wide proxy manager for each possible mode
+	# of parallelism that the core *and* the manager might be running in.
+	if kind_of_proxy_manager == "no_manager":
 		yield None
 		return
-	with LisienInterpreterExecutor(None) as x:
-		yield x
-
-
-@pytest.fixture(scope="session")
-def session_executor(
-	execution,
-	session_process_executor,
-	session_thread_executor,
-	session_interpreter_executor,
-):
-	ex = None
-	match execution:
-		case "process":
-			ex = session_process_executor
-		case "thread":
-			ex = session_thread_executor
-		case "interpreter":
-			ex = session_interpreter_executor
-		case _:
-			ex = None
-	yield ex
-	if ex is None:
-		return
-	if hasattr(ex, "_worker_log_threads"):
-		for t in ex._worker_log_threads:
-			assert not t.is_alive()
-		assert not ex._fut_manager_thread.is_alive()
+	proxman = EngineProxyManager(
+		sub_mode=kind_of_proxy_manager.removesuffix("_manager")
+	)
+	proxman._really_shutdown = False
+	yield proxman
+	proxman._really_shutdown = True
+	proxman.shutdown()
 
 
 @pytest.fixture(scope="session")
 def serial_or_executor(
 	serial_or_parallel,
-	session_process_executor,
-	session_thread_executor,
-	session_interpreter_executor,
 ):
-	ex = None
 	match serial_or_parallel:
+		case "serial":
+			yield None
 		case "process":
-			ex = session_process_executor
+			with LisienProcessExecutor(None) as ex:
+				yield ex
 		case "thread":
-			ex = session_thread_executor
+			with LisienThreadExecutor(None) as ex:
+				yield ex
 		case "interpreter":
-			ex = session_interpreter_executor
+			with LisienInterpreterExecutor(None) as ex:
+				yield ex
 		case _:
-			ex = None
-	yield ex
-	if ex is None:
-		return
-	if hasattr(ex, "_worker_log_threads"):
-		for t in ex._worker_log_threads:
-			assert not t.is_alive()
-		assert not ex._fut_manager_thread.is_alive()
-
-
-@pytest.fixture(scope="function", params=KINDS_OF_PARALLEL)
-def parallel_executor(
-	request,
-	session_process_executor,
-	session_thread_executor,
-	session_interpreter_executor,
-):
-	match request.param:
-		case "thread":
-			with session_thread_executor:
-				yield session_thread_executor
-		case "process":
-			with session_process_executor:
-				yield session_process_executor
-		case "interpreter":
-			with session_interpreter_executor:
-				yield session_interpreter_executor
-
-
-@pytest.fixture(
-	scope="function",
-)
-def engy(tmp_path, execution, database, random_seed):
-	"""Engine or EngineProxy, but, if EngineProxy, it's not connected to a core"""
-	with make_test_engine(tmp_path, execution, database, random_seed) as eng:
-		yield eng
-	if hasattr(eng, "_worker_log_threads"):
-		for t in eng._worker_log_threads:
-			assert not t.is_alive()
-		assert not eng._fut_manager_thread.is_alive()
+			raise ValueError("Unknown form of parallelism", serial_or_parallel)
 
 
 @pytest.fixture(params=["local", "remote"])
@@ -401,35 +349,32 @@ def local_or_remote(request):
 def engine(
 	tmp_path,
 	serial_or_parallel,
-	local_or_remote,
-	non_null_database,
 	random_seed,
+	proxy_manager,
+	serial_or_executor,
+	database_connector_part,
 ):
 	"""Engine or EngineProxy with a subprocess"""
-	if local_or_remote == "remote":
-		procman = EngineProxyManager()
-		with procman.start(
-			tmp_path,
-			**make_test_engine_kwargs(
-				tmp_path,
-				serial_or_parallel,
-				non_null_database,
-				random_seed,
-			),
-		) as proxy:
-			yield proxy
-		procman.shutdown()
-	else:
+	if proxy_manager is None:
 		with Engine(
 			tmp_path,
-			**make_test_engine_kwargs(
-				tmp_path,
-				serial_or_parallel,
-				non_null_database,
-				random_seed,
-			),
+			random_seed=random_seed,
+			executor=serial_or_executor,
+			workers=0 if serial_or_parallel == "serial" else 2,
+			database=database_connector_part,
 		) as eng:
 			yield eng
+	else:
+		with proxy_manager.start(
+			tmp_path,
+			random_seed=random_seed,
+			workers=0 if serial_or_parallel == "serial" else 2,
+			sub_mode=None
+			if serial_or_parallel == "serial"
+			else serial_or_parallel,
+			database=database_connector_part,
+		) as proxy:
+			yield proxy
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
@@ -501,126 +446,127 @@ def null_engine():
 		assert not eng._fut_manager_thread.is_alive()
 
 
-@pytest.fixture(scope="session")
-def college10_tar(non_null_database):
-	with tar_cache("college10", non_null_database, college_engine) as path:
-		yield path
+@contextmanager
+def engine_from_archive(
+	archive_name: str,
+	tmp_path,
+	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
+):
+	if proxy_manager is None:
+		with Engine.from_archive(
+			data.DATA_DIR.joinpath(archive_name),
+			tmp_path,
+			executor=serial_or_executor,
+			database=database_connector_part,
+		) as eng:
+			yield eng
+	else:
+		with proxy_manager.load_archive(
+			data.DATA_DIR.joinpath(archive_name),
+			tmp_path,
+			workers=0 if serial_or_parallel == "serial" else 2,
+			sub_mode=None
+			if serial_or_parallel == "serial"
+			else serial_or_parallel,
+			database=database_connector_part,
+		) as eng:
+			yield eng
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def college10(
-	college10_tar,
 	tmp_path,
-	database_connector_part,
 	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
 ):
-	with untar_cache(
-		college10_tar, tmp_path, database_connector_part, serial_or_parallel
+	with engine_from_archive(
+		"college10.lisien",
+		tmp_path,
+		serial_or_parallel,
+		database_connector_part,
+		serial_or_executor,
+		proxy_manager,
 	) as eng:
 		yield eng
 
 
-@pytest.fixture(scope="session")
-def college24_sql_tar():
-	with tar_cache("college24", "sqlite", college_engine) as path:
-		yield path
-
-
-@pytest.fixture(scope="session")
-def college24_pqdb_tar():
-	with tar_cache("college24", "parquetdb", college_engine) as path:
-		yield path
-
-
-@pytest.fixture(scope="session")
-def college24_python_tar():
-	with tar_cache("college24", "python", college_engine) as path:
-		yield path
-
-
-@pytest.fixture(scope="session")
-def college24_tar(
-	non_null_database,
-	college24_python_tar,
-	college24_sql_tar,
-	college24_pqdb_tar,
-):
-	match non_null_database:
-		case "python":
-			yield college24_python_tar
-		case "parquetdb":
-			yield college24_pqdb_tar
-		case "sqlite":
-			yield college24_sql_tar
-		case _:
-			raise RuntimeError("Database not supported", non_null_database)
-
-
-@pytest.fixture
+@pytest.fixture(scope="function")
 def college24(
-	college24_tar,
 	tmp_path,
-	database_connector_part,
 	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
 ):
-	with untar_cache(
-		college24_tar, tmp_path, database_connector_part, serial_or_parallel
-	) as eng:
-		yield eng
-
-
-@pytest.fixture(scope="session")
-def sickle_tar(non_null_database):
-	with tar_cache("sickle", non_null_database) as path:
-		yield path
-
-
-@pytest.fixture
-def sickle(sickle_tar, tmp_path, database_connector_part, serial_or_parallel):
-	with untar_cache(
-		sickle_tar,
+	with engine_from_archive(
+		"college24.lisien",
 		tmp_path,
-		database_connector_part,
 		serial_or_parallel,
+		database_connector_part,
+		serial_or_executor,
+		proxy_manager,
 	) as eng:
 		yield eng
 
 
-@pytest.fixture(scope="session")
-def wolfsheep_tar(non_null_database):
-	with tar_cache("wolfsheep", non_null_database) as path:
-		yield path
+@pytest.fixture(scope="function")
+def sickle(
+	tmp_path,
+	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
+):
+	with engine_from_archive(
+		"sickle.lisien",
+		tmp_path,
+		serial_or_parallel,
+		database_connector_part,
+		serial_or_executor,
+		proxy_manager,
+	) as eng:
+		yield eng
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def wolfsheep(
-	wolfsheep_tar,
 	tmp_path,
-	database_connector_part,
 	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
 ):
-	with untar_cache(
-		wolfsheep_tar,
+	with engine_from_archive(
+		"wolfsheep.lisien",
 		tmp_path,
-		database_connector_part,
 		serial_or_parallel,
+		database_connector_part,
+		serial_or_executor,
+		proxy_manager,
 	) as eng:
 		yield eng
 
 
-@pytest.fixture(scope="session")
-def pathfind_tar(non_null_database):
-	with tar_cache("pathfind", non_null_database) as path:
-		yield path
-
-
-@pytest.fixture(params=KINDS_OF_PARALLEL)
-def pathfind(pathfind_tar, tmp_path, database_connector_part, request):
-	with untar_cache(
-		pathfind_tar,
+@pytest.fixture(scope="function")
+def pathfind(
+	tmp_path,
+	serial_or_parallel,
+	database_connector_part,
+	serial_or_executor,
+	proxy_manager,
+):
+	with engine_from_archive(
+		"pathfind.lisien",
 		tmp_path,
+		serial_or_parallel,
 		database_connector_part,
-		request.param,
+		serial_or_executor,
+		proxy_manager,
 	) as eng:
 		yield eng
 

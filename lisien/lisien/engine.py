@@ -4997,7 +4997,9 @@ class Engine(AbstractEngine, Executor):
 		}:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
-				"Use, eg., the engine's attribute `function` to store it."
+				"Use, eg., the engine's attribute `function` to store it.",
+				fn.__name__,
+				fn.__module__,
 			)
 		if self.executor is not None:
 			return self.executor.submit(fn, *args, **kwargs)
@@ -5761,8 +5763,6 @@ class Engine(AbstractEngine, Executor):
 				cache.clear()
 		gc.collect()
 		self.database.close()
-		if getattr(self, "executor", None):
-			self.executor.lock.release()
 		self._closed = True
 
 	def _handled_char(
@@ -5996,9 +5996,11 @@ class Engine(AbstractEngine, Executor):
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		if self.executor and self._shutdown_executor:
-			self.executor.shutdown(wait, cancel_futures=cancel_futures)
-			del self.executor
+		if self.executor:
+			self.executor.lock.release()
+			if self._shutdown_executor:
+				self.executor.shutdown(wait, cancel_futures=cancel_futures)
+				del self.executor
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
