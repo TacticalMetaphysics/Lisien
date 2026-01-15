@@ -10,6 +10,10 @@ ENV LANG C.UTF-8
 
 # runtime dependencies
 RUN set -eux; \
+    mkdir -pm755 /etc/apt/keyrings; \
+    wget -O - https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key; \
+    wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/debian/dists/trixie/winehq-trixie.sources; \
+	dpkg --add-architecture i386; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		libbluetooth-dev \
@@ -21,6 +25,7 @@ RUN set -eux; \
 		libx11-dev \
 		libwayland-dev \
 		libgles-dev \
+		winehq-stable \
 	; \
 	apt-get dist-clean
 
