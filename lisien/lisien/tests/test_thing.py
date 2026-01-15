@@ -50,12 +50,12 @@ def test_future_contents(something):
 	assert len(somewhere.contents()) == 1
 	assert something in somewhere.contents()
 	assert someone not in somewhere.contents()
-	engine.tick = sometick
-	assert len(somewhere.contents()) == 2
-	assert something in somewhere.contents()
-	assert somebody not in somewhere.contents()
-	assert someone in somewhere.contents()
 	with something.engine.plan():
+		engine.tick = sometick
+		assert len(somewhere.contents()) == 2
+		assert something in somewhere.contents()
+		assert somebody not in somewhere.contents()
+		assert someone in somewhere.contents()
 		engine.turn = 1
 		engine.tick = engine.turn_end_plan()
 		assert len(somewhere.contents()) == 1
