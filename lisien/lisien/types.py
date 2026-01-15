@@ -42,7 +42,7 @@ from operator import (
 	sub,
 	truediv,
 )
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 from random import Random
 from threading import RLock
 from types import (
@@ -2260,6 +2260,8 @@ class MsgpackExtensionType(Enum):
 	trigger = 0x78
 	prereq = 0x77
 	action = 0x76
+	database = 0x75
+	path = 0x74
 
 
 class get_rando:
@@ -2829,6 +2831,8 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def pack(self) -> Callable[[ValueHint | Value], bytes]:
+		from .db import AbstractDatabaseConnector
+
 		try:
 			from msgpack import Packer
 
@@ -2852,6 +2856,26 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.set.value, packer(list(s))
 			)
 
+		def pack_database_connector(db):
+			if isinstance(db, partial):
+				data = {
+					"class": db.func.__name__,
+				}
+				data.update(db.keywords)
+				return msgpack.ExtType(
+					MsgpackExtensionType.database.value, packer(data)
+				)
+			else:
+				return msgpack.ExtType(
+					MsgpackExtensionType.database.value,
+					packer({"class": db.__name__}),
+				)
+
+		def pack_path(p):
+			return msgpack.ExtType(
+				MsgpackExtensionType.path.value, packer(str(p))
+			)
+
 		from .wrap import (
 			DictWrapper,
 			ListWrapper,
@@ -2862,6 +2886,10 @@ class AbstractEngine(ABC):
 		)
 
 		handlers = {
+			AbstractDatabaseConnector: pack_database_connector,
+			Path: pack_path,
+			WindowsPath: pack_path,
+			PosixPath: pack_path,
 			ListWrapper: lambda obj: obj.unwrap(),
 			DictWrapper: lambda obj: obj.unwrap(),
 			SetWrapper: lambda obj: obj.unwrap(),
@@ -2925,6 +2953,14 @@ class AbstractEngine(ABC):
 		def pack_handler(obj):
 			if isinstance(obj, Exception):
 				typ = Exception
+			elif (
+				isinstance(obj, type)
+				and issubclass(obj, AbstractDatabaseConnector)
+			) or (
+				isinstance(obj, partial)
+				and issubclass(obj.func, AbstractDatabaseConnector)
+			):
+				typ = AbstractDatabaseConnector
 			else:
 				typ = type(obj)
 			if typ in handlers:
@@ -3067,6 +3103,26 @@ class AbstractEngine(ABC):
 				ret.__traceback__ = Traceback.from_dict(tb).to_traceback()
 			return ret
 
+		def unpack_database_connector(ext: bytes) -> AbstractDatabaseConnector:
+			data = self.unpack(getattr(ext, "data", ext))
+			if not isinstance(data, dict):
+				raise TypeError("Invalid database connector data", data)
+			clsn = data.pop("class")
+			if clsn == "PythonDatabaseConnector":
+				from .db import PythonDatabaseConnector
+
+				return PythonDatabaseConnector
+			elif clsn == "SQLAlchemyDatabaseConnector":
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return partial(SQLAlchemyDatabaseConnector, **data)
+			elif clsn == "ParquetDatabaseConnector":
+				from .pqdb import ParquetDatabaseConnector
+
+				return partial(ParquetDatabaseConnector, **data)
+			else:
+				raise ValueError("Unsupported database", clsn)
+
 		def unpack_char(ext: bytes) -> char_cls:
 			charn = self.unpack(getattr(ext, "data", ext))
 			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
@@ -3105,7 +3161,12 @@ class AbstractEngine(ABC):
 				raise TypeError("Tried to unpack as func", type(unpacked))
 			return getattr(store, unpacked)
 
+		def unpack_path(b: bytes):
+			return Path(self.unpack(b))
+
 		return {
+			MsgpackExtensionType.path.value: unpack_path,
+			MsgpackExtensionType.database.value: unpack_database_connector,
 			MsgpackExtensionType.ellipsis.value: lambda _: ...,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
@@ -3173,9 +3234,26 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def _umsgpack_pack_handlers(self):
+		from .db import AbstractDatabaseConnector
 		import umsgpack
 
+		def pack_path(p):
+			return umsgpack.Ext(
+				MsgpackExtensionType.path.value, self.pack(str(p))
+			)
+
 		return {
+			Path: pack_path,
+			PosixPath: pack_path,
+			WindowsPath: pack_path,
+			AbstractDatabaseConnector: lambda db: umsgpack.Ext(
+				MsgpackExtensionType.database.value,
+				self.pack({"class": db.__name__}),
+			),
+			partial: lambda db: umsgpack.Ext(
+				MsgpackExtensionType.database.value,
+				self.pack({"class": db.func.__name__, **db.keywords}),
+			),
 			type(...): lambda _: umsgpack.Ext(
 				MsgpackExtensionType.ellipsis.value, b""
 			),

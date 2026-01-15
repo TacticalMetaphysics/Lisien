@@ -154,7 +154,7 @@ def update_char(char: AbstractCharacter, *, stat=(), nodes=(), portals=()):
 	CHARACTER_UPDATES,
 )
 def test_char_creation(
-	engy, name, data, stat, nodestat, statup, nodeup, edgeup
+	engine, name, data, stat, nodestat, statup, nodeup, edgeup
 ):
 	char = engy.new_character(name, data, **stat)
 	assert set(char.node) == set(data)

@@ -16,12 +16,7 @@ import pytest
 
 
 @pytest.fixture(scope="function")
-def char(engy):
-	yield engy.new_character("chara")
-
-
-@pytest.fixture
-def chara_chron(engine):
+def char(engine):
 	yield engine.new_character("chara")
 
 
@@ -37,29 +32,28 @@ def test_many_things_in_place(char):
 	assert things == contents
 
 
-def test_contents_over_time(chara_chron):
-	chara = chara_chron
-	place = chara.new_place(0)
+def test_contents_over_time(char):
+	place = char.new_place(0)
 	correct_contents = set()
 	for i in range(10):
-		chara.engine.next_turn()
-		place.new_thing(chara.engine.turn)
-		del chara.thing[chara.engine.turn]
+		char.engine.next_turn()
+		place.new_thing(char.engine.turn)
+		del char.thing[char.engine.turn]
 		assert set(place.content.keys()) == correct_contents
-		place.new_thing(chara.engine.turn)
-		correct_contents.add(chara.engine.turn)
+		place.new_thing(char.engine.turn)
+		correct_contents.add(char.engine.turn)
 		assert set(place.content.keys()) == correct_contents
-	del chara.thing[9]
+	del char.thing[9]
 	correct_contents.remove(9)
 	assert set(place.content.keys()) == correct_contents
-	del chara.thing[8]
+	del char.thing[8]
 	correct_contents.remove(8)
 	assert set(place.content.keys()) == correct_contents
-	chara.engine.turn = 5
-	assert 10 not in chara.thing, list(chara.thing)
-	assert 5 in chara.thing, list(chara.thing)
-	chara.engine.branch = "bb"
-	del chara.thing[5]
+	char.engine.turn = 5
+	assert 10 not in char.thing, list(char.thing)
+	assert 5 in char.thing, list(char.thing)
+	char.engine.branch = "bb"
+	del char.thing[5]
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
 
