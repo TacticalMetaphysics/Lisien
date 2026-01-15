@@ -67,13 +67,13 @@ class EngineProxyManager:
 		self.sub_mode = Sub(sub_mode)
 		self._top_uid = 0
 
-	def start(self, *args, sub_mode: Sub = Sub.process, **kwargs):
+	def start(self, *args, **kwargs):
 		self._config_logger(kwargs)
 
 		if self.android:
 			self._start_osc(*args, **kwargs)
 		else:
-			match Sub(sub_mode):
+			match self.sub_mode:
 				case Sub.process:
 					self._start_subprocess(*args, **kwargs)
 				case Sub.thread:
