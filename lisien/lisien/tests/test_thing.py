@@ -55,18 +55,19 @@ def test_future_contents(something):
 	assert something in somewhere.contents()
 	assert somebody not in somewhere.contents()
 	assert someone in somewhere.contents()
-	engine.turn = 1
-	engine.tick = engine.turn_end_plan()
-	assert len(somewhere.contents()) == 1
-	assert something not in somewhere.contents()
-	assert someone in somewhere.contents()
-	assert somebody not in somewhere.contents()
-	engine.turn = 2
-	engine.tick = engine.turn_end_plan()
-	assert len(somewhere.contents()) == 2
-	assert somebody in somewhere.contents()
-	assert someone in somewhere.contents()
-	assert something not in somewhere.contents()
+	with something.engine.plan():
+		engine.turn = 1
+		engine.tick = engine.turn_end_plan()
+		assert len(somewhere.contents()) == 1
+		assert something not in somewhere.contents()
+		assert someone in somewhere.contents()
+		assert somebody not in somewhere.contents()
+		engine.turn = 2
+		engine.tick = engine.turn_end_plan()
+		assert len(somewhere.contents()) == 2
+		assert somebody in somewhere.contents()
+		assert someone in somewhere.contents()
+		assert something not in somewhere.contents()
 
 
 def test_travel(engine):
