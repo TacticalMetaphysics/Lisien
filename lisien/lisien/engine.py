@@ -1342,8 +1342,12 @@ class Engine(AbstractEngine, Executor):
 		if v == self.tick:
 			return
 		if self.turn == self.branch_end_turn():
-			tick_end = self._turn_end_plan[self.branch, self.turn]
-			if v > tick_end + 1:
+			tick_end = self._turn_end[self.branch, self.turn]
+			if (
+				not self._planning
+				and v > tick_end
+				and not (self._forward and v == tick_end + 1)
+			):
 				raise OutOfTimelineError(
 					f"The tick {v} is after the end of the turn {self.turn}. "
 					f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
