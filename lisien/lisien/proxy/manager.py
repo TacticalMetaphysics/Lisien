@@ -29,6 +29,7 @@ from zipfile import ZipFile
 
 import tblib
 
+from ..facade import EngineFacade
 from ..types import Branch, EternalKey, Key, Tick, Turn, Value
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
@@ -60,37 +61,25 @@ class EngineProxyManager:
 
 	loglevel = logging.DEBUG
 	android = False
+	_really_shutdown = True
 
-	def __init__(
-		self,
-		*args,
-		sub_mode: Sub = Sub.thread,
-		**kwargs,
-	):
+	def __init__(self, sub_mode: Sub = Sub.thread):
 		self.sub_mode = Sub(sub_mode)
-		self._args = args
-		self._kwargs = kwargs
 		self._top_uid = 0
 
-	def start(self, *args, **kwargs):
-		"""Start lisien in a subprocess, and return a proxy to it"""
-		if hasattr(self, "engine_proxy"):
-			raise RuntimeError("Already started")
-
+	def start(self, *args, sub_mode: Sub = Sub.process, **kwargs):
 		self._config_logger(kwargs)
 
 		if self.android:
 			self._start_osc(*args, **kwargs)
 		else:
-			match self.sub_mode:
+			match Sub(sub_mode):
 				case Sub.process:
 					self._start_subprocess(*args, **kwargs)
 				case Sub.thread:
 					self._start_subthread(*args, **kwargs)
 				case Sub.interpreter:
 					self._start_subinterpreter(*args, **kwargs)
-		args = args or self._args
-		kwargs |= self._kwargs
 		if args and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", args[0], kwargs["prefix"]
@@ -254,8 +243,9 @@ class EngineProxyManager:
 
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
-		if hasattr(self, "engine_proxy"):
+		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			self.engine_proxy.close()
+		if self._really_shutdown:
 			self.engine_proxy.send_bytes(b"shutdown")
 			if (
 				got := self.engine_proxy.recv_bytes(timeout=5.0)
@@ -264,10 +254,15 @@ class EngineProxyManager:
 					"Subprocess didn't respond to shutdown signal", got
 				)
 			if hasattr(self, "_p"):
-				self._p.join(timeout=5.0)
-				if self._p.exitcode is None:
-					raise TimeoutError("Couldn't join core process")
+				self._p.join(timeout=10.0)
+				if self._p.is_alive():
+					self._p.kill()
+					self._p.join(timeout=10.0)
+					if self._p.is_alive():
+						self._p.terminate()
 				self._p.close()
+			if hasattr(self, "_terp"):
+				self._terp.close()
 			if hasattr(self, "_t"):
 				self._t.join(timeout=5.0)
 				if self._t.is_alive():
@@ -322,7 +317,23 @@ class EngineProxyManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def _start_subprocess(self, *args, **kwargs):
+	def _start_subprocess(self, prefix: str | None = None, **kwargs):
+		if hasattr(self, "_p"):
+			if self._really_shutdown:
+				raise RuntimeError("Already started")
+			self.logger.info("EngineProxyManager: already have a subprocess")
+			if hasattr(self, "engine_proxy"):
+				pack = self.engine_proxy.pack
+			else:
+				pack = EngineFacade(None).pack
+			self._proxy_out_pipe.send_bytes(
+				pack({"command": "restart", "prefix": prefix, **kwargs})
+			)
+			if not (got := self._proxy_in_pipe.recv_bytes()).endswith(
+				b"\xa9restarted"
+			):
+				raise RuntimeError("Failed to restart subprocess", got)
+			return
 		from multiprocessing import Pipe, Process, SimpleQueue
 
 		(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
@@ -333,8 +344,8 @@ class EngineProxyManager:
 			name="Lisien Life Simulator Engine (core)",
 			target=engine_subprocess,
 			args=(
-				args or self._args,
-				self._kwargs | kwargs,
+				(prefix,),
+				kwargs,
 				self._handle_in_pipe,
 				self._handle_out_pipe,
 				self._logq,
@@ -488,7 +499,38 @@ class EngineProxyManager:
 			self._top_uid += 1
 			self._input_received = []
 
-	def _start_subthread(self, *args, **kwargs):
+	def _start_subthread(self, prefix: str | None = None, **kwargs):
+		if hasattr(self, "_t"):
+			if self._really_shutdown:
+				raise RuntimeError("Already started")
+			self.logger.info(
+				"EngineProxyManager: already have a subthread, will reuse"
+			)
+			if hasattr(self, "engine_proxy"):
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
+			else:
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
+			restart_bytes = pack(
+				{"command": "restart", "prefix": prefix, **kwargs}
+			)
+			self._input_queue.put(restart_bytes)
+			if not (got := self._output_queue.get()).endswith(
+				b"\xa9restarted"
+			):
+				try:
+					gotten = unpack(got)
+					if isinstance(gotten, Exception):
+						raise gotten
+					else:
+						raise RuntimeError(
+							"Failed to restart subthread", gotten
+						)
+				except ValueError:
+					raise RuntimeError("Failed to restart subthread", got)
+			return
 		self.logger.debug("EngineProxyManager: starting subthread!")
 		from queue import SimpleQueue
 
@@ -498,16 +540,32 @@ class EngineProxyManager:
 		self._t = Thread(
 			target=engine_subthread,
 			args=(
-				args or self._args,
-				self._kwargs | kwargs,
-				self._output_queue,
+				(prefix,),
+				kwargs,
 				self._input_queue,
+				self._output_queue,
 				None,
 			),
 		)
 		self._t.start()
 
-	def _start_subinterpreter(self, *args, **kwargs):
+	def _start_subinterpreter(self, prefix: str | None = None, **kwargs):
+		if hasattr(self, "_terp"):
+			if self._really_shutdown:
+				raise RuntimeError("Already started")
+			self.logger.info(
+				"EngineProxyManager: already have a subinterpreter"
+			)
+			if hasattr(self, "engine_proxy"):
+				pack = self.engine_proxy.pack
+			else:
+				pack = EngineFacade(None).pack
+			self._input_queue.put(
+				pack({"command": "restart", "prefix": prefix, **kwargs})
+			)
+			if (got := self._output_queue.get()) != b"\xa9restarted":
+				raise RuntimeError("Failed to restart subinterpreter", got)
+			return
 		from concurrent.interpreters import create, create_queue
 		from queue import Queue
 
@@ -518,10 +576,10 @@ class EngineProxyManager:
 		self._terp = create()
 		self._t = self._terp.call_in_thread(
 			engine_subthread,
-			args or self._args,
-			self._kwargs | kwargs,
-			self._output_queue,
+			(prefix,),
+			kwargs,
 			self._input_queue,
+			self._output_queue,
 			self._logq,
 		)
 		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
@@ -537,8 +595,8 @@ class EngineProxyManager:
 		**kwargs,
 	):
 		if hasattr(self, "_input_queue"):
-			self._output_queue.put(b"echoReadyToMakeProxy")
-			if (got := self._input_queue.get()) != b"ReadyToMakeProxy":
+			self._input_queue.put(b"echoReadyToMakeProxy")
+			if (got := self._output_queue.get()) != b"ReadyToMakeProxy":
 				raise RuntimeError("Subthread isn't ready", got)
 		else:
 			self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
@@ -590,8 +648,8 @@ class EngineProxyManager:
 			)
 		else:
 			self.engine_proxy = EngineProxy(
-				self._input_queue.get,
-				self._output_queue.put,
+				self._output_queue.get,
+				self._input_queue.put,
 				self.logger,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
@@ -649,19 +707,11 @@ class EngineProxyManager:
 					self._start_subprocess(prefix, **kwargs)
 				case Sub.thread:
 					self._start_subthread(prefix, **kwargs)
-		try:
-			from msgpack import Packer
-
-			if Packer.__module__.endswith("cmsgpack"):
-				from msgpack import packb
-			else:
-				from umsgpack import packb
-		except ImportError:
-			from umsgpack import packb
+		pack = EngineFacade(None).pack
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(
 				b"from_archive"
-				+ packb(
+				+ pack(
 					{
 						"archive_path": str(archive_path),
 						"prefix": str(prefix),
@@ -670,9 +720,9 @@ class EngineProxyManager:
 				)
 			)
 		else:
-			self._output_queue.put(
+			self._input_queue.put(
 				b"from_archive"
-				+ packb(
+				+ pack(
 					{
 						"archive_path": str(archive_path),
 						"prefix": str(prefix),

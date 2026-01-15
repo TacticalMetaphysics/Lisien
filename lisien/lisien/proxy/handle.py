@@ -29,6 +29,7 @@ import networkx as nx
 import tblib
 
 from ..exc import BadTimeException, HistoricKeyError, OutOfTimelineError
+from ..facade import EngineFacade
 from ..node import Node
 from ..portal import Portal
 from ..types import (
@@ -150,11 +151,12 @@ class EngineHandle:
 
 		do_game_start = kwargs.pop("do_game_start", False)
 		if log_queue:
-			logger = kwargs["logger"] = Logger("lisien")
+			logger = self._logger = kwargs["logger"] = Logger("lisien")
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
 		self.debug("started engine in a handle")
+		self._executor = self._real.executor
 		self.pack = pack = self._real.pack
 
 		def pack_pair(pair):
@@ -169,20 +171,44 @@ class EngineHandle:
 			self.do_game_start()
 			self.debug("game started")
 
+	def restart(self, *args, do_game_start=False, **kwargs):
+		from ..engine import Engine
+
+		if "logger" not in kwargs and hasattr(self, "_logger"):
+			self.debug("reusing logger")
+			kwargs["logger"] = self._logger
+		if "executor" not in kwargs and hasattr(self, "_executor"):
+			self.debug("reusing executor")
+			kwargs["executor"] = self._executor
+		self._real = Engine(*args, **kwargs)
+		self.debug("restarted in a handle")
+		self._logger = self._real.logger
+		self._executor = self._real.executor
+		self.pack = pack = self._real.pack
+
+		def pack_pair(pair):
+			k, v = pair
+			return pack(k), pack(v)
+
+		self.pack_pair = pack_pair
+		self.unpack = self._real.unpack
+		if do_game_start:
+			self.debug("starting game from restart...")
+			self.do_game_start()
+			self.debug("game started from restart")
+		return "restarted"
+
 	@classmethod
 	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
-		try:
-			from msgpack import unpackb
-
-			if not unpackb.__module__.endswith("cmsgpack"):
-				from umsgpack import unpackb
-		except ImportError:
-			from umsgpack import unpackb
-
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = unpackb(b)
+			from ..facade import EngineFacade
+
+			eng = EngineFacade(None)
+			kwargs = eng.unpack(b)
+			if not isinstance(kwargs, dict):
+				raise TypeError("Invalid kwargs for from_archive", kwargs)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
@@ -590,6 +616,9 @@ class EngineHandle:
 		self._real.commit()
 
 	def close(self):
+		fac = EngineFacade(None)
+		self.pack = fac.pack
+		self.unpack = fac.unpack
 		self._real.close()
 
 	def get_btt(self) -> Time:

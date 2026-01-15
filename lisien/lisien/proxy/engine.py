@@ -1898,11 +1898,9 @@ class RandoProxy(Random):
 		)
 
 	def _randbelow(
-		self, n, int=int, maxsize=1, type=type, Method=None, BuiltinMethod=None
+		self, n, int=int, type=type, Method=None, BuiltinMethod=None
 	):
-		return self._handle(
-			cmd="call_randomizer", method="_randbelow", n=n, maxsize=maxsize
-		)
+		return self._handle(cmd="call_randomizer", method="_randbelow", n=n)
 
 	def random(self):
 		return self._handle(cmd="call_randomizer", method="random")
