@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.node &#8212; Lisien 0.23.1 documentation</title>
+    <title>lisien.node &#8212; Lisien 0.23.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=832b3b9f"></script>
+    <script src="../../_static/documentation_options.js?v=b4d3b1f5"></script>
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -54,16 +54,16 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">ValuesView</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">define</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="kn">import</span> <span class="n">shortest_path</span><span class="p">,</span> <span class="n">shortest_path_length</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">reslot</span><span class="w"> </span><span class="kn">import</span> <span class="n">reslot</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">lisien.types</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edge</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">rule</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.exc</span><span class="w"> </span><span class="kn">import</span> <span class="n">AmbiguousLeaderError</span>
@@ -86,10 +86,10 @@
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
 	<span class="kn">from</span><span class="w"> </span><span class="nn">.character</span><span class="w"> </span><span class="kn">import</span> <span class="n">Character</span>
-	<span class="kn">from</span><span class="w"> </span><span class="nn">.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
 	<span class="kn">from</span><span class="w"> </span><span class="nn">.portal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Portal</span>
 
 
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">LeaderMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A mapping of the characters that have a particular node as a unit.</span>
 
@@ -101,13 +101,13 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the node&quot;&quot;&quot;</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
-	<span class="n">engine</span><span class="p">:</span> <span class="s2">&quot;Engine&quot;</span> <span class="o">=</span> <span class="n">getatt</span><span class="p">(</span><span class="s2">&quot;node.engine&quot;</span><span class="p">)</span>
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_user_names</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">frozenset</span><span class="p">[</span><span class="n">CharName</span><span class="p">]:</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -189,11 +189,10 @@
 			<span class="k">return</span> <span class="kc">False</span>
 
 
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NodeContent</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,)</span>
-
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]:</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -242,15 +241,30 @@
 		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">origin</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span>
 
 
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Dests</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_ecnb&quot;</span><span class="p">,</span> <span class="s2">&quot;_pn&quot;</span><span class="p">)</span>
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-		<span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
-		<span class="n">character</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">character</span>
-		<span class="n">engine</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">engine</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_pn</span> <span class="o">=</span> <span class="p">(</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span> <span class="o">=</span> <span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span> <span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span>
+
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
+
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_pn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">portal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span>
+
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_ecnb</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_edges_cache</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+		<span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
@@ -285,9 +299,11 @@
 		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">destination</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span>
 
 
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Origs</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -314,7 +330,7 @@
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">iter_predecessors</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">edges_cache</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">btt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_predecessor</span><span class="p">(</span><span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="o">*</span><span class="n">btt</span><span class="p">)</span>
 
@@ -324,7 +340,7 @@
 			<span class="k">pass</span>
 		<span class="k">return</span> <span class="n">n</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Edge</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span>
 		<span class="n">portal</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pn</span>
@@ -334,12 +350,11 @@
 		<span class="k">return</span> <span class="n">OrigsValues</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 
-<span class="nd">@reslot</span>
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Portals</span><span class="p">(</span><span class="n">Set</span><span class="p">):</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">)</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">character</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -366,7 +381,7 @@
 			<span class="n">engine</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
 		<span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="n">_</span><span class="p">,</span> <span class="n">edges_cache</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pecnb</span>
 		<span class="k">return</span> <span class="n">edges_cache</span><span class="o">.</span><span class="n">has_predecessor</span><span class="p">(</span>
 			<span class="n">charname</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">time</span>
@@ -402,12 +417,11 @@
 		<span class="k">return</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapping</span>
 
 
-<span class="nd">@reslot</span>
+<span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NeighborMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">):</span>
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;__dict__&quot;</span><span class="p">)</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span> <span class="o">=</span> <span class="n">node</span>
+	<span class="n">node</span><span class="p">:</span> <span class="n">Node</span>
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_nn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -455,6 +469,7 @@
 
 <div class="viewcode-block" id="Node">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.node.Node">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="p">(</span><span class="n">lisien</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Node</span><span class="p">,</span> <span class="n">rule</span><span class="o">.</span><span class="n">RuleFollower</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The fundamental graph component, which portals go between.</span>
 
@@ -466,9 +481,9 @@
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_rulebook&quot;</span><span class="p">,)</span>
-	<span class="n">no_unwrap</span> <span class="o">=</span> <span class="kc">True</span>
-	<span class="n">_extra_keys</span> <span class="o">=</span> <span class="p">{</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
+	<span class="n">no_unwrap</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+	<span class="n">_extra_keys</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
 		<span class="s2">&quot;name&quot;</span><span class="p">,</span>
 	<span class="p">}</span>
 
@@ -486,7 +501,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nodes_rulebooks_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">ret</span>
 			<span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">set_node_rulebook</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">set_node_rulebook</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="n">ret</span>
 			<span class="p">)</span>
 			<span class="k">return</span> <span class="n">ret</span>
@@ -502,7 +517,7 @@
 			<span class="k">pass</span>
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 		<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">set_node_rulebook</span><span class="p">(</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">set_node_rulebook</span><span class="p">(</span>
 			<span class="n">character</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook</span>
 		<span class="p">)</span>
 
@@ -543,6 +558,9 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">Origs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+	<span class="k">def</span><span class="w"> </span><span class="nf">preportals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValuesView</span><span class="p">[</span><span class="n">Origs</span><span class="p">]:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">preportal</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
 	<span class="k">def</span><span class="w"> </span><span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Portals</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;A set-like object of portals connected to this node.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">Portals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -563,6 +581,19 @@
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete all my keys&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">():</span>
 			<span class="k">del</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">True</span>
+		<span class="k">if</span> <span class="p">(</span>
+			<span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;character&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">character</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">)</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+		<span class="p">):</span>
+			<span class="k">return</span> <span class="kc">False</span>
+		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__eq__</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Handle extra keys, then delegate.&quot;&quot;&quot;</span>
@@ -706,14 +737,14 @@
 					<span class="n">now</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 			<span class="k">for</span> <span class="n">username</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">leader</span><span class="p">):</span>
 				<span class="n">engine</span><span class="o">.</span><span class="n">_unitness_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-				<span class="n">engine</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">unit_set</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">unit_set</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 			<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 				<span class="k">assert</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;name&quot;</span>
 				<span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span>
 					<span class="bp">self</span><span class="o">.</span><span class="n">_del_cache</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">)</span>
 					<span class="bp">self</span><span class="o">.</span><span class="n">_del_db</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">)</span>
 			<span class="n">engine</span><span class="o">.</span><span class="n">_nodes_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
-			<span class="n">engine</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">exist_node</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span>
 			<span class="p">)</span>
@@ -726,6 +757,7 @@
 
 <div class="viewcode-block" id="Place">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.node.Place">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Place</span><span class="p">(</span><span class="n">Node</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The kind of node where a thing might ultimately be located.</span>
 
@@ -740,15 +772,13 @@
 		<span class="s2">&quot;name&quot;</span><span class="p">,</span>
 	<span class="p">}</span>
 
+	<span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span>
+
 	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Stat</span><span class="p">):</span>
 		<span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;name&quot;</span><span class="p">:</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-
-	<span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="k">return</span> <span class="s2">&quot;&lt;</span><span class="si">{}</span><span class="s2">.character[</span><span class="si">{}</span><span class="s2">].place[</span><span class="si">{}</span><span class="s2">]&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-			<span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-		<span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_validate_node_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">try</span><span class="p">:</span>
@@ -771,7 +801,17 @@
 		<span class="n">me</span> <span class="o">=</span> <span class="n">fakechar</span><span class="o">.</span><span class="n">new_place</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 			<span class="n">me</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">unwrap</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">memo</span><span class="p">)</span>
-		<span class="k">return</span> <span class="n">me</span></div>
+		<span class="k">return</span> <span class="n">me</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">to_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Thing</span><span class="p">:</span>
+		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">location</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">set_thing_loc</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">location</span>
+		<span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span></div>
 
 
 
@@ -781,6 +821,7 @@
 
 <div class="viewcode-block" id="Thing">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.node.Thing">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Thing</span><span class="p">(</span><span class="n">Node</span><span class="p">,</span> <span class="n">AbstractThing</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The sort of item that has a particular location at any given time.</span>
 
@@ -794,7 +835,7 @@
 
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
-	<span class="n">_extra_keys</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">}</span>
+	<span class="n">_extra_keys</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">}</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_getname</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NodeName</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
@@ -824,8 +865,11 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t find arrival time&quot;</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">_set_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NodeName</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_set_loc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loc</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="nb">type</span><span class="p">(</span><span class="o">...</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">loc</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__bool__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Stat</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">item</span> <span class="o">==</span> <span class="s2">&quot;location&quot;</span><span class="p">:</span>
@@ -849,9 +893,9 @@
 			<span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t delete </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-		<span class="n">charn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
-		<span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="si">}</span><span class="s2">.character[</span><span class="si">{</span><span class="n">charn</span><span class="si">}</span><span class="s2">].thing[</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">]&quot;</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Place</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_set_loc</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FacadeThing</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">FacadeThing</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">facade</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -879,7 +923,7 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_things_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="o">...</span>
 			<span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">set_thing_loc</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">set_thing_loc</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">now</span><span class="p">,</span> <span class="o">...</span>
 			<span class="p">)</span>
 			<span class="k">return</span> <span class="n">now</span></div>
@@ -921,6 +965,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.types">types</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
