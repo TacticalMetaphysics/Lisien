@@ -191,8 +191,11 @@ def test_branch_lineage(engine):
 	engine.turn = 0
 	with pytest.raises(ValueError):
 		engine.branch = "physical_no_edge"
-	engine.turn = engine.branch_start_turn("physical_no_edge")
-	engine.branch = "physical_no_edge"
+	engine.time = (
+		"physical_no_edge",
+		engine.branch_end_turn("physical_no_edge"),
+		engine.turn_end("physical_no_edge"),
+	)
 	engine.next_turn()
 	assert 0 in g
 	assert 0 in list(g.node.keys())
