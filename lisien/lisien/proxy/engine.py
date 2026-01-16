@@ -670,8 +670,8 @@ class EngineProxy(AbstractEngine):
 	) -> None:
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
 
-	def branch_end(self, branch: str | Branch | None = None):
-		return self.handle("branch_end", branch=branch)
+	def branch_end_turn(self, branch: str | Branch | None = None) -> Turn:
+		return Turn(self.handle("branch_end_turn", branch=branch))
 
 	def turn_end(
 		self,
