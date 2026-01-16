@@ -106,15 +106,16 @@ def test_multi_plan(serial_engine):
 		g2.add_edge(1, 2)
 	eng.turn = 0
 	# contradict the plan
-	eng.tick = eng.turn_end_plan()
-	del g1.node[2]
-	assert 1 in g2.node
-	assert 2 in g2.node
-	eng.turn = 1
-	eng.tick = eng.turn_end_plan()
-	assert 2 not in g1.node
-	assert 2 not in g1.edge[1]
-	assert 2 in g2.edge[1]
+	with eng.advancing():
+		eng.tick = eng.turn_end_plan()
+		del g1.node[2]
+		assert 1 in g2.node
+		assert 2 in g2.node
+		eng.turn = 1
+		eng.tick = eng.turn_end_plan()
+		assert 2 not in g1.node
+		assert 2 not in g1.edge[1]
+		assert 2 in g2.edge[1]
 
 
 def test_plan_vs_plan(serial_engine):
