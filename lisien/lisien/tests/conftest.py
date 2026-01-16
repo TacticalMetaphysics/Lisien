@@ -179,18 +179,6 @@ KINDS_OF_PARALLEL = [
 ]
 
 
-@pytest.fixture(
-	scope="session",
-	params=[
-		pytest.param("proxy", marks=pytest.mark.proxy),
-		"serial",
-		*KINDS_OF_PARALLEL,
-	],
-)
-def execution(request):
-	return request.param
-
-
 @pytest.fixture(scope="session", params=["serial", *KINDS_OF_PARALLEL])
 def serial_or_parallel(request):
 	return request.param
@@ -375,35 +363,18 @@ def engine(
 
 
 @pytest.fixture(params=[pytest.param("sqlite", marks=[pytest.mark.sqlite])])
-def sqleng(tmp_path, request, execution):
-	if execution == "proxy":
-		eng = EngineProxy(
-			None,
-			None,
-			getLogger("sqleng"),
-			prefix=tmp_path,
-			worker_index=0,
-			eternal={"language": "eng"},
-			branches_d={"trunk": (None, 0, 0, 0, 0)},
-		)
-		(eng._branch, eng._turn, eng._tick, eng._initialized) = (
-			"trunk",
-			0,
-			0,
-			True,
-		)
-		eng._mutable_worker = True
+def sqleng(tmp_path, request, serial_or_parallel):
+	with Engine(
+		tmp_path,
+		random_seed=69105,
+		enforce_end_of_time=False,
+		workers=0 if serial_or_parallel == "serial" else 2,
+		sub_mode=Sub(serial_or_parallel)
+		if serial_or_parallel != "serial"
+		else None,
+		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
+	) as eng:
 		yield eng
-	else:
-		with Engine(
-			tmp_path,
-			random_seed=69105,
-			enforce_end_of_time=False,
-			workers=0 if execution == "serial" else 2,
-			sub_mode=Sub(execution) if execution != "serial" else None,
-			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-		) as eng:
-			yield eng
 	if hasattr(eng, "_worker_log_threads"):
 		for t in eng._worker_log_threads:
 			assert not t.is_alive()

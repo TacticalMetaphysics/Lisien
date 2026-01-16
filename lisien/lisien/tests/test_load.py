@@ -29,8 +29,10 @@ testgraphs.append(path_graph_9)
 
 
 @pytest.fixture
-def db(tmp_path, execution, database, random_seed):
-	with make_test_engine(tmp_path, execution, database, random_seed) as orm:
+def db(tmp_path, serial_or_parallel, database, random_seed):
+	with make_test_engine(
+		tmp_path, serial_or_parallel, database, random_seed
+	) as orm:
 		for graph in testgraphs:
 			orm.new_character(graph.name, graph)
 			if not graph.is_directed():
