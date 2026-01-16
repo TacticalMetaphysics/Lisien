@@ -55,5 +55,5 @@ wine python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetd
 pyclean .
 cd ..
 unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
-cp -rf docs lisien_windows/
+cp -rf pages/docs lisien_windows/
 python3.12 butler.py
