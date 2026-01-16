@@ -221,7 +221,7 @@ def persistent_database(request):
 
 def database_connector_partial(tmp_path, database):
 	match database:
-		case "python":
+		case "pythondb":
 			try:
 				with open(tmp_path.joinpath("database.pkl"), "rb") as f:
 					pydb = pickle.load(f)
