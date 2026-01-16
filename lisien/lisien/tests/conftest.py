@@ -199,7 +199,7 @@ def database(request):
 @pytest.fixture(
 	scope="session",
 	params=[
-		pytest.param("python"),
+		pytest.param("pythondb"),
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
 	],
