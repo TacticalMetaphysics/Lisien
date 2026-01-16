@@ -7,6 +7,10 @@ depends_on:
   - headed-tests
 
 steps:
+  - name: check_version
+    image: python:3.12
+    steps:
+      - python check_version.py
   - name: deploy
     image: zacharyspector/elide:latest
     pull: true
