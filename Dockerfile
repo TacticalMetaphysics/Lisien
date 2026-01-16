@@ -26,6 +26,7 @@ RUN set -eux; \
 		libwayland-dev \
 		libgles-dev \
 		winehq-stable \
+		openjdk-21-jdk-headless \
 	; \
 	apt-get dist-clean
 
