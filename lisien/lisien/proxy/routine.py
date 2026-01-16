@@ -86,7 +86,17 @@ def worker_subroutine(
 			ret = ex
 			if uid == sys.maxsize:
 				msg = repr(ex)
-				logq.put((50, msg))
+				logq.put(
+					logging.LogRecord(
+						"lisien",
+						50,
+						__file__,
+						89,
+						msg,
+						(),
+						(type(ex), ex, ex.__traceback__),
+					)
+				)
 				import traceback
 
 				traceback.print_exc(file=sys.stderr)
