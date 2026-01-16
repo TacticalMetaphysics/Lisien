@@ -13,6 +13,7 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
+wget https://clayote.codeberg.page/lisien-windows.zip
 if [ ! -z "$(git clean -n)" ]; then
   echo "Debris in the repository."
   git clean -n
@@ -46,7 +47,6 @@ python -m build elide/
 twine check lisien/dist/* elide/dist/*
 twine upload lisien/dist/* elide/dist/*
 twine upload --repository codeberg lisien/dist/* elide/dist/*
-wget https://clayote.codeberg.page/lisien-windows.zip
 mkdir lisien_windows
 cd lisien_windows
 unzip ../lisien-windows.zip
