@@ -202,13 +202,14 @@ def test_save_load_plan(tmp_path, persistent_database_connector_part):
 		g2 = orm.character[2]
 		assert 2 not in g1.node  # because we're before the plan
 		# but if we go to after the plan...
-		orm.tick = orm.turn_end_plan()
-		assert 1 in g1.node
-		assert 2 in g1.node
-		# contradict the plan
-		del g1.node[2]
-		assert 1 in g2.node
-		assert 2 in g2.node
+		with orm.advancing():
+			orm.tick = orm.turn_end_plan()
+			assert 1 in g1.node
+			assert 2 in g1.node
+			# contradict the plan
+			del g1.node[2]
+			assert 1 in g2.node
+			assert 2 in g2.node
 		orm.next_turn()
 		assert orm.turn == 1
 		assert 2 not in g1.node
