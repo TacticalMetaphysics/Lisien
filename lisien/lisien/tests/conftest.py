@@ -251,16 +251,7 @@ def database_connector_part2(tmp_path, non_null_database):
 
 @pytest.fixture
 def persistent_database_connector_part(tmp_path, persistent_database):
-	match persistent_database:
-		case "sqlite":
-			return partial(
-				SQLAlchemyDatabaseConnector,
-				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
-			)
-		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
-			)
+	return database_connector_partial(tmp_path, persistent_database)
 
 
 @pytest.fixture(
