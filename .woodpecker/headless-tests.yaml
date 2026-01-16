@@ -8,6 +8,7 @@ matrix:
   PYTHON_VERSION:
     - 3.12
     - 3.13
+    - 3.14
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
@@ -16,7 +17,7 @@ matrix:
   EXECUTION:
     - thread
     - process
-    - not thread and not process
+    - not thread and not process and not interpreter
 
 variables:
   - &python_image python:${PYTHON_VERSION}
