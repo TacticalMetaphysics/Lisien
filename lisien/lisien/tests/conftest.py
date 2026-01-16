@@ -53,10 +53,10 @@ def lots_of_open_files():
 
 @pytest.fixture(
 	params=[
-		"thread",
-		"process",
+		"thread_workers",
+		"process_workers",
 		pytest.param(
-			"interpreter",
+			"interpreter_workers",
 			marks=pytest.mark.skipif(
 				sys.version_info.minor < 14,
 				reason="Subinterpreters are unavailable before Python 3.14",
@@ -73,7 +73,7 @@ def worker_sub_mode(request):
 	"""
 	if sys.version_info.minor < 14 and request.param == "interpreter":
 		raise pytest.skip("Subinterpreters are unavailable before Python 3.14")
-	yield Sub(request.param)
+	yield Sub(request.param.removesuffix("_workers"))
 
 
 @pytest.fixture(scope="function")
