@@ -261,23 +261,6 @@ def database_connector_part2(tmp_path, non_null_database):
 	return database_connector_partial(tmp_path, non_null_database)
 
 
-@pytest.fixture
-def reusing_database_connector_part2(
-	tmp_path,
-	non_null_database,
-	reusing_python_database_connector_part,
-	reusing_sqlalchemy_database_connector_part,
-	reusing_parquetdb_database_connector_part,
-):
-	match non_null_database:
-		case "python":
-			yield reusing_python_database_connector_part
-		case "sqlite":
-			yield reusing_sqlalchemy_database_connector_part
-		case "parquetdb":
-			yield reusing_parquetdb_database_connector_part
-
-
 @pytest.fixture(
 	scope="session",
 	params=[
