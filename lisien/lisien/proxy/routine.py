@@ -238,7 +238,6 @@ def engine_subroutine(
 			send_output("get_btt", engine_handle.get_btt())
 			continue
 		unpacked = engine_handle.unpack(recvd)
-		print(f"received: {unpacked}")
 		_engine_subroutine_step(
 			engine_handle,
 			unpacked,
