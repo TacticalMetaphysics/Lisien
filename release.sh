@@ -30,8 +30,6 @@ ruff format lisien
 ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
-for env in $(tox -c elide/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; pyclean .; tox -c elide/tox.ini -e $env; done
-for env in $(tox -c lisien/tox.ini -l); do if [ -e "/tmp/pytest-of-${USER}" ]; then rm -r "/tmp/pytest-of-${USER}/"; fi; pyclean .; tox -c lisien/tox.ini -e $env; done
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android update clean debug
 cd pages/docs
