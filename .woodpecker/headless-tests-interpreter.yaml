@@ -10,11 +10,6 @@ matrix:
     - sqlite
     - parquetdb
     - prerelease-parquetdb
-  EXECUTION:
-    - thread
-    - process
-    - interpreter
-    - not thread and not process and not interpreter
 
 variables:
   - &python_image python:3.14
@@ -42,7 +37,7 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
+      - PYTEST_MARKS="not slow and not big and interpreter $DATABASE"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
   - name: *slow_headless_name
@@ -64,6 +59,6 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
+      - PYTEST_MARKS="(slow or big) and interpreter and $DATABASE"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
