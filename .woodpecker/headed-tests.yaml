@@ -11,7 +11,6 @@ matrix:
     - 3.14
 
 variables:
-  - &python python${PYTHON_VERSION}
   - &stepname headed_${PYTHON_VERSION}
 
 steps:
@@ -26,7 +25,7 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
-      - PYTHON=*python
+      - PYTHON=python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
       - $PYTHON -m venv --system-site-packages .venv
       - . .venv/bin/activate
