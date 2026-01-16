@@ -502,7 +502,9 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real.enforce_end_of_time and not self._real._planning:
+			if self._real.enforce_end_of_time and not (
+				self._real._planning or self._real._forward
+			):
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)
@@ -893,6 +895,12 @@ class EngineHandle:
 
 	def del_rule(self, rule: RuleName) -> None:
 		del self._real.rule[rule]
+
+	def start_advancing(self):
+		self._real._forward = True
+
+	def stop_advancing(self):
+		self._real._forward = False
 
 	def set_rule_triggers(
 		self, rule: RuleName, triggers: list[TriggerFuncName]
