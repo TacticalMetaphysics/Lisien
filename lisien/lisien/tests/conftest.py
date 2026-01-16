@@ -187,7 +187,7 @@ def serial_or_parallel(request):
 @pytest.fixture(
 	params=[
 		"nodb",
-		"python",
+		"pythondb",
 		pytest.param("parquetdb", marks=pytest.mark.parquetdb),
 		pytest.param("sqlite", marks=pytest.mark.sqlite),
 	]
