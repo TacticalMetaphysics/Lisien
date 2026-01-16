@@ -160,10 +160,10 @@ def handle_initialized(request, tmp_path, database, random_seed):
 
 KINDS_OF_PARALLEL = [
 	pytest.param(
-		"process", marks=[pytest.mark.parallel, pytest.mark.subprocess]
+		"process_workers", marks=[pytest.mark.parallel, pytest.mark.subprocess]
 	),
 	pytest.param(
-		"interpreter",
+		"interpreter_workers",
 		marks=[
 			pytest.mark.parallel,
 			pytest.mark.subinterpreter,
@@ -174,14 +174,14 @@ KINDS_OF_PARALLEL = [
 		],
 	),
 	pytest.param(
-		"thread", marks=[pytest.mark.parallel, pytest.mark.subthread]
+		"thread_workers", marks=[pytest.mark.parallel, pytest.mark.subthread]
 	),
 ]
 
 
 @pytest.fixture(scope="session", params=["serial", *KINDS_OF_PARALLEL])
 def serial_or_parallel(request):
-	return request.param
+	return request.param.removesuffix("_workers")
 
 
 @pytest.fixture(
