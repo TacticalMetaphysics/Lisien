@@ -64,7 +64,7 @@ def lots_of_open_files():
 		),
 	]
 )
-def sub_mode(request):
+def worker_sub_mode(request):
 	"""Modes that workers and the Lisien core can run parallel in
 
 	Originally just 'process', this has expanded to include 'thread' and
