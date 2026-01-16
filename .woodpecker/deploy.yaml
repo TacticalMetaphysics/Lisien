@@ -1,0 +1,13 @@
+when:
+  - event: deployment
+
+depends_on:
+  - headless-tests
+  - headless-tests-interpreter
+  - headed-tests
+
+steps:
+  - name: deploy
+    image: zacharyspector/elide:latest
+    pull: true
+    entrypoint: ["/bin/sh", "release.sh"]
