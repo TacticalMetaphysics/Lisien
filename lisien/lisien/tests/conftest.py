@@ -120,11 +120,11 @@ def handle_initialized(request, tmp_path, database, random_seed):
 		from lisien.examples.sickle import install
 
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
-	if database in {"nodb", "python"}:
+	if database in {"nodb", "pythondb"}:
 		if database == "nodb":
 			connector = NullDatabaseConnector()
 		else:
-			assert database == "python"
+			assert database == "pythondb"
 			connector = PythonDatabaseConnector()
 		ret = EngineHandle(
 			None,
