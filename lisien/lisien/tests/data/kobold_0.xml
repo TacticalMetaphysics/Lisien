@@ -1,7 +1,7 @@
-<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="111" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="qRkN92WzWkXptKkRiHIDoh2me45fGdNSBR1MjJk3w9oqgPvVrqon8imOq6FoXjxr6+3H/HKUycGqiQ4RfI82jQ==" trigger="8Np7ve+uTncaOsuW1ogPTn+bu6l+r0lc/+HWNB8wxbvyMw8E6s5yjNbztfFj4TEvlpL40uLGNla0nEE6DOYsAg==" prereq="2tj8Yg9sxKNf07UfeGBtck0Lijas6Fdtt+1MyDhQrW2n65BSLGXNUHVYNdldab5RDvu892Q2U8q1bWIUrmUN3Q==" action="1IcyIWSXLeQOgF+IXj4hQ3Ls9SHP7yGEpry+QirXPgW4frRrCRMH5/a+yCVhKWU9PmlM3wnq7RWE7O3E0DCXmA==">
+<lisien db-schema-version="2" xml-schema-version="2" trunk="trunk" branch="trunk" turn="0" tick="110" language="eng" function="eGoC90IBWQPGxv2FJVLScpEvR0DhWEdhiobiF/cfVBnSXhAxr+5YUxOJZESTTrBLkDpoWxRIt1XVb3Aa/pvizg==" method="qRkN92WzWkXptKkRiHIDoh2me45fGdNSBR1MjJk3w9oqgPvVrqon8imOq6FoXjxr6+3H/HKUycGqiQ4RfI82jQ==" trigger="w1PKZDrdtGM2f18VpfC56M/J26nJpMqqsncktW776V2MdOXFeF7BKI4i8/FzsSRRwCQ0BDHk18cTWJrCwvXCDg==" prereq="l7Jn/bsKc0vsYvVafux37YRl6lcJxfGadqWK6HppsbJlpyaM7HvwxMFNqPbiHYssGbWaKLTCJxe4gkmckmqZiw==" action="2kbn6f7Q+u6ScL8hTRKS8AVqa2MgnVtEovut6YHkxWdnDOXbB3yoS6YuF8pYMExFFdySHx4MuxcxgGT+e4IVyA==">
   <playtree trunk="trunk" game="test_export">
-    <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="111">
-      <turn number="0" end-tick="111" plan-end-tick="111">
+    <branch name="trunk" start-turn="0" start-tick="0" end-turn="0" end-tick="110">
+      <turn number="0" end-tick="110" plan-end-tick="110">
         <keyframe tick="0">
           <universal>
             <dict-item key="'rando_state'">
@@ -2784,52 +2784,47 @@
         <rule-neighborhood rule="kill_kobold" tick="100"/>
         <rule-prereqs rule="kill_kobold" tick="100"/>
         <rule-triggers rule="kill_kobold" tick="100"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="101">
-          <rule name="fight"/>
+        <rulebook name="('physical', 'kobold')" priority="0.0" tick="101">
+          <rule name="shrubsprint"/>
           <rule name="kill_kobold"/>
         </rulebook>
         <rule-triggers rule="kill_kobold" tick="102">
-          <trigger name="kobold_alive"/>
+          <trigger name="unmerciful"/>
         </rule-triggers>
-        <rule-prereqs rule="kill_kobold" tick="103">
-          <prereq name="unmerciful"/>
-        </rule-prereqs>
-        <rule-actions rule="go2kobold" tick="104">
+        <rule-actions rule="go2kobold" tick="103">
           <action name="go2kobold"/>
         </rule-actions>
-        <rule-big rule="go2kobold" tick="104" big="false"/>
-        <rule-neighborhood rule="go2kobold" tick="104"/>
-        <rule-prereqs rule="go2kobold" tick="104"/>
-        <rule-triggers rule="go2kobold" tick="104"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="105">
+        <rule-big rule="go2kobold" tick="103" big="false"/>
+        <rule-neighborhood rule="go2kobold" tick="103"/>
+        <rule-prereqs rule="go2kobold" tick="103"/>
+        <rule-triggers rule="go2kobold" tick="103"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="104">
           <rule name="fight"/>
-          <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
         </rulebook>
-        <rule-triggers rule="go2kobold" tick="106">
+        <rule-triggers rule="go2kobold" tick="105">
           <trigger name="aware"/>
         </rule-triggers>
-        <rule-prereqs rule="go2kobold" tick="107">
+        <rule-prereqs rule="go2kobold" tick="106">
           <prereq name="kobold_alive"/>
         </rule-prereqs>
-        <rule-prereqs rule="go2kobold" tick="108">
+        <rule-prereqs rule="go2kobold" tick="107">
           <prereq name="kobold_alive"/>
           <prereq name="kobold_not_here"/>
         </rule-prereqs>
-        <rule-actions rule="wander" tick="109">
+        <rule-actions rule="wander" tick="108">
           <action name="wander"/>
         </rule-actions>
-        <rule-big rule="wander" tick="109" big="false"/>
-        <rule-neighborhood rule="wander" tick="109"/>
-        <rule-prereqs rule="wander" tick="109"/>
-        <rule-triggers rule="wander" tick="109"/>
-        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="110">
+        <rule-big rule="wander" tick="108" big="false"/>
+        <rule-neighborhood rule="wander" tick="108"/>
+        <rule-prereqs rule="wander" tick="108"/>
+        <rule-triggers rule="wander" tick="108"/>
+        <rulebook name="('physical', 'dwarf')" priority="0.0" tick="109">
           <rule name="fight"/>
-          <rule name="kill_kobold"/>
           <rule name="go2kobold"/>
           <rule name="wander"/>
         </rulebook>
-        <rule-triggers rule="wander" tick="111">
+        <rule-triggers rule="wander" tick="110">
           <trigger name="standing_still"/>
         </rule-triggers>
       </turn>
