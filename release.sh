@@ -13,6 +13,7 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
+ls /usr/lib/jvm/java-21-openjdk-amd64
 wget https://clayote.codeberg.page/lisien-windows.zip
 if [ ! -z "$(git clean -n)" ]; then
   echo "Debris in the repository."
