@@ -15,9 +15,9 @@ matrix:
     - parquetdb
     - prerelease-parquetdb
   EXECUTION:
-    - thread
-    - process
-    - not thread and not process and not interpreter
+    - thread_workers
+    - process_workers
+    - not thread_workers and not process_workers and not interpreter_workers
 
 variables:
   - &python_image python:${PYTHON_VERSION}
