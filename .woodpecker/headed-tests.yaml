@@ -12,9 +12,10 @@ matrix:
 
 variables:
   - &python python${PYTHON_VERSION}
+  - &stepname headed_${PYTHON_VERSION}
 
 steps:
-  - name: headed_${PYTHON_VERSION}
+  - name: *stepname
     image: zacharyspector/elide:latest
     pull: true
     commands:
