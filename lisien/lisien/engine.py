@@ -2061,8 +2061,9 @@ class Engine(AbstractEngine, Executor):
 	def advancing(self):
 		"""A context manager for when time is moving forward one turn at a time.
 
-		When used in lisien, this means that the game is being simulated.
-		It changes how the caching works, making it more efficient.
+		Generally, this means that the game is being simulated. The window
+		of time that's "really happened" isn't allowed to grow outside of
+		this context.
 
 		"""
 		if self._forward:
