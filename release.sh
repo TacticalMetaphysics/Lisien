@@ -31,7 +31,7 @@ ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 rm -rf bin lisien/dist elide/dist
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 buildozer android update clean debug
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 buildozer android update clean debug
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
