@@ -5394,11 +5394,12 @@ class Engine(AbstractEngine, Executor):
 				}
 			if EDGES in chardeltpacked:
 				edges = chardelt["edges"] = {}
-				for ab, ex in chardeltpacked.pop(EDGES).items():
-					a, b = unpack(ab)
+				for a, bs in chardeltpacked.pop(EDGES).items():
+					a = unpack(a)
 					if a not in edges:
 						edges[a] = {}
-					edges[a][b] = ex == TRUE
+					for b, ex in bs.items():
+						edges[a][b] = ex == TRUE
 			if NODE_VAL in chardeltpacked:
 				node_val = chardelt["node_val"] = {}
 				for node, stats in chardeltpacked.pop(NODE_VAL).items():
@@ -5436,8 +5437,8 @@ class Engine(AbstractEngine, Executor):
 				NODES: PickyDefaultDict(
 					bytes, args_munger=None, kwargs_munger=None
 				),
-				EDGES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
+				EDGES: StructuredDefaultDict(
+					1, bytes, args_munger=None, kwargs_munger=None
 				),
 				NODE_VAL: StructuredDefaultDict(
 					1, bytes, args_munger=None, kwargs_munger=None
@@ -5623,10 +5624,14 @@ class Engine(AbstractEngine, Executor):
 			delta[grap][NODES][node] = existence
 
 		def pack_edge(graph, orig, dest, existence):
-			graph, origdest = map(pack, (graph, (orig, dest)))
+			graph, orig, dest = map(pack, (graph, orig, dest))
 			if graph not in delta:
 				delta[graph] = newgraph()
-			delta[graph][EDGES][origdest] = existence
+			delta[graph][EDGES][orig][dest] = existence
+			assert graph in delta
+			assert EDGES in delta[graph]
+			assert orig in delta[graph][EDGES]
+			assert delta[graph][EDGES][orig][dest] == existence
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
@@ -5673,7 +5678,7 @@ class Engine(AbstractEngine, Executor):
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in deleted_edges:
-				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
+				pack_edge(graph, orig, dest, FALSE)
 			edges_to = {
 				(graph, orig, dest)
 				for graph in kf_to["edges"]

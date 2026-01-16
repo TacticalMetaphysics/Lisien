@@ -967,7 +967,7 @@ class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 
 	def _apply_delta(self, delta: EdgeValDict) -> None:
 		for o, ds in delta.items():
-			cache = self._cache[o]
+			cache = self._cache.setdefault(o, {})
 			for d, stats in ds.items():
 				if d not in cache:
 					cache[d] = PortalProxy(self.character, o, d)
