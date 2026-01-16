@@ -394,7 +394,10 @@ class EngineHandle:
 			packd[NODE_VAL] = concat_d(packnodevd)
 		if EDGES in delta:
 			es = delta.pop(EDGES)
-			packd[EDGES] = concat_d(es)
+			ed = {}
+			for orig, dests in es.items():
+				ed[orig] = concat_d(dests)
+			packd[EDGES] = concat_d(ed)
 		if EDGE_VAL in delta:
 			packorigd = {}
 			for orig, dests in delta.pop(EDGE_VAL).items():
