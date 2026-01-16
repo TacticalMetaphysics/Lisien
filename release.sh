@@ -51,7 +51,7 @@ twine upload lisien/dist/* elide/dist/*
 twine upload --repository codeberg lisien/dist/* elide/dist/*
 mkdir lisien_windows
 cd lisien_windows
-unzip ../lisien-windows.zip
+tar xf ../lisien-windows.tar.xz
 wine python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
 pyclean .
 cd ..
