@@ -37,7 +37,7 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="not slow and not big and interpreter_workers $DATABASE"
+      - PYTEST_MARKS="not slow and not big and interpreter_workers and $DATABASE"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
   - name: *slow_headless_name
