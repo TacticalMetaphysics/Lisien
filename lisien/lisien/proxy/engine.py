@@ -311,6 +311,7 @@ class EngineProxy(AbstractEngine):
 	)
 	_random_seed: int | None = None
 	enforce_end_of_time: bool = True
+	_forward: bool = field(init=False, default=False)
 	_universal: dict[UniversalKey, Value] = field(factory=lambda: {})
 	_branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]] = (
 		field(
@@ -324,6 +325,14 @@ class EngineProxy(AbstractEngine):
 	@property
 	def _worker(self) -> bool:
 		return self.i is not None
+
+	@contextmanager
+	def advancing(self):
+		self.handle("start_advancing")
+		self._forward = True
+		yield
+		self._forward = False
+		self.handle("stop_advancing")
 
 	@staticmethod
 	def _convert_function_store_proxy(cls, proxy_cls, src_d, self):
