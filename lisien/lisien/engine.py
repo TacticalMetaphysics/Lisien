@@ -338,11 +338,13 @@ class NextTurn(Signal):
 			# so that lisien does not try to load an empty turn before every
 			# loop of the rules engine
 			engine._extend_branch(start_branch, Turn(start_turn + 1), Tick(0))
-			engine.turn += 1
-			engine.tick = engine.turn_end_plan()
+			with engine.advancing():
+				engine.turn += 1
+				engine.tick = engine.turn_end_plan()
 		elif start_turn < latest_turn:
-			engine.turn += 1
-			engine.tick = engine.turn_end_plan()
+			with engine.advancing():
+				engine.turn += 1
+				engine.tick = engine.turn_end_plan()
 			self.send(
 				engine,
 				branch=engine.branch,
@@ -1343,10 +1345,11 @@ class Engine(AbstractEngine, Executor):
 			return
 		if self.turn == self.branch_end_turn():
 			tick_end = self._turn_end[self.branch, self.turn]
+			tick_end_plan = self._turn_end_plan[self.branch, self.turn]
 			if (
 				not self._planning
 				and v > tick_end
-				and not (self._forward and v == tick_end + 1)
+				and not (self._forward and v <= tick_end_plan + 1)
 			):
 				raise OutOfTimelineError(
 					f"The tick {v} is after the end of the turn {self.turn}. "
