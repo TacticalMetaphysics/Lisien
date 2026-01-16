@@ -14,6 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from collections import defaultdict
 
+import pytest
+
+from lisien.exc import OutOfTimelineError
+
 
 def test_build_keyframe_window(null_engine):
 	null_engine._branch_parents = defaultdict(
