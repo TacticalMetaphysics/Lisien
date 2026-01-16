@@ -146,11 +146,13 @@ def test_plan_vs_plan(serial_engine):
 		assert 1 in g1.edge[0]
 		assert 2 in g1.edge[1]
 	eng.turn = 0
-	eng.tick = eng.turn_end_plan()
+	with eng.advancing():
+		eng.tick = eng.turn_end_plan()
 	with eng.plan():
 		del g1.node[2]  # A contradiction. Should only cancel the earlier plan.
-	eng.turn = 2
-	eng.tick = eng.turn_end_plan()
+	with eng.advancing():
+		eng.turn = 2
+		eng.tick = eng.turn_end_plan()
 	assert 3 not in g1.node
 	assert 3 not in g1.adj
 	assert 0 in g1.node
