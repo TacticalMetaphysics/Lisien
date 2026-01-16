@@ -90,7 +90,7 @@ def test_rule_builder_display_trigger(rules_view_app):
 		"aware",
 		"uncovered",
 		"sametile",
-		"kobold_alive",
+		"unmerciful",
 	}
 
 
