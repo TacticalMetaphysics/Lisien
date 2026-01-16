@@ -47,8 +47,13 @@ python -m build elide/
 twine check lisien/dist/* elide/dist/*
 twine upload lisien/dist/* elide/dist/*
 twine upload --repository codeberg lisien/dist/* elide/dist/*
-wine ~/lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
-pyclean ~/lisien_windows
-unix2dos -n CHANGES.txt ~/lisien_windows/CHANGES.txt
-cp -rf docs ~/lisien_windows/
+wget https://clayote.codeberg.page/lisien-windows.zip
+mkdir lisien_windows
+cd lisien_windows
+unzip ../lisien-windows.zip
+wine python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
+pyclean .
+cd ..
+unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
+cp -rf docs lisien_windows/
 python3.12 butler.py
