@@ -1284,6 +1284,10 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			self._ast.body.append(expr)
 		locl = {}
 		exec(compile(mod, self._filename or "", "exec"), {}, locl)
+		if isinstance(self._module, str):
+			locl[name].__module__ = self._module
+		else:
+			locl[name].__module__ = self._module.__name__
 		self._locl.update(locl)
 		self.send(self, attr=name, val=locl[name])
 
