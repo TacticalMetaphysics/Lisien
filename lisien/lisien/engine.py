@@ -4986,15 +4986,19 @@ class Engine(AbstractEngine, Executor):
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
-		if turn is None:
-			turn = self._oturn
+			if turn is None:
+				turn = self._oturn
+		elif turn is None:
+			turn = self.branch_end_turn(branch)
 		return self._turn_end[branch, turn]
 
 	def turn_end_plan(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
-		if turn is None:
-			turn = self._oturn
+			if turn is None:
+				turn = self._oturn
+		elif turn is None:
+			turn = self.branch_end_turn(branch)
 		return self._turn_end_plan[branch, turn]
 
 	def submit(
