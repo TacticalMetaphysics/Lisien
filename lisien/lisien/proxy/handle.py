@@ -465,8 +465,8 @@ class EngineHandle:
 	) -> Tick:
 		return self._real.turn_end_plan(branch, turn)
 
-	def branch_end(self, branch: Optional[Branch] = None) -> Turn:
-		return self._real.branch_end(branch)
+	def branch_end_turn(self, branch: Optional[Branch] = None) -> Turn:
+		return self._real.branch_end_turn(branch)
 
 	def branch_end_turn_and_tick(self, branch: Branch) -> LinearTime:
 		branch = Branch(branch)
