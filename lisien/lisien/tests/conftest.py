@@ -51,16 +51,29 @@ def lots_of_open_files():
 	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 69105))
 
 
+at_least_314 = pytest.mark.skipif(
+	sys.version_info < (3, 14),
+	reason="Subinterpreters are only available in Python 3.14 or newer",
+)
+
+
 @pytest.fixture(
 	params=[
-		"thread_workers",
-		"process_workers",
+		pytest.param(
+			"thread_workers",
+			marks=[pytest.mark.parallel, pytest.mark.subthread],
+		),
+		pytest.param(
+			"process_workers",
+			marks=[pytest.mark.parallel, pytest.mark.subprocess],
+		),
 		pytest.param(
 			"interpreter_workers",
-			marks=pytest.mark.skipif(
-				sys.version_info.minor < 14,
-				reason="Subinterpreters are unavailable before Python 3.14",
-			),
+			marks=[
+				pytest.mark.parallel,
+				pytest.mark.subinterpreter,
+				at_least_314,
+			],
 		),
 	]
 )
@@ -165,10 +178,7 @@ KINDS_OF_PARALLEL = [
 		marks=[
 			pytest.mark.parallel,
 			pytest.mark.subinterpreter,
-			pytest.mark.skipif(
-				sys.version_info.minor < 14,
-				reason="Subinterpreters are unavailable before Python 3.14",
-			),
+			at_least_314,
 		],
 	),
 	pytest.param(
@@ -256,14 +266,11 @@ def persistent_database_connector_part(tmp_path, persistent_database):
 	scope="session",
 	params=[
 		"no_manager",
-		"thread_manager",
-		"process_manager",
+		pytest.param("thread_manager", marks=pytest.mark.subthread),
+		pytest.param("process_manager", marks=pytest.mark.subprocess),
 		pytest.param(
 			"interpreter_manager",
-			marks=pytest.mark.skipif(
-				lambda: sys.version_info.minor < 14,
-				reason="Subinterpreters are only available in Python 3.14 or newer",
-			),
+			marks=[pytest.mark.subinterpreter, at_least_314],
 		),
 	],
 )
