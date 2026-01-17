@@ -645,6 +645,10 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
+		if hasattr(self, "engine_proxy"):
+			raise RuntimeError(
+				"Tried to make a second proxy in EngineProxyManager"
+			)
 		if hasattr(self, "_input_queue"):
 			self._input_queue.put(b"echoReadyToMakeProxy")
 			if (got := self._output_queue.get()) != b"ReadyToMakeProxy":
