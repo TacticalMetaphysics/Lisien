@@ -563,7 +563,9 @@ class EngineProxyManager:
 			self._input_queue.put(
 				pack({"command": "restart", "prefix": prefix, **kwargs})
 			)
-			if (got := self._output_queue.get()) != b"\xa9restarted":
+			if not (got := self._output_queue.get()).endswith(
+				b"\xa9restarted"
+			):
 				raise RuntimeError("Failed to restart subinterpreter", got)
 			return
 		from concurrent.interpreters import create, create_queue
