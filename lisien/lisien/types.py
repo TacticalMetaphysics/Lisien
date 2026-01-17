@@ -2857,19 +2857,29 @@ class AbstractEngine(ABC):
 			)
 
 		def pack_database_connector(db):
+			from .db import PythonDatabaseConnector
+
 			if isinstance(db, partial):
 				data = {
 					"class": db.func.__name__,
 				}
+				if (
+					db.func is PythonDatabaseConnector
+					and PythonDatabaseConnector._old_data is not None
+				):
+					data["load_me"] = PythonDatabaseConnector._old_data
 				data.update(db.keywords)
-				return msgpack.ExtType(
-					MsgpackExtensionType.database.value, packer(data)
-				)
+			elif isinstance(db, PythonDatabaseConnector):
+				data = {
+					"class": "PythonDatabaseConnector",
+					"load_me": db.dump_everything(),
+				}
 			else:
-				return msgpack.ExtType(
-					MsgpackExtensionType.database.value,
-					packer({"class": db.__name__}),
-				)
+				data = {"class": db.__name__}
+			return msgpack.ExtType(
+				MsgpackExtensionType.database.value,
+				packer(data),
+			)
 
 		def pack_path(p):
 			return msgpack.ExtType(
@@ -3111,7 +3121,10 @@ class AbstractEngine(ABC):
 			if clsn == "PythonDatabaseConnector":
 				from .db import PythonDatabaseConnector
 
-				return PythonDatabaseConnector
+				connector = PythonDatabaseConnector()
+				if "load_me" in data:
+					connector.load_everything(data["load_me"])
+				return connector
 			elif clsn == "SQLAlchemyDatabaseConnector":
 				from .sql import SQLAlchemyDatabaseConnector
 
