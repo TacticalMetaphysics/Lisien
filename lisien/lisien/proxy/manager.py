@@ -286,17 +286,15 @@ class EngineProxyManager:
 			if hasattr(self, "_logq"):
 				self._logq.put(b"shutdown")
 				del self._logq
-			if hasattr(self, "engine_proxy"):
-				self.engine_proxy.send_bytes(b"shutdown")
-				if (
-					got := self.engine_proxy.recv_bytes(timeout=5.0)
-				) != b"shutdown":
-					raise RuntimeError(
-						"Subprocess didn't respond to shutdown signal", got
-					)
-				del self.engine_proxy
 			if hasattr(self, "_p"):
 				if self._p.is_alive():
+					self._handle_in_pipe.send_bytes(b"shutdown")
+					if (
+						got := self._handle_out_pipe.recv_bytes(timeout=5.0)
+					) != b"shutdown":
+						raise RuntimeError(
+							"Subprocess didn't respond to shutdown signal", got
+						)
 					self._p.join(timeout=10.0)
 					if self._p.is_alive():
 						self._p.kill()
@@ -307,6 +305,13 @@ class EngineProxyManager:
 				del self._p
 			if hasattr(self, "_t"):
 				if self._t.is_alive():
+					self._input_queue.put(b"shutdown")
+					if (
+						got := self._output_queue.get(timeout=5.0)
+					) != b"shutdown":
+						raise RuntimeError(
+							"Subthread didn't respond to shutdown signal", got
+						)
 					self._t.join(timeout=5.0)
 					if self._t.is_alive():
 						raise TimeoutError("Couldn't join thread")
