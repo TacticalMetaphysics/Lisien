@@ -23,6 +23,7 @@ import sys
 import time
 import zlib
 from enum import Enum
+from functools import partial
 from pathlib import Path
 from threading import Thread
 from zipfile import ZipFile
@@ -145,17 +146,43 @@ class EngineProxyManager:
 			EternalKey(Key("tick")): Value(0),
 			EternalKey(Key("_lisien_schema_version")): Value(0),
 		}
+		if "database" in kwargs:
+			if isinstance(kwargs["database"], partial):
+				which_db = kwargs["database"].func.db_type
+			else:
+				which_db = kwargs["database"].db_type
+		elif "connect_string" in kwargs:
+			which_db = "sql"
+		elif prefix is None:
+			which_db = "python"
+		else:
+			which_db = "parquetdb"
 
-		if "connect_string" in kwargs:
+		if which_db == "sql":
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
 			from ..sql import meta
 
+			connect_args = {}
+			if "connect_string" in kwargs:
+				connect_string = kwargs["connect_string"]
+				if "connect_args" in kwargs:
+					connect_args = kwargs["connect_args"]
+			elif "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				connect_string = kwargs["database"].keywords["connect_string"]
+				if "connect_args" in kwargs["database"].keywords:
+					connect_args = kwargs["database"].keywords["connect_args"]
+			elif prefix is not None:
+				connect_string = f"sqlite:///{prefix}/world.sqlite3"
+			else:
+				raise ValueError("Don't have a connect_string for SQL")
 			eng = create_engine(
-				kwargs["connect_string"],
+				connect_string,
 				poolclass=NullPool,
-				**kwargs.get("connect_args", {}),
+				**connect_args,
 			)
 			conn = eng.connect()
 			branches_t = meta.tables["branches"]
@@ -192,14 +219,19 @@ class EngineProxyManager:
 					eternal_d[key] = value
 			except OperationalError:
 				pass
-		elif prefix is None:
+		elif which_db == "python":
 			self.logger.warning(
 				"Running without a database. Lisien will be empty at start."
 			)
-		else:
+		elif which_db == "parquetdb":
 			from parquetdb import ParquetDB
 
-			pqdb_prefix = prefix.joinpath("world")
+			if "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				pqdb_prefix = kwargs["database"].keywords["path"]
+			else:
+				pqdb_prefix = prefix.joinpath("world")
 
 			for d in (
 				ParquetDB(pqdb_prefix.joinpath("branches"))
@@ -228,6 +260,8 @@ class EngineProxyManager:
 				.to_pylist()
 			):
 				eternal_d[d["key"]] = d["value"]
+		else:
+			raise ValueError("Couldn't determine database type", which_db)
 		return branches_d, eternal_d
 
 	def log(self, level: str | int, msg: str):
