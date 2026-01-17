@@ -29,6 +29,7 @@ steps:
       - echo "PYTHON=$PYTHON"
       - $PYTHON -m venv --system-site-packages .venv
       - . .venv/bin/activate
-      - $PYTHON -m pip install --upgrade pip
-      - $PYTHON -m pip install pytest lisien/ elide/
-      - pytest -vvx elide/elide/tests
+      - echo "python=$(which python)"
+      - python -m pip install --upgrade pip
+      - python -m pip install pytest lisien/ elide/
+      - python -m pytest -vvx elide/elide/tests
