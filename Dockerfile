@@ -301,18 +301,32 @@ RUN set -eux; \
 	pip3 --version
 
 # compile kivy
-RUN set -eux; \
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
-	unzip kivy.zip; \
-	cd kivy-$COMMIT_HASH; \
-	for minor in $(seq 12 14); do \
-		python3.$minor -m pip install Cython; \
-		USE_X11=1 python3.$minor -m pip wheel .; \
-		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl; \
-	done; \
+RUN <<EOF
+	set -eux; 
+	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; 
+	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip;
+	unzip kivy.zip;
+	cd kivy-$COMMIT_HASH;
+	patch -p1 << EOT
+--- a/kivy/uix/recycleview/__init__.py
++++ b/kivy/uix/recycleview/__init__.py
+@@ -310,7 +310,7 @@ class RecycleViewBehavior(object):
+         if lm is None or self.view_adapter is None or self.data_model is None:
+             return
+ 
+-        data = self.data
++        data = self.data.copy()
+         f = flags['data']
+         if f:
+             self.save_viewport()
+EOT
+	for minor in $(seq 12 14); do
+		python3.$minor -m pip install Cython;
+		USE_X11=1 python3.$minor -m pip wheel .;
+		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
+	done;
 	cd ..
-
+EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
 	for src in idle3 pip3 pydoc3 python3 python3-config; do \
