@@ -174,8 +174,9 @@ class EngineHandle:
 	def shutdown(self):
 		self._real._shutdown_executor = True
 		self._real.shutdown()
-		if hasattr(self, "_executor"):
+		if getattr(self, "_executor", None):
 			self._executor.shutdown()
+			del self._executor
 
 	def restart(self, *args, do_game_start=False, **kwargs):
 		from ..engine import Engine
