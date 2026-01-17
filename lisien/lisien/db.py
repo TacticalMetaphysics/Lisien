@@ -4171,8 +4171,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	_pack = field(default=None)
 	_unpack = field(default=None)
+	_reload: bool = field(default=False)
+	_old_data: ClassVar = None
 	is_python: ClassVar = True
 	db_type: ClassVar = "python"
+
+	@_reload.validator
+	def _do_reload(self, _, reload):
+		if reload and PythonDatabaseConnector._old_data is not None:
+			self.load_everything(PythonDatabaseConnector._old_data)
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -5084,7 +5091,13 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 						for tick in turns[turn]:
 							yield plan, branch, turn, tick
 
-	commit = close = AbstractDatabaseConnector.flush
+	def commit(self):
+		self.flush()
+
+	def close(self):
+		self.flush()
+		if self._reload:
+			PythonDatabaseConnector._old_data = self.dump_everything()
 
 	def truncate_all(self) -> None:
 		for table in Batch.cached_properties:
