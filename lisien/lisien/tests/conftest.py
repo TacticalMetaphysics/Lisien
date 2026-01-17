@@ -332,11 +332,6 @@ def engine(
 	database_connector_part,
 ):
 	"""Engine or EngineProxy with a subprocess"""
-	if (
-		serial_or_parallel == "interpreter"
-		and non_null_database == "parquetdb"
-	):
-		raise pytest.skip("PyArrow does not yet run in subinterpreters")
 	if proxy_manager is None:
 		with Engine(
 			tmp_path,
@@ -347,6 +342,11 @@ def engine(
 		) as eng:
 			yield eng
 	else:
+		if (
+			proxy_manager.sub_mode == Sub.interpreter
+			and non_null_database == "parquetdb"
+		):
+			raise pytest.skip("PyArrow does not yet run in subinterpreters")
 		with proxy_manager.start(
 			tmp_path,
 			random_seed=random_seed,
