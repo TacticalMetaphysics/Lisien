@@ -246,28 +246,35 @@ class EngineProxyManager:
 		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			self.engine_proxy.close()
 		if self._really_shutdown:
-			self.engine_proxy.send_bytes(b"shutdown")
-			if (
-				got := self.engine_proxy.recv_bytes(timeout=5.0)
-			) != b"shutdown":
-				raise RuntimeError(
-					"Subprocess didn't respond to shutdown signal", got
-				)
+			if hasattr(self, "engine_proxy"):
+				self.engine_proxy.send_bytes(b"shutdown")
+				if (
+					got := self.engine_proxy.recv_bytes(timeout=5.0)
+				) != b"shutdown":
+					raise RuntimeError(
+						"Subprocess didn't respond to shutdown signal", got
+					)
+				del self.engine_proxy
 			if hasattr(self, "_p"):
-				self._p.join(timeout=10.0)
 				if self._p.is_alive():
-					self._p.kill()
 					self._p.join(timeout=10.0)
 					if self._p.is_alive():
-						self._p.terminate()
-				self._p.close()
-			if hasattr(self, "_terp"):
-				self._terp.close()
+						self._p.kill()
+						self._p.join(timeout=10.0)
+						if self._p.is_alive():
+							self._p.terminate()
+					self._p.close()
+				del self._p
 			if hasattr(self, "_t"):
-				self._t.join(timeout=5.0)
 				if self._t.is_alive():
-					raise TimeoutError("Couldn't join thread")
-			del self.engine_proxy
+					self._t.join(timeout=5.0)
+					if self._t.is_alive():
+						raise TimeoutError("Couldn't join thread")
+				del self._t
+			if hasattr(self, "_terp"):
+				if self._terp.is_running():
+					self._terp.close()
+				del self._terp
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
 				time.sleep(0.01)
