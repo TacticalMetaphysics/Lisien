@@ -323,6 +323,8 @@ class EngineProxyManager:
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
+		if hasattr(self, "engine_proxy"):
+			del self.engine_proxy
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: shutdown")
 
