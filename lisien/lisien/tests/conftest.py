@@ -274,7 +274,7 @@ def kind_of_proxy_manager(request):
 
 
 @pytest.fixture(scope="session")
-def proxy_manager(
+def session_proxy_manager(
 	serial_or_parallel,
 	kind_of_proxy_manager,
 ):
@@ -294,6 +294,12 @@ def proxy_manager(
 	yield proxman
 	proxman._really_shutdown = True
 	proxman.shutdown()
+
+
+@pytest.fixture(scope="function")
+def proxy_manager(session_proxy_manager):
+	with session_proxy_manager as proxman:
+		yield proxman
 
 
 @pytest.fixture(scope="session")
