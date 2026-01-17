@@ -106,6 +106,7 @@ from .util import ELLIPSIS, EMPTY
 
 @define
 class ParquetDatabaseConnector(ThreadedDatabaseConnector):
+	db_type: ClassVar = "parquetdb"
 	_pack: PackSignature
 	_unpack: UnpackSignature
 	path: Path = field(converter=Path)

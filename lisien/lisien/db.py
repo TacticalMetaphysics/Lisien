@@ -639,6 +639,8 @@ class AbstractDatabaseConnector(ABC):
 
 	"""
 
+	db_type: ClassVar[str]
+
 	_pack: PackSignature
 	"""Function to pack Lisien's objects into bytes
 	
@@ -4170,6 +4172,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	_pack = field(default=None)
 	_unpack = field(default=None)
 	is_python: ClassVar = True
+	db_type: ClassVar = "python"
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
