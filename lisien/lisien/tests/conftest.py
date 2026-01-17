@@ -17,7 +17,6 @@ import resource
 import sys
 from contextlib import contextmanager
 from functools import partial
-from logging import getLogger
 
 import pytest
 
@@ -35,14 +34,10 @@ from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import Sub
 
 from ..pqdb import ParquetDatabaseConnector
-from ..proxy.engine import EngineProxy
 from ..proxy.manager import EngineProxyManager
 from ..sql import SQLAlchemyDatabaseConnector
 from . import data
-from .util import (
-	make_test_engine,
-	make_test_engine_facade,
-)
+from .util import make_test_engine_facade
 
 
 @pytest.fixture(scope="session", autouse=True)
