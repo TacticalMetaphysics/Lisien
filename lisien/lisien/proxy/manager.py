@@ -98,10 +98,7 @@ class EngineProxyManager:
 		return self.engine_proxy
 
 	def _sync_log_forever(self):
-		while True:
-			logrec = self._logq.get()
-			if logrec == b"shutdown":
-				return
+		while (logrec := self._logq.get()) != b"shutdown":
 			self.logger.handle(self._undictify_logrec_traceback(logrec))
 
 	def _undictify_logrec_traceback(
@@ -280,6 +277,9 @@ class EngineProxyManager:
 		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			self.engine_proxy.close()
 		if self._really_shutdown:
+			if hasattr(self, "_logq"):
+				self._logq.put(b"shutdown")
+				del self._logq
 			if hasattr(self, "engine_proxy"):
 				self.engine_proxy.send_bytes(b"shutdown")
 				if (
@@ -305,6 +305,9 @@ class EngineProxyManager:
 					if self._t.is_alive():
 						raise TimeoutError("Couldn't join thread")
 				del self._t
+			if hasattr(self, "_log_thread"):
+				self._log_thread.join()
+				del self._log_thread
 			if hasattr(self, "_terp"):
 				if self._terp.is_running():
 					self._terp.close()
@@ -314,9 +317,6 @@ class EngineProxyManager:
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
-		if hasattr(self, "_logq"):
-			self._logq.put(b"shutdown")
-			self._log_thread.join()
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: shutdown")
 
