@@ -328,9 +328,15 @@ def engine(
 	random_seed,
 	proxy_manager,
 	serial_or_executor,
+	non_null_database,
 	database_connector_part,
 ):
 	"""Engine or EngineProxy with a subprocess"""
+	if (
+		serial_or_parallel == "interpreter"
+		and non_null_database == "parquetdb"
+	):
+		raise pytest.skip("PyArrow does not yet run in subinterpreters")
 	if proxy_manager is None:
 		with Engine(
 			tmp_path,
@@ -410,10 +416,16 @@ def engine_from_archive(
 	archive_name: str,
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
 ):
+	if (
+		serial_or_parallel == "interpreter"
+		and non_null_database == "parquetdb"
+	):
+		raise pytest.skip("PyArrow does not yet run in subinterpreters")
 	if proxy_manager is None:
 		with Engine.from_archive(
 			data.DATA_DIR.joinpath(archive_name),
@@ -439,6 +451,7 @@ def engine_from_archive(
 def college10(
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
@@ -447,6 +460,7 @@ def college10(
 		"college10.lisien",
 		tmp_path,
 		serial_or_parallel,
+		non_null_database,
 		database_connector_part,
 		serial_or_executor,
 		proxy_manager,
@@ -458,6 +472,7 @@ def college10(
 def college24(
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
@@ -466,6 +481,7 @@ def college24(
 		"college24.lisien",
 		tmp_path,
 		serial_or_parallel,
+		non_null_database,
 		database_connector_part,
 		serial_or_executor,
 		proxy_manager,
@@ -477,6 +493,7 @@ def college24(
 def sickle(
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
@@ -485,6 +502,7 @@ def sickle(
 		"sickle.lisien",
 		tmp_path,
 		serial_or_parallel,
+		non_null_database,
 		database_connector_part,
 		serial_or_executor,
 		proxy_manager,
@@ -496,6 +514,7 @@ def sickle(
 def wolfsheep(
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
@@ -504,6 +523,7 @@ def wolfsheep(
 		"wolfsheep.lisien",
 		tmp_path,
 		serial_or_parallel,
+		non_null_database,
 		database_connector_part,
 		serial_or_executor,
 		proxy_manager,
@@ -515,6 +535,7 @@ def wolfsheep(
 def pathfind(
 	tmp_path,
 	serial_or_parallel,
+	non_null_database,
 	database_connector_part,
 	serial_or_executor,
 	proxy_manager,
@@ -523,6 +544,7 @@ def pathfind(
 		"pathfind.lisien",
 		tmp_path,
 		serial_or_parallel,
+		non_null_database,
 		database_connector_part,
 		serial_or_executor,
 		proxy_manager,
