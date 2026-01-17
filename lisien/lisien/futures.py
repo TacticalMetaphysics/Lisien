@@ -153,7 +153,7 @@ class LisienExecutor(_BaseLisienExecutor, ABC):
 	_how_many_futs_running: int = field(init=False, default=0)
 
 	def _make_fut_manager_thread(self):
-		return Thread(target=self._manage_futs, daemon=True)
+		return Thread(target=self._manage_futs)
 
 	_fut_manager_thread: Thread = field(
 		init=False, default=Factory(_make_fut_manager_thread, takes_self=True)
@@ -456,9 +456,7 @@ class LisienThreadExecutor(LisienExecutor):
 			outq = SimpleQueue()
 			logq = SimpleQueue()
 			logthread = Thread(
-				target=self._sync_log_forever,
-				args=(self.logger, logq),
-				daemon=True,
+				target=self._sync_log_forever, args=(self.logger, logq)
 			)
 			thred = Thread(
 				target=worker_subthread,
@@ -574,9 +572,7 @@ class LisienProcessExecutor(LisienExecutor):
 			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
 			logq = ctx.SimpleQueue()
 			logthread = Thread(
-				target=self._sync_log_forever,
-				args=(self.logger, logq),
-				daemon=True,
+				target=self._sync_log_forever, args=(self.logger, logq)
 			)
 			proc = ctx.Process(
 				target=worker_subprocess,
@@ -601,7 +597,7 @@ class LisienProcessExecutor(LisienExecutor):
 			proc.start()
 			with wlk[-1]:
 				inpipe_here.send_bytes(b"echoImReady")
-				if not outpipe_here.poll(5.0):
+				if not outpipe_here.poll(15.0):
 					raise TimeoutError(
 						f"Couldn't connect to worker process {i} in 5s"
 					)
@@ -700,9 +696,7 @@ class LisienInterpreterExecutor(LisienExecutor):
 			wlk.append(lock)
 			wint.append(terp)
 			logthread = Thread(
-				target=self._sync_log_forever,
-				args=(self.logger, logq),
-				daemon=True,
+				target=self._sync_log_forever, args=(self.logger, logq)
 			)
 			logthread.start()
 			wlt.append(logthread)
