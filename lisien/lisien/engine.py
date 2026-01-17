@@ -6017,11 +6017,11 @@ class Engine(AbstractEngine, Executor):
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		if self.executor:
+		if getattr(self, "executor", None):
 			self.executor.lock.release()
 			if self._shutdown_executor:
 				self.executor.shutdown(wait, cancel_futures=cancel_futures)
-				del self.executor
+			del self.executor
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
