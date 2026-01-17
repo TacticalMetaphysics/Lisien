@@ -3161,8 +3161,9 @@ class AbstractEngine(ABC):
 				raise TypeError("Tried to unpack as func", type(unpacked))
 			return getattr(store, unpacked)
 
-		def unpack_path(b: bytes):
-			return Path(self.unpack(b))
+		def unpack_path(ext: bytes):
+			unpacked = self.unpack(getattr(ext, "data", ext))
+			return Path(unpacked)
 
 		return {
 			MsgpackExtensionType.path.value: unpack_path,
