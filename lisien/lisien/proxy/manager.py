@@ -353,7 +353,7 @@ class EngineProxyManager:
 		)
 		self._p.start()
 
-		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
+		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
 	def _start_osc(self, *args, **kwargs):
@@ -582,7 +582,7 @@ class EngineProxyManager:
 			self._output_queue,
 			self._logq,
 		)
-		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
+		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
 	def _make_proxy(
@@ -662,7 +662,6 @@ class EngineProxyManager:
 				self._output_sender_thread = Thread(
 					target=self._send_output_forever,
 					args=[self._output_queue],
-					daemon=True,
 				)
 				self._output_sender_thread.start()
 
