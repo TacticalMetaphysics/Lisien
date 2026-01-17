@@ -745,7 +745,8 @@ class EngineProxyManager:
 			self.logger.debug("EngineProxyManager: stopping core service")
 			self._core_service.stop()
 			self.logger.debug("EngineProxyManager: stopped core service")
-		self.logger.debug("EngineProxyManager: closed")
+		if hasattr(self, "logger"):
+			self.logger.debug("EngineProxyManager: closed")
 
 	def __enter__(self):
 		return self
