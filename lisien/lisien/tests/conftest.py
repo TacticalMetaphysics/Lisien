@@ -71,8 +71,6 @@ def worker_sub_mode(request):
 	'interpreter', of which the latter only exists on Python 3.14 and later.
 
 	"""
-	if sys.version_info.minor < 14 and request.param == "interpreter":
-		raise pytest.skip("Subinterpreters are unavailable before Python 3.14")
 	yield Sub(request.param.removesuffix("_workers"))
 
 
