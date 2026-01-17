@@ -32,4 +32,4 @@ steps:
       - echo "python=$(which python)"
       - python -m pip install --upgrade pip
       - python -m pip install pytest lisien/ elide/
-      - python -m pytest -vvx elide/elide/tests
+      - python -m pytest -svvx elide/elide/tests
