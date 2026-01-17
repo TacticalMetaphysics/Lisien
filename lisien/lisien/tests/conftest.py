@@ -230,7 +230,7 @@ def database_connector_partial(tmp_path, database):
 					pydb = pickle.load(f)
 				return pydb
 			except FileNotFoundError:
-				return PythonDatabaseConnector
+				return partial(PythonDatabaseConnector, reload=True)
 		case "sqlite":
 			return partial(
 				SQLAlchemyDatabaseConnector,
