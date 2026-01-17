@@ -153,7 +153,13 @@ class EngineProxyManager:
 		elif prefix is None:
 			which_db = "python"
 		else:
-			which_db = "parquetdb"
+			try:
+				import ParquetDB
+
+				which_db = "parquetdb"
+			except ImportError:
+				kwargs["connect_string"] = f"sqlite:///{prefix}/world.sqlite3"
+				which_db = "sql"
 
 		if which_db == "sql":
 			from sqlalchemy import NullPool, create_engine, select
