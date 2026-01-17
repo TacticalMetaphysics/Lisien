@@ -231,6 +231,7 @@ def engine_subroutine(
 			for th in threading.enumerate():
 				if th.name == "rundb":
 					raise RuntimeError("Still running a database thread")
+			engine_handle.shutdown()
 			send_output_bytes(b"shutdown")
 			return 0
 		if recvd.startswith(b"echo"):
@@ -254,6 +255,7 @@ def engine_subroutine(
 			send_output,
 			send_output_prepacked,
 		)
+	engine_handle.shutdown()
 	send_output_bytes(b"shutdown")
 	return 0
 
