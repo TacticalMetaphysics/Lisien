@@ -298,6 +298,9 @@ def session_proxy_manager(
 
 @pytest.fixture(scope="function")
 def proxy_manager(session_proxy_manager):
+	if session_proxy_manager is None:
+		yield None
+		return
 	with session_proxy_manager as proxman:
 		yield proxman
 
