@@ -632,6 +632,10 @@ class LisienProcessExecutor(LisienExecutor):
 			with lock:
 				if proc.is_alive():
 					pipein.send_bytes(b"shutdown")
+					if (got := pipeout.recv_bytes()) != b"done":
+						raise RuntimeError(
+							"Worker process didn't respond to shutdown", got
+						)
 					proc.join(timeout=SUBPROCESS_TIMEOUT)
 					if proc.exitcode is None:
 						if KILL_SUBPROCESS:
