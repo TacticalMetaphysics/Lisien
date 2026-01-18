@@ -26,9 +26,8 @@ from lisien.examples import (
 	polygons,
 )
 from lisien.proxy.handle import EngineHandle
-from lisien.proxy.manager import Sub
 from lisien.tests.data import DATA_DIR
-from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
+from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe, Sub
 
 pytestmark = [pytest.mark.big]
 

@@ -22,7 +22,6 @@ import pickle
 import sys
 import time
 import zlib
-from enum import Enum
 from functools import partial
 from pathlib import Path
 from threading import Thread
@@ -31,15 +30,9 @@ from zipfile import ZipFile
 import tblib
 
 from ..facade import EngineFacade
-from ..types import Branch, EternalKey, Key, Tick, Turn, Value
+from ..types import Branch, EternalKey, Key, Tick, Turn, Value, Sub
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
-
-
-class Sub(Enum):
-	process = "process"
-	interpreter = "interpreter"
-	thread = "thread"
 
 
 class EngineProxyManager:

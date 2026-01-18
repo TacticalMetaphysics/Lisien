@@ -143,7 +143,6 @@ from .futures import (
 )
 from .node import Place, Thing
 from .portal import Portal
-from .proxy.manager import Sub
 from .query import _make_side_sel
 from .rule import AllRuleBooks, AllRules, Rule
 from .types import (
@@ -206,6 +205,7 @@ from .types import (
 	validate_time,
 	PickyDefaultDict,
 	StructuredDefaultDict,
+	Sub,
 )
 from .util import (
 	ACTIONS,

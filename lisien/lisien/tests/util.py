@@ -25,7 +25,7 @@ from lisien.db import (
 from lisien.facade import EngineFacade
 from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
-from lisien.proxy.manager import Sub, EngineProxyManager
+from lisien.proxy.manager import EngineProxyManager
 from lisien.sql import SQLAlchemyDatabaseConnector
 from lisien.tests.data import DATA_DIR
 from lisien.types import (
@@ -33,6 +33,7 @@ from lisien.types import (
 	Keyframe,
 	GraphNodeValKeyframe,
 	GraphValKeyframe,
+	Sub,
 )
 
 if TYPE_CHECKING:
