@@ -5209,3 +5209,11 @@ class AbstractLanguageDescriptor(Signal, ABC):
 	def __set__(self, inst: AbstractStringStore, val: str):
 		self._set_language(inst, val)
 		self.send(inst, language=val)
+
+
+class Sub(Enum):
+	"""Enum for the different forms of parallelism"""
+
+	process = "process"
+	interpreter = "interpreter"
+	thread = "thread"
