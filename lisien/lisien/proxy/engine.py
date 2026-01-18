@@ -21,7 +21,7 @@ import os
 import pickle
 from collections import UserDict
 from contextlib import contextmanager
-from functools import cached_property, partial
+from functools import cached_property, partial, wraps
 from inspect import getsource
 from os import PathLike
 from pathlib import Path
@@ -671,7 +671,9 @@ class EngineProxy(AbstractEngine):
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
 
 	def branch_end_turn(self, branch: str | Branch | None = None) -> Turn:
-		return Turn(self.handle("branch_end_turn", branch=branch))
+		if branch is None:
+			branch = self._branch
+		return Turn(self._branches_d[branch][2])
 
 	def turn_end(
 		self,
@@ -1385,6 +1387,20 @@ class EngineProxy(AbstractEngine):
 	def critical(self, msg: str) -> None:
 		self.logger.critical(msg)
 
+	@staticmethod
+	def _round_trip_locked(func):
+		@wraps(func)
+		def _lockedy(self, *args, **kwargs):
+			if self._worker or getattr(
+				super(EngineProxy, self), "_mutable_worker", False
+			):
+				return
+			with self._round_trip_lock:
+				return func(self, *args, **kwargs)
+
+		return _lockedy
+
+	@_round_trip_locked
 	def handle(
 		self,
 		cmd: str | None = None,
@@ -1392,7 +1408,7 @@ class EngineProxy(AbstractEngine):
 		cb: EngineProxyCallback | None = None,
 		**kwargs,
 	):
-		"""Send a command to the lisien core.
+		"""Send a command to the Lisien core and process the return value.
 
 		The only positional argument should be the name of a
 		method in :class:``EngineHandle``. All keyword arguments
@@ -1407,10 +1423,6 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		then = self._btt()
-		if self._worker or getattr(
-			super(EngineProxy, self), "_mutable_worker", False
-		):
-			return
 		if self.closed:
 			raise RuntimeError(f"Already closed: {id(self)}")
 		if "command" in kwargs:
@@ -1422,10 +1434,9 @@ class EngineProxy(AbstractEngine):
 		if hasattr(super(EngineProxy, self), "_replay_file"):
 			self._replay_file.write(format_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
-		with self._round_trip_lock:
-			self.send(Value(kwargs))
-			received = self.recv()
-			command, branch, turn, tick, r = received
+		self.send(Value(kwargs))
+		received = self.recv()
+		command, branch, turn, tick, r = received
 		self.debug(
 			"EngineProxy: received {} in {:,.2f} seconds".format(
 				(command, branch, turn, tick), monotonic() - start_ts
