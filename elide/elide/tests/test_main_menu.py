@@ -32,6 +32,11 @@ def test_new_game(elide_app_main_menu):
 	game_name_input: TextInput = modal.ids.game_name
 	game_name_input.text = "not a real game"
 	start_new_game_button: Button = modal.ids.start_new_game_button
+	idle_until(
+		lambda: start_new_game_button.size != (100, 100),
+		100,
+		"Never sized new game button",
+	)
 	x, y = start_new_game_button.center
 	touch = UnitTestTouch(x=x, y=y)
 	touch.touch_down()
