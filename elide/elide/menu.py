@@ -16,6 +16,7 @@ import os
 import shutil
 import zipfile
 from functools import partial
+from pathlib import Path
 from typing import Callable
 
 from kivy import Logger
@@ -415,12 +416,17 @@ class NewGameModal(ModalView):
 		if game_name in games:
 			self.ids.game_name.hint_text = "Name already taken"
 			return
-		game_archive_path = os.path.join(app.games_dir, game_name + ".zip")
-		game_dir_path = os.path.join(app.prefix, game_name)
+		prefix = Path(app.prefix)
+		game_archive_path = (
+			prefix.joinpath(app.games_dir)
+			.joinpath(game_name)
+			.with_suffix(".zip")
+		)
+		game_dir_path = prefix.joinpath(game_name)
 		can_start = False
 		try:
 			zipfile.ZipFile(game_archive_path, "w").close()
-			os.makedirs(game_dir_path)
+			os.makedirs(game_dir_path, exist_ok=True)
 			can_start = True
 		except Exception as ex:
 			self.ids.game_name.hint_text = repr(ex)
