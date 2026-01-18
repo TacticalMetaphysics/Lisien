@@ -5913,7 +5913,7 @@ class Engine(AbstractEngine, Executor):
 	):
 		if self.executor is None:
 			raise RuntimeError("Not parallel")
-		assert len(self.executor._worker_inputs) == self.workers
+		assert len(self.executor._workers) == self.workers
 		stores_to_reimport = stores_to_reimport or set()
 		for store in self.stores:
 			if getattr(store, "_need_save", None):
@@ -5926,19 +5926,17 @@ class Engine(AbstractEngine, Executor):
 		deltas = {}
 		n = self.executor.workers
 		for i in range(n):
-			branch_from, turn_from, tick_from = (
-				self.executor._worker_updated_btts[i]
-			)
+			worker = self.executor._workers[i]
+			branch_from, turn_from, tick_from = worker.last_update
 			if (
 				not clobber
 				and (branch_from, turn_from, tick_from) == self.time
 			):
 				continue
-			input = self.executor._worker_inputs[i]
-			if hasattr(input, "send_bytes"):
-				put = input.send_bytes
+			if hasattr(worker, "input_connection"):
+				put = worker.input_connection.send_bytes
 			else:
-				put = input.put
+				put = worker.input_queue.put
 			if stores_to_reimport:
 				put(
 					sys.maxsize.to_bytes(8, "little")
@@ -6007,12 +6005,12 @@ class Engine(AbstractEngine, Executor):
 				)
 
 				put(argbytes)
-			self.executor._worker_updated_btts[i] = tuple(self.time)
-			self.debug(
-				"Updated all worker process states at "
-				+ repr(self.executor._worker_updated_btts[i])
-				+ f" ({len(deltas)} distinct deltas)"
-			)
+			worker.last_update = tuple(self.time)
+		self.debug(
+			"Updated all worker process states at "
+			+ repr(tuple(self.time))
+			+ f" ({len(deltas)} distinct deltas)"
+		)
 
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
