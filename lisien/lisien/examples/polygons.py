@@ -56,6 +56,8 @@ def install(eng):
 	@eng.rule(neighborhood=1)
 	def relocate(poly):
 		"""Move to a random unoccupied place"""
+		from operator import attrgetter
+
 		if "unoccupied" not in poly.engine.universal:
 			# .values() sets, like sets generally, are unordered.
 			# You have to sort them yourself if you want determinism.
