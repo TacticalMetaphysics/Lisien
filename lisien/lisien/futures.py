@@ -22,15 +22,13 @@ from concurrent.futures import Executor, Future, wait as futwait
 from contextlib import contextmanager
 from functools import cached_property, wraps, partial
 from logging import Logger, LogRecord
-from multiprocessing import Pipe
 from pathlib import Path
 from queue import Queue, SimpleQueue, Empty
 from threading import Lock, Thread
 from time import sleep
-from typing import ClassVar, Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 
 from attrs import Factory, define, field
-from sqlalchemy import Connection
 
 from .proxy.routine import worker_subthread, worker_subprocess
 from .proxy.worker_subinterpreter import worker_subinterpreter
