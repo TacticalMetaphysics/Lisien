@@ -288,9 +288,9 @@ class EngineProxyManager:
 				del self._logq
 			if hasattr(self, "_p"):
 				if self._p.is_alive():
-					self._handle_in_pipe.send_bytes(b"shutdown")
+					self._handle_out_pipe.send_bytes(b"shutdown")
 					if (
-						got := self._handle_out_pipe.recv_bytes(timeout=5.0)
+						got := self._proxy_in_pipe.recv_bytes()
 					) != b"shutdown":
 						raise RuntimeError(
 							"Subprocess didn't respond to shutdown signal", got
