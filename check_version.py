@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tomllib
+import tomli_w
 
 
 lisien_version_str = sys.environ["CI_COMMIT_TAG"]
@@ -17,44 +18,37 @@ REQUIREMENTS_PAT = r"requirements *= *(.+)"
 
 with open("lisien/pyproject.toml", "rb") as inf:
 	loaded = tomllib.load(inf)
-oldver = loaded["project"]["version"]
 shutil.move("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
 
 
-def iter_toml_lines_replace_version(inf):
-	for line in inf:
-		if line.startswith("version"):
-			yield line.replace(oldver, lisien_version_str)
-		else:
-			yield line
-
-
-with (
-	open("lisien/.old.pyproject.toml", "rt") as inf,
-	open("lisien/pyproject.toml", "wt") as outf,
-):
-	outf.writelines(iter_toml_lines_replace_version(inf))
+loaded["product"]["version"] = lisien_version_str
+shutil.copy("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
+with open("lisien/pyproject.toml", "wb") as outf:
+	tomli_w.dump(loaded, outf)
 deps = {
 	re.match(DEP_NAME_PAT, dep).group(1)
 	for dep in loaded["project"]["dependencies"]
 } - SOFT_REQUIREMENTS
+lisien_is_in_elide_deps = False
+dep_l = []
 with open("elide/pyproject.toml", "rb") as inf:
 	loaded = tomllib.load(inf)
-	elide_version_str = loaded["project"]["version"]
-	for dependency in loaded["project"]["dependencies"]:
-		if not dependency.startswith("lisien"):
-			deps.add(re.match(DEP_NAME_PAT, dependency).group(1))
-			continue
-		_, oldver2 = dependency.split("==")
-		break
-	else:
-		raise RuntimeError("Elide doesn't depend on Lisien")
-shutil.move("elide/pyproject.toml", "elide/.old.pyproject.toml")
-with (
-	open("elide/.old.pyproject.toml", "rt") as inf,
-	open("elide/pyproject.toml", "wt") as outf,
-):
-	outf.writelines(iter_toml_lines_replace_version(inf))
+elide_version_str = loaded["project"]["version"]
+for dependency in loaded["project"]["dependencies"]:
+	if not dependency.startswith("lisien"):
+		deps.add(re.match(DEP_NAME_PAT, dependency).group(1))
+		dep_l.append(dependency)
+		continue
+	_, old_lisien_version = dependency.split("==")
+	deps.add(f"lisien=={lisien_version_str}")
+	dep_l.append(dependency)
+	lisien_is_in_elide_deps = True
+if not lisien_is_in_elide_deps:
+	raise RuntimeError("Elide doesn't depend on Lisien")
+loaded["project"]["dependencies"] = dep_l
+shutil.copy("elide/pyproject.toml", "elide/.old.pyproject.toml")
+with open("elide/pyproject.toml", "wb") as outf:
+	tomli_w.dump(loaded, outf)
 
 
 def put_files_back():
