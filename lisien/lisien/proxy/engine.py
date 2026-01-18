@@ -1620,8 +1620,6 @@ class EngineProxy(AbstractEngine):
 				self._replace_funcs_plain(**to_replace_plain)
 		elif self._worker:
 			self._reimport_code()
-		else:
-			self._save_and_reimport_all_code()
 		self._upd_caches(*args, **kwargs)
 		self._upd_time(*args, **kwargs)
 
