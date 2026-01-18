@@ -321,7 +321,7 @@ RUN <<EOF
              self.save_viewport()
 EOT
 	for minor in $(seq 12 14); do
-		python3.$minor -m pip install Cython;
+		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
 		USE_X11=1 python3.$minor -m pip wheel .;
 		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
 	done;
