@@ -24,10 +24,10 @@ from functools import cached_property, wraps, partial
 from logging import Logger, LogRecord
 from multiprocessing import Pipe
 from pathlib import Path
-from queue import SimpleQueue, Empty
+from queue import Queue, SimpleQueue, Empty
 from threading import Lock, Thread
 from time import sleep
-from typing import ClassVar, Callable
+from typing import ClassVar, Callable, TYPE_CHECKING
 
 from attrs import Factory, define, field
 from sqlalchemy import Connection
@@ -36,6 +36,12 @@ from .proxy.routine import worker_subthread, worker_subprocess
 from .proxy.worker_subinterpreter import worker_subinterpreter
 from .types import AbstractEngine, Time, EternalKey, Value, Branch, Turn, Tick
 from .util import msgpack_array_header, msgpack_map_header
+
+if TYPE_CHECKING:
+	try:
+		from concurrent.interpreters import Interpreter
+	except ModuleNotFoundError:
+		Interpreter = type(object)
 
 
 SUBPROCESS_TIMEOUT = 30
@@ -118,8 +124,8 @@ class _BaseLisienExecutor(Executor, ABC):
 		return self.engine.unpack(b)
 
 	@cached_property
-	def _worker_updated_btts(self):
-		return [self.time] * self.workers
+	def _worker_updated_btts(self) -> list[Time]:
+		return []
 
 
 @define
@@ -257,16 +263,23 @@ class LisienExecutor(_BaseLisienExecutor, ABC):
 		self._futs_to_start.put(ret)
 		return ret
 
-	@abstractmethod
 	def _setup_workers(self, engine) -> None:
 		self._worker_last_branches.clear()
 		self._worker_last_branches.update(engine._branches_d)
 		self._worker_last_eternal.clear()
 		self._worker_last_eternal.update(self.eternal)
-		self._worker_updated_btts.clear()
-		self._worker_updated_btts.extend(
-			[tuple(self.engine.time)] * self.workers
-		)
+		while len(self._worker_updated_btts) < engine.workers:
+			self._append_new_worker(engine)
+		while len(self._worker_updated_btts) > engine.workers:
+			self._pop_worker(engine)
+
+	@abstractmethod
+	def _pop_worker(self, engine: AbstractEngine):
+		self._worker_updated_btts.pop()
+
+	@abstractmethod
+	def _append_new_worker(self, engine: AbstractEngine):
+		self._worker_updated_btts.append(self.engine.time())
 
 	def _manage_futs(self):
 		self._stop_managing_futs = False
@@ -440,18 +453,17 @@ class LisienThreadExecutor(LisienExecutor):
 		init=False, factory=list
 	)
 
-	def _setup_workers(self, engine):
-		super()._setup_workers(engine)
-
-		self._stop_sync_log = True
+	def _append_new_worker(self, engine: AbstractEngine):
+		i = len(self._worker_threads)
 		wi = self._worker_inputs
 		wt = self._worker_threads
 		wlk = self._worker_locks
 		wlt = self._worker_log_threads
 		wl = self._worker_log_queues
 		wo = self._worker_outputs
-		assert len(wi) == len(wt) == len(wlk) == len(wlt) == len(wl) == len(wo)
-		for i in range(self.workers - len(self._worker_inputs)):
+		wlk.append(Lock())
+		with wlk[-1]:
+			super()._append_new_worker(engine)
 			inq = SimpleQueue()
 			outq = SimpleQueue()
 			logq = SimpleQueue()
@@ -475,20 +487,36 @@ class LisienThreadExecutor(LisienExecutor):
 			wi.append(inq)
 			wo.append(outq)
 			wl.append(logq)
-			wlk.append(Lock())
 			wlt.append(logthread)
 			wt.append(thred)
 			logthread.start()
 			thred.start()
-		for i in range(self.workers):
-			inq = wi[i]
-			outq = wo[i]
-			with wlk[-1]:
-				inq.put(b"echoImReady")
-				if (echoed := outq.get(timeout=5.0)) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker {i}", echoed
-					)
+			inq.put(b"echoImReady")
+			if (echoed := outq.get(timeout=5.0)) != b"ImReady":
+				raise RuntimeError(
+					f"Got garbled output from worker {i}", echoed
+				)
+
+	def _pop_worker(self, engine: AbstractEngine):
+		wi = self._worker_inputs
+		wt = self._worker_threads
+		wlk = self._worker_locks
+		wlt = self._worker_log_threads
+		wl = self._worker_log_queues
+		wo = self._worker_outputs
+		with wlk.pop():
+			super()._pop_worker(engine)
+			inq = wi.pop()
+			outq = wo.pop()
+			inq.put(b"shutdown")
+			if (got := outq.get()) != b"done":
+				raise RuntimeError("Worker didn't respond to shutdown", got)
+			logt = wlt.pop()
+			logq = wl.pop()
+			if logt.is_alive():
+				logq.put(b"shutdown")
+				logt.join()
+			wt.pop().join()
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
 		self._worker_inputs[i].put(input)
@@ -509,15 +537,7 @@ class LisienThreadExecutor(LisienExecutor):
 			self._worker_log_threads,
 		)
 		while any(todo):
-			(lock, inq, outq, thread, logq, logt) = (
-				mylist.pop() for mylist in todo
-			)
-			with lock:
-				inq.put(b"shutdown")
-				if logt.is_alive():
-					logq.put(b"shutdown")
-					logt.join()
-				thread.join()
+			self._pop_worker()
 
 
 @define
@@ -543,8 +563,9 @@ class LisienProcessExecutor(LisienExecutor):
 	)
 	_worker_log_threads: list[Thread] = field(init=False, factory=list)
 
-	def _setup_workers(self, engine):
-		super()._setup_workers(engine)
+	def _append_new_worker(self, engine: AbstractEngine):
+		i = len(self._worker_processes)
+		ctx = self._mp_ctx
 		wp = self._worker_processes
 		wi = self._worker_inputs
 		wo = self._worker_outputs
@@ -552,22 +573,9 @@ class LisienProcessExecutor(LisienExecutor):
 		wl = self._worker_log_queues
 		wlt = self._worker_log_threads
 		assert len(wp) == len(wi) == len(wo) == len(wlk) == len(wlt)
-		while len(wp) > engine.workers:
-			excess_proc = wp.pop()
-			inpt = wi.pop()
-			wo.pop()
-			wlk.pop()
-			wlt.pop()
-			inpt.send_bytes(b"shutdown")
-			excess_proc.join(timeout=10.0)
-			if excess_proc.is_alive():
-				excess_proc.kill()
-				excess_proc.join(timeout=10.0)
-				if excess_proc.is_alive():
-					excess_proc.terminate()
-			excess_proc.close()
-		ctx = self._mp_ctx
-		for i in range(engine.workers - len(wp)):
+		wlk.append(Lock())
+		with wlk[-1]:
+			super()._append_new_worker(engine)
 			inpipe_there, inpipe_here = ctx.Pipe(duplex=False)
 			outpipe_here, outpipe_there = ctx.Pipe(duplex=False)
 			logq = ctx.SimpleQueue()
@@ -590,21 +598,38 @@ class LisienProcessExecutor(LisienExecutor):
 			wi.append(inpipe_here)
 			wo.append(outpipe_here)
 			wl.append(logq)
-			wlk.append(Lock())
 			wlt.append(logthread)
 			wp.append(proc)
 			logthread.start()
 			proc.start()
-			with wlk[-1]:
-				inpipe_here.send_bytes(b"echoImReady")
-				if not outpipe_here.poll(15.0):
-					raise TimeoutError(
-						f"Couldn't connect to worker process {i} in 5s"
-					)
-				if (received := outpipe_here.recv_bytes()) != b"ImReady":
-					raise RuntimeError(
-						f"Got garbled output from worker process {i}", received
-					)
+			inpipe_here.send_bytes(b"echoImReady")
+			if not outpipe_here.poll(15.0):
+				raise TimeoutError(
+					f"Couldn't connect to worker process {i} in 5s"
+				)
+			if (received := outpipe_here.recv_bytes()) != b"ImReady":
+				raise RuntimeError(
+					f"Got garbled output from worker process {i}", received
+				)
+
+	def _pop_worker(self, engine: AbstractEngine):
+		with self._worker_locks.pop():
+			super()._pop_worker(engine)
+			excess_proc = self._worker_processes.pop()
+			inpt = self._worker_inputs.pop()
+			self._worker_outputs.pop()
+			wlt = self._worker_log_threads.pop()
+			inpt.send_bytes(b"shutdown")
+			if (got := inpt.recv_bytes()) != b"done":
+				raise RuntimeError("Worker didn't respond to shutdown", got)
+			wlt.join(timeout=10.0)
+			excess_proc.join(timeout=10.0)
+			if excess_proc.is_alive():
+				excess_proc.kill()
+				excess_proc.join(timeout=10.0)
+				if excess_proc.is_alive():
+					excess_proc.terminate()
+			excess_proc.close()
 
 	def _send_worker_input_bytes(self, i: int, input: bytes) -> None:
 		self._worker_inputs[i].send_bytes(input)
@@ -659,23 +684,18 @@ class LisienProcessExecutor(LisienExecutor):
 
 @define
 class LisienInterpreterExecutor(LisienExecutor):
-	_worker_interpreters: list["concurrent.interpreters.Interpreter"] = field(
-		init=False, factory=list
-	)
-	_worker_inputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
-	_worker_outputs: list[SimpleQueue[bytes]] = field(init=False, factory=list)
+	_worker_interpreters: list[Interpreter] = field(init=False, factory=list)
+	_worker_inputs: list[Queue[bytes]] = field(init=False, factory=list)
+	_worker_outputs: list[Queue[bytes]] = field(init=False, factory=list)
 	_worker_threads: list[Thread] = field(init=False, factory=list)
 	_worker_locks: list[Lock] = field(init=False, factory=list)
 	_worker_log_threads: list[Thread] = field(init=False, factory=list)
-	_worker_log_queues: list[SimpleQueue[LogRecord]] = field(
+	_worker_log_queues: list[Queue[LogRecord]] = field(
 		init=False, factory=list
 	)
 
-	def _setup_workers(self, engine) -> None:
-		super()._setup_workers(engine)
+	def _append_new_worker(self, engine: AbstractEngine) -> None:
 		from concurrent.interpreters import (
-			Interpreter,
-			Queue,
 			create,
 			create_queue,
 		)
@@ -687,12 +707,14 @@ class LisienInterpreterExecutor(LisienExecutor):
 		wlk = self._worker_locks
 		wlq = self._worker_log_queues
 		wlt = self._worker_log_threads
-		i = None
-		for i in range(self.workers - len(wint)):
+		wlk.append(Lock())
+		with wlk[-1]:
+			i = len(self._worker_updated_btts)
+			super()._append_new_worker(engine)
 			input = create_queue()
 			output = create_queue()
 			logq = create_queue()
-			terp: Interpreter = create()
+			terp = create()
 			wi.append(input)
 			wo.append(output)
 			wlq.append(logq)
@@ -726,14 +748,14 @@ class LisienInterpreterExecutor(LisienExecutor):
 			terp.call(
 				*terp_args, **terp_kwargs
 			)  # check that we can run the subthread
-			if (echoed := output.get(timeout=5.0)) != b"done":
+			if (echoed := output.get(timeout=5)) != b"done":
 				raise RuntimeError(
 					f"Got garbled output from worker terp {i}", echoed
 				)
 			wt.append(terp.call_in_thread(*terp_args, **terp_kwargs))
 			with lock:
 				input.put(b"echoImReady")
-				if (echoed := output.get(timeout=5.0)) != b"ImReady":
+				if (echoed := output.get(timeout=5)) != b"ImReady":
 					raise RuntimeError(
 						f"Got garbled output from worker terp {i}", echoed
 					)
