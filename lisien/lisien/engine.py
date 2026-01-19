@@ -1132,6 +1132,15 @@ class Engine(AbstractEngine, Executor):
 	@executor.validator
 	def _validate_executor(self, attribute, executor: LisienExecutor | None):
 		if executor:
+			# make sure the executor has code to run
+			for store in (
+				self.function,
+				self.method,
+				self.trigger,
+				self.prereq,
+				self.action,
+			):
+				store.save()
 			if executor.engine is not self:
 				executor.engine = self
 			executor.lock.acquire()
