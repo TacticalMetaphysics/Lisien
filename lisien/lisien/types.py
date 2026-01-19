@@ -5066,19 +5066,27 @@ class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
 			)
 			return ret
 
+	@classmethod
+	def _validate(cls, d: dict) -> bool:
+		"""Does ``d`` have the right types in it to be one of me?"""
+		keytyp, valtyp = inspect.getargs(cls)
+		if issubclass(valtyp, AbstractPickyDefaultDict):
+			for v in d.values():
+				if not valtyp._validate(v):
+					return False
+		else:
+			for v in d.values():
+				if not isinstance(v, valtyp):
+					return False
+		return True
+
 	def __setitem__(self, k, v):
 		with self._lock:
 			if issubclass(self.value_type, AbstractPickyDefaultDict):
 				if not isinstance(v, dict):
-					raise TypeError("Not a dictionary", v)
-				keytype, valtype = typing.get_args(self.value_type)
-				for kk, vv in v.items():
-					if hasattr(self.value_type, "key_type") and not isinstance(
-						kk, keytype
-					):
-						raise TypeError("Wrong key type", kk, keytype)
-					if not isinstance(vv, valtype):
-						raise TypeError("Wrong value type", vv, valtype)
+					raise TypeError("Must store dictionary", v)
+				if not self.value_type._validate(v):
+					raise TypeError("Wrong types in dictionary", v)
 				super().__setitem__(k, v)
 			elif not isinstance(v, root_type(self.value_type)):
 				v = self.value_type(v)
@@ -5127,6 +5135,14 @@ class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 		if not isinstance(key, self.key_type):
 			raise TypeError("Wrong type of key", key, self.key_type)
 		super().__setitem__(key, value)
+
+	@classmethod
+	def _validate(cls, d: dict) -> bool:
+		keytyp, valtyp = inspect.getargs(cls)
+		for k in d:
+			if not isinstance(k, keytyp):
+				return False
+		return super()._validate(d)
 
 
 @define
