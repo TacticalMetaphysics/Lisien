@@ -5450,9 +5450,9 @@ class Engine(AbstractEngine, Executor):
 			}
 
 		delta: dict[bytes, Any] = {
-			UNIVERSAL: PickyDefaultDict(bytes),
-			RULES: StructuredDefaultDict(1, bytes),
-			RULEBOOK: PickyDefaultDict(bytes),
+			UNIVERSAL: PickierDefaultDict(bytes, bytes),
+			RULES: PickierDefaultDict(bytes, PickierDefaultDict[bytes, bytes]),
+			RULEBOOK: PickierDefaultDict(bytes, bytes),
 		}
 		pack = self.pack
 		now = tuple(self.time)
