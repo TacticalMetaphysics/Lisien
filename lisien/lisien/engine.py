@@ -179,6 +179,7 @@ from .types import (
 	NodeName,
 	NodesDict,
 	NodeValDict,
+	PickierDefaultDict,
 	Plan,
 	PrereqFuncName,
 	Query,
@@ -5433,18 +5434,18 @@ class Engine(AbstractEngine, Executor):
 
 		def newgraph():
 			return {
-				# null mungers mean KeyError, which is correct
-				NODES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
+				NODES: PickierDefaultDict(bytes, bytes),
+				EDGES: PickierDefaultDict(
+					bytes, PickierDefaultDict[bytes, bytes]
 				),
-				EDGES: StructuredDefaultDict(
-					1, bytes, args_munger=None, kwargs_munger=None
+				NODE_VAL: PickierDefaultDict(
+					bytes, PickierDefaultDict[bytes, bytes]
 				),
-				NODE_VAL: StructuredDefaultDict(
-					1, bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGE_VAL: StructuredDefaultDict(
-					2, bytes, args_munger=None, kwargs_munger=None
+				EDGE_VAL: PickierDefaultDict(
+					bytes,
+					PickierDefaultDict[
+						bytes, PickierDefaultDict[bytes, bytes]
+					],
 				),
 			}
 
