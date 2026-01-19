@@ -415,7 +415,6 @@ class EngineProxy(AbstractEngine):
 
 	_planning: bool = field(alias="_planning", init=False, default=False)
 	_initialized: bool = field(alias="_initialized", init=False, default=False)
-	_forward: bool = field(alias="_forward", init=False, default=False)
 	closed: bool = field(init=False, default=False)
 
 	@staticmethod
