@@ -5131,6 +5131,11 @@ class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	parent: dict | None = None
 	key: _K | None = None
 
+	def __getitem__(self, item):
+		if not isinstance(item, self.key_type):
+			raise TypeError("Illegal key type", item, self.key_type)
+		return super().__getitem__(item)
+
 	def __setitem__(self, key: _K, value: _V):
 		if not isinstance(key, self.key_type):
 			raise TypeError("Wrong type of key", key, self.key_type)
