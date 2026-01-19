@@ -1187,10 +1187,6 @@ class EngineProxy(AbstractEngine):
 	def rule(self):
 		return AllRulesProxy(self)
 
-	@property
-	def logger(self):
-		return self._logger
-
 	@cached_property
 	def _rando(self):
 		if self._worker:
