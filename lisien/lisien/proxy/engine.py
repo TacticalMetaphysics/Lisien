@@ -673,7 +673,7 @@ class EngineProxy(AbstractEngine):
 	def branch_end_turn(self, branch: str | Branch | None = None) -> Turn:
 		if branch is None:
 			branch = self._branch
-		return Turn(self._branches_d[branch][2])
+		return Turn(self._branches_d[branch][3])
 
 	def turn_end(
 		self,
