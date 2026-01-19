@@ -24,7 +24,7 @@ import time
 import zlib
 from functools import partial
 from pathlib import Path
-from threading import Thread
+from threading import Thread, Lock
 from zipfile import ZipFile
 
 import tblib
@@ -60,6 +60,9 @@ class EngineProxyManager:
 	def __init__(self, sub_mode: Sub = Sub.thread):
 		self.sub_mode = Sub(sub_mode)
 		self._top_uid = 0
+		self._pipe_out_lock = Lock()
+		self._pipe_in_lock = Lock()
+		self._round_trip_lock = Lock()
 
 	def start(self, *args, **kwargs):
 		self._config_logger(kwargs)
@@ -281,13 +284,15 @@ class EngineProxyManager:
 				del self._logq
 			if hasattr(self, "_p"):
 				if self._p.is_alive():
-					self._proxy_out_pipe.send_bytes(b"shutdown")
-					if (
-						got := self._proxy_in_pipe.recv_bytes()
-					) != b"shutdown":
-						raise RuntimeError(
-							"Subprocess didn't respond to shutdown signal", got
-						)
+					with self._round_trip_lock:
+						self._proxy_out_pipe.send_bytes(b"shutdown")
+						if (
+							got := self._proxy_in_pipe.recv_bytes()
+						) != b"shutdown":
+							raise RuntimeError(
+								"Subprocess didn't respond to shutdown signal",
+								got,
+							)
 					self._p.join(timeout=10.0)
 					if self._p.is_alive():
 						self._p.kill()
@@ -298,13 +303,15 @@ class EngineProxyManager:
 				del self._p
 			if hasattr(self, "_t"):
 				if self._t.is_alive():
-					self._input_queue.put(b"shutdown")
-					if (
-						got := self._output_queue.get(timeout=5.0)
-					) != b"shutdown":
-						raise RuntimeError(
-							"Subthread didn't respond to shutdown signal", got
-						)
+					with self._round_trip_lock:
+						self._input_queue.put(b"shutdown")
+						if (
+							got := self._output_queue.get(timeout=5.0)
+						) != b"shutdown":
+							raise RuntimeError(
+								"Subthread didn't respond to shutdown signal",
+								got,
+							)
 					self._t.join(timeout=5.0)
 					if self._t.is_alive():
 						raise TimeoutError("Couldn't join thread")
@@ -368,18 +375,31 @@ class EngineProxyManager:
 		if hasattr(self, "_p"):
 			if self._really_shutdown:
 				raise RuntimeError("Already started")
+			if not self._p.is_alive():
+				raise RuntimeError("Tried to reuse a dead process")
 			self.logger.info("EngineProxyManager: already have a subprocess")
 			if hasattr(self, "engine_proxy"):
-				pack = self.engine_proxy.pack
+				raise RuntimeError(
+					"Starting subprocess with an engine proxy not shut down"
+				)
 			else:
 				pack = EngineFacade(None).pack
-			self._proxy_out_pipe.send_bytes(
-				pack({"command": "restart", "prefix": prefix, **kwargs})
-			)
-			if not (got := self._proxy_in_pipe.recv_bytes()).endswith(
-				b"\xa9restarted"
-			):
-				raise RuntimeError("Failed to restart subprocess", got)
+			with self._round_trip_lock:
+				with self._pipe_out_lock:
+					self._proxy_out_pipe.send_bytes(
+						pack(
+							{"command": "restart", "prefix": prefix, **kwargs}
+						)
+					)
+				with self._pipe_in_lock:
+					if not self._proxy_in_pipe.poll(5.0):
+						raise TimeoutError(
+							"Subprocess didn't respond to restart command"
+						)
+					if not (got := self._proxy_in_pipe.recv_bytes()).endswith(
+						b"\xa9restarted"
+					):
+						raise RuntimeError("Failed to restart subprocess", got)
 			return
 		from multiprocessing import Pipe, Process, SimpleQueue
 
@@ -563,20 +583,21 @@ class EngineProxyManager:
 			restart_bytes = pack(
 				{"command": "restart", "prefix": prefix, **kwargs}
 			)
-			self._input_queue.put(restart_bytes)
-			if not (got := self._output_queue.get()).endswith(
-				b"\xa9restarted"
-			):
-				try:
-					gotten = unpack(got)
-					if isinstance(gotten, Exception):
-						raise gotten
-					else:
-						raise RuntimeError(
-							"Failed to restart subthread", gotten
-						)
-				except ValueError:
-					raise RuntimeError("Failed to restart subthread", got)
+			with self._round_trip_lock:
+				self._input_queue.put(restart_bytes)
+				if not (got := self._output_queue.get()).endswith(
+					b"\xa9restarted"
+				):
+					try:
+						gotten = unpack(got)
+						if isinstance(gotten, Exception):
+							raise gotten
+						else:
+							raise RuntimeError(
+								"Failed to restart subthread", gotten
+							)
+					except ValueError:
+						raise RuntimeError("Failed to restart subthread", got)
 			return
 		self.logger.debug("EngineProxyManager: starting subthread!")
 		from queue import SimpleQueue
@@ -647,16 +668,17 @@ class EngineProxyManager:
 			raise RuntimeError(
 				"Tried to make a second proxy in EngineProxyManager"
 			)
-		if hasattr(self, "_input_queue"):
-			self._input_queue.put(b"echoReadyToMakeProxy")
-			if (got := self._output_queue.get()) != b"ReadyToMakeProxy":
-				raise RuntimeError("Subthread isn't ready", got)
-		else:
-			self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
-			if (
-				got := self._proxy_in_pipe.recv_bytes()
-			) != b"ReadyToMakeProxy":
-				raise RuntimeError("Subprocess isn't ready", got)
+		with self._round_trip_lock:
+			if hasattr(self, "_input_queue"):
+				self._input_queue.put(b"echoReadyToMakeProxy")
+				if (got := self._output_queue.get()) != b"ReadyToMakeProxy":
+					raise RuntimeError("Subthread isn't ready", got)
+			else:
+				self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
+				if (
+					got := self._proxy_in_pipe.recv_bytes()
+				) != b"ReadyToMakeProxy":
+					raise RuntimeError("Subprocess isn't ready", got)
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
@@ -692,6 +714,9 @@ class EngineProxyManager:
 				self._proxy_in_pipe.recv_bytes,
 				self._proxy_out_pipe.send_bytes,
 				self.logger,
+				self._pipe_in_lock,
+				self._pipe_out_lock,
+				self._round_trip_lock,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,
@@ -704,6 +729,9 @@ class EngineProxyManager:
 				self._output_queue.get,
 				self._input_queue.put,
 				self.logger,
+				self._pipe_in_lock,
+				self._pipe_out_lock,
+				self._round_trip_lock,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,
