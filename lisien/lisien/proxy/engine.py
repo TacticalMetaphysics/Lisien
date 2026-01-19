@@ -1309,7 +1309,15 @@ class EngineProxy(AbstractEngine):
 			stores = ["function", "method", "trigger", "prereq", "action"]
 		for store_name in stores:
 			store = getattr(self, store_name)
-			store.reimport()
+			if (
+				store._filename is not None
+				and store._filename.parent == self.prefix
+			):
+				store.reimport()
+			else:
+				store._filename = self.prefix.joinpath(store_name).with_suffix(
+					".py"
+				)
 
 	def _replace_triggers_pkl(self, replacement: bytes) -> None:
 		assert self._worker, "Loaded replacement triggers outside a worker"
