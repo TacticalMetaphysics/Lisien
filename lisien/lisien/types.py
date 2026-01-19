@@ -14,9 +14,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
+import annotationlib
 import builtins
+import inspect
 import operator
 import os
+import typing
 import weakref
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict
@@ -5065,7 +5068,19 @@ class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
 
 	def __setitem__(self, k, v):
 		with self._lock:
-			if not isinstance(v, root_type(self.value_type)):
+			if issubclass(self.value_type, AbstractPickyDefaultDict):
+				if not isinstance(v, dict):
+					raise TypeError("Not a dictionary", v)
+				keytype, valtype = typing.get_args(self.value_type)
+				for kk, vv in v.items():
+					if hasattr(self.value_type, "key_type") and not isinstance(
+						kk, keytype
+					):
+						raise TypeError("Wrong key type", kk, keytype)
+					if not isinstance(vv, valtype):
+						raise TypeError("Wrong value type", vv, valtype)
+				super().__setitem__(k, v)
+			elif not isinstance(v, root_type(self.value_type)):
 				v = self.value_type(v)
 			super().__setitem__(k, v)
 
