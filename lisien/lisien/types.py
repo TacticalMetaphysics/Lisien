@@ -2681,13 +2681,10 @@ class AbstractEngine(ABC):
 	char_cls: ClassVar[type[AbstractCharacter]]
 	time: ClassVar[GetSetDescriptorType] = TimeSignalDescriptor()
 
-	@staticmethod
-	def _make_time_signal(self):
+	@cached_property
+	def _time_signal(self):
 		return TimeSignal((self,))
 
-	_time_signal: TimeSignal = field(
-		init=False, default=Factory(_make_time_signal, takes_self=True)
-	)
 	illegal_node_names: ClassVar = {
 		"nodes",
 		"node_val",
