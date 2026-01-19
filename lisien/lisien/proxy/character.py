@@ -1448,7 +1448,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 				rulebook = nodedelta.pop("rulebook", None)
 				node_stat_cache[name][node] = nodedelta
 				if rulebook:
-					nodemap[node]._set_rulebook_name(rulebook)
+					self.engine._char_node_rulebooks_cache[self.name][node] = (
+						rulebook
+					)
 			else:
 				nodemap[node]._apply_delta(nodedelta)
 		portmap = self.portal
