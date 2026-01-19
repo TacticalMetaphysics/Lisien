@@ -671,10 +671,14 @@ class EngineProxyManager:
 		with self._round_trip_lock:
 			if hasattr(self, "_input_queue"):
 				self._input_queue.put(b"echoReadyToMakeProxy")
-				if (got := self._output_queue.get()) != b"ReadyToMakeProxy":
+				if (
+					got := self._output_queue.get(timeout=10.0)
+				) != b"ReadyToMakeProxy":
 					raise RuntimeError("Subthread isn't ready", got)
 			else:
 				self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
+				if not self._proxy_in_pipe.poll(10.0):
+					raise TimeoutError("Subprocess isn't ready")
 				if (
 					got := self._proxy_in_pipe.recv_bytes()
 				) != b"ReadyToMakeProxy":
