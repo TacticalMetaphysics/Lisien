@@ -1243,16 +1243,20 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	def reimport(self, signal: bool = True):
 		if self._filename is None:
 			return
-		path, filename = os.path.split(self._filename)
-		modname = filename[:-3]
+		prefix = self._filename.parent
+		file = self._filename.relative_to(prefix)
+		modname = file.stem
 		if modname in sys.modules:
 			del sys.modules[modname]
-		modname = filename[:-3]
-		spec = importlib.util.spec_from_file_location(modname, self._filename)
+		spec = importlib.util.spec_from_file_location(
+			modname, self._filename.absolute()
+		)
 		self._module = importlib.util.module_from_spec(spec)
 		sys.modules[modname] = self._module
 		spec.loader.exec_module(self._module)
-		self._ast = ast.parse(self._module.__loader__.get_data(self._filename))
+		self._ast = ast.parse(
+			self._module.__loader__.get_data(self._filename.absolute())
+		)
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
 			if hasattr(node, "name"):

@@ -304,6 +304,9 @@ class EngineProxy(AbstractEngine):
 	_get_input_bytes: Callable[[], bytes] | None
 	_send_output_bytes: Callable[[bytes], None] | None
 	logger: logging.Logger
+	_pipe_out_lock: Lock
+	_pipe_in_lock: Lock
+	_round_trip_lock: Lock
 	prefix: os.PathLike[str] | None = None
 	_install_modules: list[str] | tuple[str] = ()
 	_eternal: dict[EternalKey, Value] = field(
@@ -468,18 +471,6 @@ class EngineProxy(AbstractEngine):
 
 			return no_next_turn
 		return NextTurnProxy(self)
-
-	@cached_property
-	def _pipe_out_lock(self):
-		return Lock()
-
-	@cached_property
-	def _pipe_in_lock(self):
-		return Lock()
-
-	@cached_property
-	def _round_trip_lock(self):
-		return Lock()
 
 	@cached_property
 	def _commit_lock(self):
@@ -1226,18 +1217,19 @@ class EngineProxy(AbstractEngine):
 		rando: int | tuple | None,
 	):
 		if prefix is not None:
-			prefix = Path(prefix)
+			prefix = self.prefix = Path(prefix)
 		if self._worker:
-			filez = os.listdir(prefix)
-			for fs in ["function", "method", "trigger", "prereq", "action"]:
-				py = fs + ".py"
-				if py in filez:
-					store = getattr(self, fs)
-					if prefix:
-						store._filename = prefix.joinpath(py)
-						store.reimport()
-					else:
-						store._cache = {}
+			for fn in prefix.iterdir():
+				if fn.stem in {
+					"function",
+					"method",
+					"trigger",
+					"prereq",
+					"action",
+				}:
+					store = getattr(self, fn.stem)
+					store._filename = fn.absolute()
+					store.reimport()
 		for cache in self._caches:
 			cache.clear()
 		self._eternal = dict(eternal)
