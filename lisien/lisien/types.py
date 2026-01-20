@@ -5077,13 +5077,23 @@ class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
 					return False
 		return True
 
+	@staticmethod
+	def _validate_generic_alias(key_type, value_type, key, value):
+		if isinstance(value_type, GenericAlias):
+			if not isinstance(value, dict):
+				raise TypeError("Dictionary required", value, type(value))
+			for k, v in value.items():
+				self._validate_generic_alias(*value_type.__args__, k, v)
+		else:
+			if not isinstance(value, value_type):
+				raise TypeError("Incorrect value type", value, value_type)
+
 	def __setitem__(self, k, v):
 		with self._lock:
-			if issubclass(self.value_type, AbstractPickyDefaultDict):
+			if isinstance(self.value_type, GenericAlias):
 				if not isinstance(v, dict):
 					raise TypeError("Must store dictionary", v)
-				if not self.value_type._validate(v):
-					raise TypeError("Wrong types in dictionary", v)
+				self._validate_generic_alias(*self.value_type.__args__, k, v)
 				super().__setitem__(k, v)
 			elif not isinstance(v, root_type(self.value_type)):
 				v = self.value_type(v)
@@ -5138,13 +5148,11 @@ class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 			raise TypeError("Wrong type of key", key, self.key_type)
 		super().__setitem__(key, value)
 
-	@classmethod
-	def _validate(cls, d: dict) -> bool:
-		keytyp, valtyp = inspect.getargs(cls)
-		for k in d:
-			if not isinstance(k, keytyp):
-				return False
-		return super()._validate(d)
+	@staticmethod
+	def _validate_generic_alias(key_type, value_type, key, value):
+		if not isinstance(key, key_type):
+			raise TypeError("Wrong key type", key, key_type)
+		super()._validate_generic_alias(key_type, value_type, key, value)
 
 
 @define
