@@ -379,11 +379,12 @@ class EngineProxyManager:
 				raise RuntimeError("Tried to reuse a dead process")
 			self.logger.info("EngineProxyManager: already have a subprocess")
 			if hasattr(self, "engine_proxy"):
-				raise RuntimeError(
-					"Starting subprocess with an engine proxy not shut down"
-				)
-			else:
-				pack = EngineFacade(None).pack
+				if not self.engine_proxy.closed:
+					raise RuntimeError(
+						"Starting subprocess with an engine proxy not shut down"
+					)
+				del self.engine_proxy
+			pack = EngineFacade(None).pack
 			with self._round_trip_lock:
 				with self._pipe_out_lock:
 					self._proxy_out_pipe.send_bytes(
@@ -721,6 +722,7 @@ class EngineProxyManager:
 				self._pipe_in_lock,
 				self._pipe_out_lock,
 				self._round_trip_lock,
+				prefix,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,
@@ -736,6 +738,7 @@ class EngineProxyManager:
 				self._pipe_in_lock,
 				self._pipe_out_lock,
 				self._round_trip_lock,
+				prefix,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,

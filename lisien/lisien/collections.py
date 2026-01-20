@@ -1158,6 +1158,12 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 
 	_need_save: bool = field(init=False, default=False)
 
+	def _clear_caches(self):
+		self._ast_idx.clear()
+		self._ast.body.clear()
+		self._ast.type_ignores.clear()
+		self._need_save = False
+
 	def __dir__(self):
 		yield from self._locl
 		yield from super().__dir__()
