@@ -7659,7 +7659,7 @@ class Engine(AbstractEngine, Executor):
 			import_database = database(fake.pack, fake.unpack)
 			if not isinstance(import_database, AbstractDatabaseConnector):
 				raise TypeError("Not a database", import_database)
-		else:
+		elif not isinstance(database, AbstractDatabaseConnector):
 			raise TypeError("Not a database", database)
 		if not isinstance(archive_path, Path):
 			archive_path = Path(archive_path)
