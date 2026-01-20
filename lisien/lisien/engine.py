@@ -7661,6 +7661,8 @@ class Engine(AbstractEngine, Executor):
 				raise TypeError("Not a database", import_database)
 		elif not isinstance(database, AbstractDatabaseConnector):
 			raise TypeError("Not a database", database)
+		else:
+			import_database = database
 		if not isinstance(archive_path, Path):
 			archive_path = Path(archive_path)
 		if not archive_path.suffix:
