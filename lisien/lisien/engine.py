@@ -1096,9 +1096,10 @@ class Engine(AbstractEngine, Executor):
 			self._shutdown_executor = False
 			return executor
 		elif self.workers > 0:
-			for store in self.stores:
-				if hasattr(store, "save"):
-					store.save(reimport=False)
+			if self._prefix is not None:
+				for store in self.stores:
+					if hasattr(store, "save"):
+						store.save(reimport=False)
 			self._shutdown_executor = True
 			match self.sub_mode:
 				case Sub.interpreter if sys.version_info[1] >= 14:
