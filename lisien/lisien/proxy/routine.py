@@ -18,6 +18,7 @@ import logging
 import sys
 import threading
 from os import PathLike
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
@@ -31,7 +32,7 @@ from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 def worker_subroutine(
 	i: int,
-	prefix: PathLike[str],
+	prefix: Path | None,
 	branches: dict,
 	eternal: dict,
 	random_seed: int | None,
@@ -45,6 +46,8 @@ def worker_subroutine(
 	prereq: dict | None = None,
 	action: dict | None = None,
 ):
+	if not isinstance(prefix, Path) and prefix is not None:
+		raise TypeError("Invalid prefix", prefix)
 	logger = logging.getLogger(f"lisien worker {i}")
 	handler = WorkerLogHandler(logq, logging.DEBUG, i)
 	logger.addHandler(handler)

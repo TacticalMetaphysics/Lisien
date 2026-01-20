@@ -2899,6 +2899,7 @@ class AbstractEngine(ABC):
 			Path: pack_path,
 			WindowsPath: pack_path,
 			PosixPath: pack_path,
+			Sub: lambda sbu: sbu.value,
 			ListWrapper: lambda obj: obj.unwrap(),
 			DictWrapper: lambda obj: obj.unwrap(),
 			SetWrapper: lambda obj: obj.unwrap(),

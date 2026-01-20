@@ -133,6 +133,10 @@ class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
 	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
 
+	def _clear_caches(self):
+		self._cache.clear()
+		self._proxy_cache.clear()
+
 	def save(self, reimport: bool = True) -> None:
 		self.engine.handle("save_code", reimport=reimport)
 
@@ -307,7 +311,24 @@ class EngineProxy(AbstractEngine):
 	_pipe_out_lock: Lock
 	_pipe_in_lock: Lock
 	_round_trip_lock: Lock
-	prefix: os.PathLike[str] | None = None
+
+	@staticmethod
+	def _convert_prefix(prefix: os.PathLike[str] | Path | None):
+		if prefix is None or isinstance(prefix, Path):
+			return prefix
+		return Path(prefix)
+
+	prefix: Path | None = field(default=None, converter=_convert_prefix)
+
+	@prefix.validator
+	def validate_prefix(self, _, prefix):
+		if prefix is None:
+			return
+		if not isinstance(prefix, Path):
+			raise TypeError("Prefix is not a path", prefix)
+		if prefix == Path("None"):
+			raise ValueError("Invalid prefix", prefix)
+
 	_install_modules: list[str] | tuple[str] = ()
 	_eternal: dict[EternalKey, Value] = field(
 		factory=lambda: {"language": "eng"}
@@ -1309,7 +1330,9 @@ class EngineProxy(AbstractEngine):
 			stores = ["function", "method", "trigger", "prereq", "action"]
 		for store_name in stores:
 			store = getattr(self, store_name)
-			if (
+			if self.prefix is None:
+				store._clear_caches()
+			elif (
 				store._filename is not None
 				and store._filename.parent == self.prefix
 			):
