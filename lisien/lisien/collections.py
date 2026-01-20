@@ -1141,6 +1141,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			except (FileNotFoundError, ModuleNotFoundError):
 				self._ast = ast.Module(body=[], type_ignores=[])
 				self._ast_idx = {}
+				self._filename.parent.mkdir(parents=True, exist_ok=True)
 				self.save()
 
 	_module: str | None = None
