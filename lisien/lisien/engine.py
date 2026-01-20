@@ -1108,7 +1108,7 @@ class Engine(AbstractEngine, Executor):
 					return LisienProcessExecutor(self)
 				case Sub.thread:
 					return LisienThreadExecutor(self)
-				case None:
+				case _:
 					if sys.version_info[1] >= 14:
 						try:
 							return LisienInterpreterExecutor(self)
