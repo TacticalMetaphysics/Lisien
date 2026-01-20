@@ -5115,13 +5115,18 @@ class PickyDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	Default values are constructed with no arguments by default;
 	supply ``args_munger`` and/or ``kwargs_munger`` to override this.
 	They take arguments ``self`` and the unused key being looked up.
+	If they're set to ``None``, we can't construct default arguments.
 
 	"""
 
 	__slots__ = ()
 	value_type: type[_V] = field(converter=convert_subtype)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	parent: dict | None = None
 	key: _K | None = None
 
@@ -5133,8 +5138,12 @@ class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	__slots__ = ()
 	key_type: type[_K] = field(converter=convert_subtype)
 	value_type: type[_V] = field(converter=convert_subtype)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	parent: dict | None = None
 	key: _K | None = None
 
@@ -5170,8 +5179,12 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 
 	layer: int = field(validator=validators.ge(1))
 	type: type = type(None)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	gettest: Callable[[_K], None] = lambda k: None
 	settest: Callable[[_K, _V], None] = lambda k, v: None
 	parent: StructuredDefaultDict | None = None
