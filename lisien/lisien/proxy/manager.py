@@ -285,14 +285,16 @@ class EngineProxyManager:
 			if hasattr(self, "_p"):
 				if self._p.is_alive():
 					with self._round_trip_lock:
-						self._proxy_out_pipe.send_bytes(b"shutdown")
-						if (
-							got := self._proxy_in_pipe.recv_bytes()
-						) != b"shutdown":
-							raise RuntimeError(
-								"Subprocess didn't respond to shutdown signal",
-								got,
-							)
+						with self._pipe_out_lock:
+							self._proxy_out_pipe.send_bytes(b"shutdown")
+						with self._pipe_in_lock:
+							if (
+								got := self._proxy_in_pipe.recv_bytes()
+							) != b"shutdown":
+								raise RuntimeError(
+									"Subprocess didn't respond to shutdown signal",
+									got,
+								)
 					self._p.join(timeout=10.0)
 					if self._p.is_alive():
 						self._p.kill()
@@ -671,19 +673,27 @@ class EngineProxyManager:
 			)
 		with self._round_trip_lock:
 			if hasattr(self, "_input_queue"):
-				self._input_queue.put(b"echoReadyToMakeProxy")
-				if (
-					got := self._output_queue.get(timeout=10.0)
-				) != b"ReadyToMakeProxy":
-					raise RuntimeError("Subthread isn't ready", got)
+				with self._pipe_out_lock:
+					self._input_queue.put(b"echoReadyToMakeProxy")
+				with self._pipe_in_lock:
+					if (
+						got := self._output_queue.get(timeout=10.0)
+					) != b"ReadyToMakeProxy":
+						if isinstance(got, BaseException):
+							raise got
+						raise RuntimeError("Subthread isn't ready", got)
 			else:
-				self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
+				with self._pipe_out_lock:
+					self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
 				if not self._proxy_in_pipe.poll(10.0):
 					raise TimeoutError("Subprocess isn't ready")
-				if (
-					got := self._proxy_in_pipe.recv_bytes()
-				) != b"ReadyToMakeProxy":
-					raise RuntimeError("Subprocess isn't ready", got)
+				with self._pipe_in_lock:
+					if (
+						got := self._proxy_in_pipe.recv_bytes()
+					) != b"ReadyToMakeProxy":
+						if isinstance(got, BaseException):
+							raise got
+						raise RuntimeError("Subprocess isn't ready", got)
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
