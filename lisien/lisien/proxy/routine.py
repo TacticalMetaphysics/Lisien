@@ -234,10 +234,18 @@ def engine_subroutine(
 
 	while (recvd := get_input_bytes()) != b"shutdown":
 		if recvd == b"shutdown":
-			for th in threading.enumerate():
-				if th.name == "rundb":
-					raise RuntimeError("Still running a database thread")
 			engine_handle.shutdown()
+	for th in threading.enumerate():
+		if th.name == "rundb":
+			send_output_bytes(
+				engine_handle.pack(
+					RuntimeError("Still running a database thread")
+				)
+			)
+		if th.name.startswith("lisien worker"):
+			send_output_bytes(
+				engine_handle.pack(RuntimeError("Still running a worker"))
+			)
 			send_output_bytes(b"shutdown")
 			return 0
 		if recvd.startswith(b"echo"):
@@ -262,6 +270,17 @@ def engine_subroutine(
 			send_output_prepacked,
 		)
 	engine_handle.shutdown()
+	for th in threading.enumerate():
+		if th.name == "rundb":
+			send_output_bytes(
+				engine_handle.pack(
+					RuntimeError("Still running a database thread")
+				)
+			)
+		if th.name.startswith("lisien worker"):
+			send_output_bytes(
+				engine_handle.pack(RuntimeError("Still running a worker"))
+			)
 	send_output_bytes(b"shutdown")
 	return 0
 

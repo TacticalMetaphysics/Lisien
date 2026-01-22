@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import pickle
+from queue import Empty
 import sys
 import time
 import zlib
@@ -285,8 +286,13 @@ class EngineProxyManager:
 
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
-		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
-			self.engine_proxy.close()
+		if hasattr(self, "engine_proxy"):
+			if not self.engine_proxy.closed:
+				self.engine_proxy.close()
+			unpack = self.engine_proxy.unpack
+		else:
+			eng = EngineFacade(None)
+			unpack = eng.unpack
 		if hasattr(self, "_logq"):
 			self._logq.put(b"shutdown")
 			del self._logq
@@ -299,6 +305,13 @@ class EngineProxyManager:
 						if (
 							got := self._proxy_in_pipe.recv_bytes()
 						) != b"shutdown":
+							gotten = unpack(got)
+							if not isinstance(gotten, tuple) or gotten == ():
+								raise TypeError(
+									"Weird output from subprocess", gotten
+								)
+							if isinstance(gotten[-1], Exception):
+								raise gotten[-1]
 							raise RuntimeError(
 								"Subprocess didn't respond to shutdown signal",
 								got,
@@ -314,13 +327,26 @@ class EngineProxyManager:
 		if hasattr(self, "_t"):
 			if self._t.is_alive():
 				with self._round_trip_lock:
-					self._input_queue.put(b"shutdown")
-					if (
-						got := self._output_queue.get(timeout=5.0)
-					) != b"shutdown":
+					with self._pipe_in_lock:
+						self._input_queue.put(b"shutdown")
+					with self._pipe_out_lock:
+						try:
+							got: bytes = self._output_queue.get(timeout=10.0)
+						except Empty:
+							raise TimeoutError(
+								"Didn't get a timely response from the core thread"
+							)
+					if got != b"shutdown":
+						gotten = unpack(got)
+						if not isinstance(gotten, tuple) or gotten == ():
+							raise TypeError(
+								"Got weird output from thread", gotten
+							)
+						if isinstance(gotten[-1], Exception):
+							raise gotten[-1]
 						raise RuntimeError(
 							"Subthread didn't respond to shutdown signal",
-							got,
+							gotten,
 						)
 				self._t.join(timeout=5.0)
 				if self._t.is_alive():
