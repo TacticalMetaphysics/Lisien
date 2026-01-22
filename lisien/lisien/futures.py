@@ -165,12 +165,14 @@ class _BaseLisienExecutor[WRKR: Worker](Executor, ABC):
 class LisienExecutor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 	"""Lisien's parallelism
 
-	Starts workers in threads, processes, or interpreters, as needed.
+	Starts workers in threads, processes, or interpreters.
 
 	Usually, you don't want to instantiate these directly -- :class:`Engine`
-	will do it for you -- but if you want many :class:`Engine` to share
-	the same pool of workers, you can pass the same :class:`LisienExecutor`
-	into each.
+	will do it for you -- but if you want to close an :class:`Engine` while
+	keeping its workers alive, and reuse them when next you start the game,
+	you can do that by holding onto the :class:`LisienExecutor`.
+
+	These are stateful, and can only serve one :class:`Engine` at a time.
 
 	"""
 
