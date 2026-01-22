@@ -59,8 +59,14 @@ class EngineProxyManager:
 	"""What level to log at"""
 	android: bool = False
 	"""Are we running on Android?"""
-	really_shutdown: bool = field(default=True)
-	"""Whether to close the subprocess (or subinterpreter, etc) when finished."""
+	reuse: bool = field(default=False)
+	"""Whether to keep the subprocess running after closing the engine proxy.
+	
+	Or the subthread, or the subinterpreter. Whatever you're using.
+	
+	Starting a new engine in the same subprocess is often faster.
+	
+	"""
 	_top_uid: int = field(init=False, default=0)
 	_pipe_out_lock: Lock = field(init=False, factory=Lock)
 	_pipe_in_lock: Lock = field(init=False, factory=Lock)
@@ -377,7 +383,7 @@ class EngineProxyManager:
 
 	def _start_subprocess(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_p"):
-			if self.really_shutdown:
+			if not self.reuse:
 				raise RuntimeError("Already started")
 			if not self._p.is_alive():
 				raise RuntimeError("Tried to reuse a dead process")
@@ -582,7 +588,7 @@ class EngineProxyManager:
 
 	def _start_subthread(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_t"):
-			if self.really_shutdown:
+			if not self.reuse:
 				raise RuntimeError("Already started")
 			self.logger.info(
 				"EngineProxyManager: already have a subthread, will reuse"
@@ -639,7 +645,7 @@ class EngineProxyManager:
 
 	def _start_subinterpreter(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_terp"):
-			if self.really_shutdown:
+			if not self.reuse:
 				raise RuntimeError("Already started")
 			self.logger.info(
 				"EngineProxyManager: already have a subinterpreter"
