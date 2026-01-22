@@ -829,29 +829,17 @@ class EngineProxyManager:
 				self._start_subprocess(prefix, **kwargs)
 			case Sub.thread:
 				self._start_subthread(prefix, **kwargs)
-		pack = EngineFacade(None).pack
+		payload = b"from_archive" + EngineFacade(None).pack(
+			{
+				"archive_path": str(archive_path),
+				"prefix": str(prefix),
+				**kwargs,
+			}
+		)
 		if hasattr(self, "_proxy_out_pipe"):
-			self._proxy_out_pipe.send_bytes(
-				b"from_archive"
-				+ pack(
-					{
-						"archive_path": str(archive_path),
-						"prefix": str(prefix),
-						**kwargs,
-					}
-				)
-			)
+			self._proxy_out_pipe.send_bytes(payload)
 		else:
-			self._input_queue.put(
-				b"from_archive"
-				+ pack(
-					{
-						"archive_path": str(archive_path),
-						"prefix": str(prefix),
-						**kwargs,
-					}
-				),
-			)
+			self._input_queue.put(payload)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
