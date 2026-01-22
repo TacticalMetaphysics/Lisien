@@ -376,7 +376,7 @@ class EngineProxyManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def _start_subprocess(self, prefix: str | None = None, **kwargs):
+	def _start_subprocess(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_p"):
 			if self.really_shutdown:
 				raise RuntimeError("Already started")
@@ -581,7 +581,7 @@ class EngineProxyManager:
 			self._top_uid += 1
 			self._input_received = []
 
-	def _start_subthread(self, prefix: str | None = None, **kwargs):
+	def _start_subthread(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_t"):
 			if self.really_shutdown:
 				raise RuntimeError("Already started")
@@ -635,7 +635,7 @@ class EngineProxyManager:
 		)
 		self._t.start()
 
-	def _start_subinterpreter(self, prefix: str | None = None, **kwargs):
+	def _start_subinterpreter(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_terp"):
 			if self.really_shutdown:
 				raise RuntimeError("Already started")
