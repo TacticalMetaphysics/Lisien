@@ -63,6 +63,7 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 @define
 class Worker:
 	last_update: Time
+	unpack: Callable[[bytes], Value]
 	lock: Lock = field(init=False, factory=Lock)
 
 	@abstractmethod
@@ -450,6 +451,7 @@ class LisienExecutor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 @define
 class ThreadWorker(Worker):
 	last_update: Time
+	unpack: Callable[[bytes], Value]
 	input_queue: SimpleQueue[bytes]
 	output_queue: SimpleQueue[bytes]
 	worker_thread: Thread
@@ -466,8 +468,16 @@ class ThreadWorker(Worker):
 	def shutdown(self) -> None:
 		with self.lock:
 			self.input_queue.put(b"shutdown")
-			if (got := self.output_queue.get()) != b"done":
-				raise RuntimeError("Worker didn't respond to shutdown", got)
+			got = self.output_queue.get()
+			if got != b"done":
+				gotten = self.unpack(got)
+				if isinstance(gotten, Exception):
+					raise gotten
+				if not isinstance(gotten, tuple) or gotten == ():
+					raise TypeError("Weird output from worker", gotten)
+				if isinstance(gotten[-1], Exception):
+					raise gotten[-1]
+				raise RuntimeError("Worker didn't shutdown", gotten)
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
 				self.log_thread.join()
@@ -507,6 +517,7 @@ class ThreadWorker(Worker):
 			raise RuntimeError(f"Got garbled output from worker {i}", echoed)
 		return cls(
 			(engine.branch, engine.turn, engine.tick),
+			engine.unpack,
 			inq,
 			outq,
 			thred,
@@ -524,6 +535,7 @@ class LisienThreadExecutor(LisienExecutor[ThreadWorker]):
 @define
 class ProcessWorker(Worker):
 	last_update: Time
+	unpack: Callable[[bytes], Value]
 	process: BaseProcess
 	input_connection: Connection
 	output_connection: Connection
@@ -539,7 +551,17 @@ class ProcessWorker(Worker):
 	def shutdown(self) -> None:
 		with self.lock:
 			self.input_connection.send_bytes(b"shutdown")
-			if (got := self.output_connection.recv_bytes()) != b"done":
+			got = self.output_connection.recv_bytes()
+			if got != b"done":
+				gotten = self.unpack(got)
+				if isinstance(gotten, Exception):
+					raise gotten
+				if not isinstance(gotten, tuple) or gotten == ():
+					raise TypeError(
+						"Strange response to worker shutdown", gotten
+					)
+				if isinstance(gotten[-1], Exception):
+					raise gotten[-1]
 				raise RuntimeError("Worker didn't respond to shutdown", got)
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
@@ -594,6 +616,7 @@ class ProcessWorker(Worker):
 				)
 			return cls(
 				(engine.branch, engine.turn, engine.tick),
+				engine.unpack,
 				proc,
 				inpipe_here,
 				outpipe_here,
@@ -615,6 +638,7 @@ class LisienProcessExecutor(LisienExecutor[ProcessWorker]):
 @define
 class InterpreterWorker(Worker):
 	last_update: Time
+	unpack: Callable[[bytes], Value]
 	interpreter: Interpreter
 	thread: Thread
 	input_queue: Queue[bytes]
@@ -631,8 +655,23 @@ class InterpreterWorker(Worker):
 	def shutdown(self) -> None:
 		with self.lock:
 			self.input_queue.put(b"shutdown")
-			if (echoed := self.output_queue.get(timeout=5)) != b"done":
+			try:
+				echoed = self.output_queue.get(timeout=10)
+			except Empty:
 				raise TimeoutError("Worker terp didn't shut down", echoed)
+			if echoed != b"done":
+				gotten = self.unpack(echoed)
+				if isinstance(gotten, Exception):
+					raise gotten
+				if not isinstance(gotten, tuple) or gotten == ():
+					raise TypeError(
+						"Strange shutdown response from worker", gotten
+					)
+				if isinstance(gotten[-1], Exception):
+					raise gotten[-1]
+				raise RuntimeError(
+					"Worker interpreter didn't shut down", gotten
+				)
 			if self.thread.is_alive():
 				self.thread.join(timeout=5)
 				if self.thread.is_alive():
@@ -699,6 +738,7 @@ class InterpreterWorker(Worker):
 			)
 		return cls(
 			(engine.branch, engine.turn, engine.tick),
+			engine.unpack,
 			terp,
 			workthread,
 			input,
