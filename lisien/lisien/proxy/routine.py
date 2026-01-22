@@ -271,7 +271,8 @@ def engine_subroutine(
 			send_output,
 			send_output_prepacked,
 		)
-	engine_handle.shutdown()
+	if engine_handle:
+		engine_handle.shutdown()
 	for th in threading.enumerate():
 		if th.name == "rundb":
 			send_output_bytes(
