@@ -111,6 +111,17 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	_unpack: UnpackSignature
 	path: Path = field(converter=Path)
 
+	@path.validator
+	def _path_exists(self, _, path: Path):
+		if not path.exists():
+			raise FileNotFoundError(
+				"Tried to connect to a Parquet database that does not exist"
+			)
+		if not path.is_dir():
+			raise IsADirectoryError(
+				"Tried to connect to a Parquet database that is not a directory"
+			)
+
 	@define
 	class Looper(ConnectionLooper):
 		connector: ParquetDatabaseConnector = field()
