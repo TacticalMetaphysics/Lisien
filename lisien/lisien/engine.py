@@ -7643,6 +7643,10 @@ class Engine(AbstractEngine, Executor):
 
 					pq_path = prefix.joinpath("world")
 					pq_path.mkdir(parents=True, exist_ok=True)
+					if not pq_path.exists():
+						raise FileNotFoundError(
+							"Couldn't make directory for ParquetDB", pq_path
+						)
 					import_database = database = ParquetDatabaseConnector(
 						fake.pack, fake.unpack, pq_path
 					)
