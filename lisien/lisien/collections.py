@@ -1113,9 +1113,11 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	__slots__ = ()
 
 	@staticmethod
-	def _convert_filename(fn: Path | None):
+	def _convert_filename(fn: Path | os.PathLike[str] | None):
 		if fn is None:
 			return None
+		if isinstance(fn, Path):
+			return fn
 		return Path(fn)
 
 	_filename: Path | None = field(default=None, converter=_convert_filename)
