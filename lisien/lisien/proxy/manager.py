@@ -69,8 +69,8 @@ class EngineProxyManager:
 	
 	"""
 	_top_uid: int = field(init=False, default=0)
-	_pipe_out_lock: Lock = field(init=False, factory=Lock)
-	_pipe_in_lock: Lock = field(init=False, factory=Lock)
+	_proxman_send_lock: Lock = field(init=False, factory=Lock)
+	_proxman_recv_lock: Lock = field(init=False, factory=Lock)
 	_round_trip_lock: Lock = field(init=False, factory=Lock)
 	logger: logging.Logger = field(init=False)
 
@@ -299,11 +299,11 @@ class EngineProxyManager:
 		if hasattr(self, "_p"):
 			if self._p.is_alive():
 				with self._round_trip_lock:
-					with self._pipe_out_lock:
-						self._proxy_out_pipe.send_bytes(b"shutdown")
-					with self._pipe_in_lock:
+					with self._proxman_send_lock:
+						self._proxman_send_pipe.send_bytes(b"shutdown")
+					with self._proxman_recv_lock:
 						if (
-							got := self._proxy_in_pipe.recv_bytes()
+							got := self._proxman_recv_pipe.recv_bytes()
 						) != b"shutdown":
 							gotten = unpack(got)
 							if not isinstance(gotten, tuple) or gotten == ():
@@ -327,17 +327,21 @@ class EngineProxyManager:
 		if hasattr(self, "_t"):
 			if self._t.is_alive():
 				with self._round_trip_lock:
-					with self._pipe_in_lock:
-						self._input_queue.put(b"shutdown")
-					with self._pipe_out_lock:
+					with self._proxman_send_lock:
+						self._proxman_put_queue.put(b"shutdown")
+					with self._proxman_recv_lock:
 						try:
-							got: bytes = self._output_queue.get(timeout=10.0)
+							got: bytes = self._proxman_get_queue.get(
+								timeout=10.0
+							)
 						except Empty:
 							raise TimeoutError(
 								"Didn't get a timely response from the core thread"
 							)
 					if got != b"shutdown":
 						gotten = unpack(got)
+						if isinstance(gotten, Exception):
+							raise gotten
 						if not isinstance(gotten, tuple) or gotten == ():
 							raise TypeError(
 								"Got weird output from thread", gotten
@@ -360,7 +364,7 @@ class EngineProxyManager:
 				self._terp.close()
 			del self._terp
 		if hasattr(self, "_client"):
-			while not self._output_queue.empty():
+			while not self._proxman_get_queue.empty():
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
@@ -424,21 +428,23 @@ class EngineProxyManager:
 				pack = eng.pack
 				unpack = eng.unpack
 			with self._round_trip_lock:
-				with self._pipe_out_lock:
-					self._proxy_out_pipe.send_bytes(
+				with self._proxman_send_lock:
+					self._proxman_send_pipe.send_bytes(
 						pack(
 							{"command": "restart", "prefix": prefix, **kwargs}
 						)
 					)
-				with self._pipe_in_lock:
-					if not self._proxy_in_pipe.poll(5.0):
+				with self._proxman_recv_lock:
+					if not self._proxman_recv_pipe.poll(5.0):
 						raise TimeoutError(
 							"Subprocess didn't respond to restart command"
 						)
-					if not (got := self._proxy_in_pipe.recv_bytes()).endswith(
-						b"\xa9restarted"
-					):
+					if not (
+						got := self._proxman_recv_pipe.recv_bytes()
+					).endswith(b"\xa9restarted"):
 						gotten = unpack(got)
+						if isinstance(gotten, Exception):
+							raise gotten
 						if not isinstance(gotten, tuple) or gotten == ():
 							raise TypeError(
 								"Strange output from subprocess", gotten
@@ -449,8 +455,8 @@ class EngineProxyManager:
 			return
 		from multiprocessing import Pipe, Process, SimpleQueue
 
-		(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
-		(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
+		(self._handle_recv_pipe, self._proxman_send_pipe) = Pipe(duplex=False)
+		(self._proxman_recv_pipe, self._handle_send_pipe) = Pipe(duplex=False)
 		self._logq = SimpleQueue()
 
 		self._p = Process(
@@ -459,8 +465,8 @@ class EngineProxyManager:
 			args=(
 				(prefix,),
 				kwargs,
-				self._handle_in_pipe,
-				self._handle_out_pipe,
+				self._handle_recv_pipe,
+				self._handle_send_pipe,
 				self._logq,
 			),
 		)
@@ -487,8 +493,8 @@ class EngineProxyManager:
 		low_port = 32000
 		high_port = 65535
 		core_port_queue = SimpleQueue()
-		self._input_queue = SimpleQueue()
-		self._output_queue = SimpleQueue()
+		self._proxman_put_queue = SimpleQueue()
+		self._proxman_get_queue = SimpleQueue()
 		disp = Dispatcher()
 		disp.map(
 			"/core-report-port", lambda _, port: core_port_queue.put(port)
@@ -608,7 +614,7 @@ class EngineProxyManager:
 				"EngineProxyManager: received a complete message, "
 				f"decompressed to {len(recvd)} bytes"
 			)
-			self._input_queue.put(recvd)
+			self._proxman_put_queue.put(recvd)
 			self._top_uid += 1
 			self._input_received = []
 
@@ -632,12 +638,14 @@ class EngineProxyManager:
 				{"command": "restart", "prefix": prefix, **kwargs}
 			)
 			with self._round_trip_lock:
-				self._input_queue.put(restart_bytes)
-				if not (got := self._output_queue.get()).endswith(
+				self._proxman_put_queue.put(restart_bytes)
+				if not (got := self._proxman_get_queue.get()).endswith(
 					b"\xa9restarted"
 				):
 					try:
 						gotten = unpack(got)
+						if isinstance(gotten, Exception):
+							raise gotten
 						if not isinstance(gotten, tuple) or len(gotten) == 0:
 							raise TypeError(
 								"Strange output from subthread", gotten
@@ -654,16 +662,16 @@ class EngineProxyManager:
 		self.logger.debug("EngineProxyManager: starting subthread!")
 		from queue import SimpleQueue
 
-		self._input_queue = SimpleQueue()
-		self._output_queue = SimpleQueue()
+		self._proxman_put_queue = SimpleQueue()
+		self._proxman_get_queue = SimpleQueue()
 
 		self._t = Thread(
 			target=engine_subthread,
 			args=(
 				(prefix,),
 				kwargs,
-				self._input_queue,
-				self._output_queue,
+				self._proxman_put_queue,
+				self._proxman_get_queue,
 				None,
 			),
 		)
@@ -685,10 +693,10 @@ class EngineProxyManager:
 				eng = EngineFacade(None)
 				pack = eng.pack
 				unpack = eng.unpack
-			self._input_queue.put(
+			self._proxman_put_queue.put(
 				pack({"command": "restart", "prefix": prefix, **kwargs})
 			)
-			if not (got := self._output_queue.get()).endswith(
+			if not (got := self._proxman_get_queue.get()).endswith(
 				b"\xa9restarted"
 			):
 				gotten = unpack(got)
@@ -703,8 +711,8 @@ class EngineProxyManager:
 		from concurrent.interpreters import create, create_queue
 		from queue import Queue
 
-		self._input_queue: Queue = create_queue()
-		self._output_queue: Queue = create_queue()
+		self._proxman_put_queue: Queue = create_queue()
+		self._proxman_get_queue: Queue = create_queue()
 		self._logq: Queue = create_queue()
 
 		self._terp = create()
@@ -712,8 +720,8 @@ class EngineProxyManager:
 			engine_subthread,
 			(prefix,),
 			kwargs,
-			self._input_queue,
-			self._output_queue,
+			self._proxman_put_queue,
+			self._proxman_get_queue,
 			self._logq,
 		)
 		self._log_thread = Thread(target=self._sync_log_forever)
@@ -728,29 +736,40 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
-		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
-			raise RuntimeError(
-				"Tried to make a second proxy in EngineProxyManager"
-			)
+		if hasattr(self, "engine_proxy"):
+			if not self.engine_proxy.closed:
+				raise RuntimeError(
+					"Tried to make a second proxy in EngineProxyManager"
+				)
+			unpack = self.engine_proxy.unpack
+		else:
+			unpack = EngineFacade(None).unpack
 		with self._round_trip_lock:
-			if hasattr(self, "_input_queue"):
-				with self._pipe_out_lock:
-					self._input_queue.put(b"echoReadyToMakeProxy")
-				with self._pipe_in_lock:
-					if (
-						got := self._output_queue.get(timeout=10.0)
-					) != b"ReadyToMakeProxy":
-						if isinstance(got, BaseException):
-							raise got
-						raise RuntimeError("Subthread isn't ready", got)
+			if hasattr(self, "_proxman_put_queue"):
+				with self._proxman_send_lock:
+					self._proxman_put_queue.put(b"echoReadyToMakeProxy")
+				with self._proxman_recv_lock:
+					try:
+						got = self._proxman_get_queue.get(timeout=10.0)
+					except Empty:
+						raise TimeoutError("Core didn't respond")
+					if got != b"ReadyToMakeProxy":
+						gotten = unpack(got)
+						if not isinstance(gotten, tuple) or gotten == ():
+							raise TypeError(
+								"Strange response from core", gotten
+							)
+						if isinstance(gotten[-1], Exception):
+							raise gotten[-1]
+						raise RuntimeError("Core isn't ready", gotten)
 			else:
-				with self._pipe_out_lock:
-					self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
-				if not self._proxy_in_pipe.poll(10.0):
+				with self._proxman_send_lock:
+					self._proxman_send_pipe.send_bytes(b"echoReadyToMakeProxy")
+				if not self._proxman_recv_pipe.poll(10.0):
 					raise TimeoutError("Subprocess isn't ready")
-				with self._pipe_in_lock:
+				with self._proxman_recv_lock:
 					if (
-						got := self._proxy_in_pipe.recv_bytes()
+						got := self._proxman_recv_pipe.recv_bytes()
 					) != b"ReadyToMakeProxy":
 						if isinstance(got, BaseException):
 							raise got
@@ -787,11 +806,11 @@ class EngineProxyManager:
 			self, "_proxy_out_pipe"
 		):
 			self.engine_proxy = EngineProxy(
-				self._proxy_in_pipe.recv_bytes,
-				self._proxy_out_pipe.send_bytes,
+				self._proxman_recv_pipe.recv_bytes,
+				self._proxman_send_pipe.send_bytes,
 				self.logger,
-				self._pipe_in_lock,
-				self._pipe_out_lock,
+				self._proxman_recv_lock,
+				self._proxman_send_lock,
 				self._round_trip_lock,
 				prefix,
 				install_modules,
@@ -803,11 +822,11 @@ class EngineProxyManager:
 			)
 		else:
 			self.engine_proxy = EngineProxy(
-				self._output_queue.get,
-				self._input_queue.put,
+				self._proxman_get_queue.get,
+				self._proxman_put_queue.put,
 				self.logger,
-				self._pipe_in_lock,
-				self._pipe_out_lock,
+				self._proxman_recv_lock,
+				self._proxman_send_lock,
 				self._round_trip_lock,
 				prefix,
 				install_modules,
@@ -820,7 +839,7 @@ class EngineProxyManager:
 			if self.android:
 				self._output_sender_thread = Thread(
 					target=self._send_output_forever,
-					args=[self._output_queue],
+					args=[self._proxman_get_queue],
 				)
 				self._output_sender_thread.start()
 
@@ -874,9 +893,9 @@ class EngineProxyManager:
 			}
 		)
 		if hasattr(self, "_proxy_out_pipe"):
-			self._proxy_out_pipe.send_bytes(payload)
+			self._proxman_send_pipe.send_bytes(payload)
 		else:
-			self._input_queue.put(payload)
+			self._proxman_put_queue.put(payload)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
