@@ -389,7 +389,9 @@ class EngineProxyManager:
 						"Starting subprocess with an engine proxy not shut down"
 					)
 				del self.engine_proxy
-			pack = EngineFacade(None).pack
+			eng = EngineFacade(None)
+			pack = eng.pack
+			unpack = eng.unpack
 			with self._round_trip_lock:
 				with self._pipe_out_lock:
 					self._proxy_out_pipe.send_bytes(
@@ -405,6 +407,13 @@ class EngineProxyManager:
 					if not (got := self._proxy_in_pipe.recv_bytes()).endswith(
 						b"\xa9restarted"
 					):
+						gotten = unpack(got)
+						if not isinstance(gotten, tuple) or gotten == ():
+							raise TypeError(
+								"Strange output from subprocess", gotten
+							)
+						if isinstance(gotten[-1], Exception):
+							raise gotten[-1]
 						raise RuntimeError("Failed to restart subprocess", got)
 			return
 		from multiprocessing import Pipe, Process, SimpleQueue
@@ -580,8 +589,7 @@ class EngineProxyManager:
 				"EngineProxyManager: already have a subthread, will reuse"
 			)
 			if hasattr(self, "engine_proxy"):
-				pack = self.engine_proxy.pack
-				unpack = self.engine_proxy.unpack
+				raise RuntimeError("Already have the proxy")
 			else:
 				eng = EngineFacade(None)
 				pack = eng.pack
@@ -596,8 +604,12 @@ class EngineProxyManager:
 				):
 					try:
 						gotten = unpack(got)
-						if isinstance(gotten, Exception):
-							raise gotten
+						if not isinstance(gotten, tuple) or len(gotten) == 0:
+							raise TypeError(
+								"Strange output from subthread", gotten
+							)
+						if isinstance(gotten[-1], Exception):
+							raise gotten[-1]
 						else:
 							raise RuntimeError(
 								"Failed to restart subthread", gotten
@@ -631,15 +643,24 @@ class EngineProxyManager:
 				"EngineProxyManager: already have a subinterpreter"
 			)
 			if hasattr(self, "engine_proxy"):
-				pack = self.engine_proxy.pack
+				raise RuntimeError("Already made the proxy")
 			else:
-				pack = EngineFacade(None).pack
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
 			self._input_queue.put(
 				pack({"command": "restart", "prefix": prefix, **kwargs})
 			)
 			if not (got := self._output_queue.get()).endswith(
 				b"\xa9restarted"
 			):
+				gotten = unpack(got)
+				if not isinstance(gotten, tuple) or len(gotten) == 0:
+					raise TypeError(
+						"Strange output from subinterpreter", gotten
+					)
+				if isinstance(gotten[-1], Exception):
+					raise gotten[-1]
 				raise RuntimeError("Failed to restart subinterpreter", got)
 			return
 		from concurrent.interpreters import create, create_queue
