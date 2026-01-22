@@ -385,13 +385,13 @@ class EngineProxyManager:
 			self.logger.info("EngineProxyManager: already have a subprocess")
 			if hasattr(self, "engine_proxy"):
 				if not self.engine_proxy.closed:
-					raise RuntimeError(
-						"Starting subprocess with an engine proxy not shut down"
-					)
-				del self.engine_proxy
-			eng = EngineFacade(None)
-			pack = eng.pack
-			unpack = eng.unpack
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
+			else:
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
 			with self._round_trip_lock:
 				with self._pipe_out_lock:
 					self._proxy_out_pipe.send_bytes(
@@ -589,7 +589,10 @@ class EngineProxyManager:
 				"EngineProxyManager: already have a subthread, will reuse"
 			)
 			if hasattr(self, "engine_proxy"):
-				raise RuntimeError("Already have the proxy")
+				if not self.engine_proxy.closed:
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
 			else:
 				eng = EngineFacade(None)
 				pack = eng.pack
@@ -643,7 +646,10 @@ class EngineProxyManager:
 				"EngineProxyManager: already have a subinterpreter"
 			)
 			if hasattr(self, "engine_proxy"):
-				raise RuntimeError("Already made the proxy")
+				if not self.engine_proxy.closed:
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
 			else:
 				eng = EngineFacade(None)
 				pack = eng.pack
