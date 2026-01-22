@@ -2953,7 +2953,7 @@ class AbstractEngine(ABC):
 						exc.__class__.__name__,
 						exc.args,
 						Traceback(exc.__traceback__).to_dict()
-						if hasattr(exc, "__traceback__")
+						if getattr(exc, "__traceback__", None)
 						else None,
 					]
 				),
