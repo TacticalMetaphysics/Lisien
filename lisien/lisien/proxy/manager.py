@@ -697,7 +697,7 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
-		if hasattr(self, "engine_proxy"):
+		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			raise RuntimeError(
 				"Tried to make a second proxy in EngineProxyManager"
 			)
