@@ -3024,70 +3024,11 @@ class AbstractEngine(ABC):
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
 		thing_cls = self.thing_cls
-		excs = {
-			# builtin exceptions
-			"AssertionError": AssertionError,
-			"AttributeError": AttributeError,
-			"EOFError": EOFError,
-			"FloatingPointError": FloatingPointError,
-			"GeneratorExit": GeneratorExit,
-			"ImportError": ImportError,
-			"IndexError": IndexError,
-			"KeyError": KeyError,
-			"KeyboardInterrupt": KeyboardInterrupt,
-			"MemoryError": MemoryError,
-			"NameError": NameError,
-			"NotImplementedError": NotImplementedError,
-			"OSError": OSError,
-			"OverflowError": OverflowError,
-			"RecursionError": RecursionError,
-			"ReferenceError": ReferenceError,
-			"RuntimeError": RuntimeError,
-			"StopIteration": StopIteration,
-			"IndentationError": IndentationError,
-			"TabError": TabError,
-			"SystemError": SystemError,
-			"SystemExit": SystemExit,
-			"TypeError": TypeError,
-			"UnboundLocalError": UnboundLocalError,
-			"UnicodeError": UnicodeError,
-			"UnicodeEncodeError": UnicodeEncodeError,
-			"UnicodeDecodeError": UnicodeDecodeError,
-			"UnicodeTranslateError": UnicodeTranslateError,
-			"ValueError": ValueError,
-			"ZeroDivisionError": ZeroDivisionError,
-			# networkx exceptions
-			"HasACycle": nx.exception.HasACycle,
-			"NodeNotFound": nx.exception.NodeNotFound,
-			"PowerIterationFailedConvergence": nx.exception.PowerIterationFailedConvergence,
-			"ExceededMaxIterations": nx.exception.ExceededMaxIterations,
-			"AmbiguousSolution": nx.exception.AmbiguousSolution,
-			"NetworkXAlgorithmError": nx.exception.NetworkXAlgorithmError,
-			"NetworkXException": nx.exception.NetworkXException,
-			"NetworkXError": nx.exception.NetworkXError,
-			"NetworkXNoCycle": nx.exception.NetworkXNoCycle,
-			"NetworkXNoPath": nx.exception.NetworkXNoPath,
-			"NetworkXNotImplemented": nx.exception.NetworkXNotImplemented,
-			"NetworkXPointlessConcept": nx.exception.NetworkXPointlessConcept,
-			"NetworkXUnbounded": nx.exception.NetworkXUnbounded,
-			"NetworkXUnfeasible": nx.exception.NetworkXUnfeasible,
-			# lisien exceptions
-			"NonUniqueError": exc.NonUniqueError,
-			"AmbiguousUserError": exc.AmbiguousLeaderError,
-			"AmbiguousLeaderError": exc.AmbiguousLeaderError,
-			"BadTimeException": exc.BadTimeException,
-			"RulesEngineError": exc.RulesEngineError,
-			"RuleError": exc.RuleError,
-			"RedundantRuleError": exc.RedundantRuleError,
-			"UserFunctionError": exc.UserFunctionError,
-			"WorldIntegrityError": exc.WorldIntegrityError,
-			"CacheError": exc.CacheError,
-			"TravelException": exc.TravelException,
-			"OutOfTimelineError": exc.OutOfTimelineError,
-			"HistoricKeyError": exc.HistoricKeyError,
-			"NotInKeyframeError": exc.NotInKeyframeError,
-			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
-		}
+		excs = {}
+		for module in (builtins, nx.exception, exc):
+			for name, cls in inspect.getmembers(module):
+				if inspect.isclass(cls) and issubclass(cls, Exception):
+					excs[name] = cls
 
 		def unpack_graph(ext: bytes) -> nx.Graph:
 			if hasattr(ext, "data"):  # umsgpack.Ext
