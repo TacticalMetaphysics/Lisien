@@ -27,6 +27,7 @@ from pathlib import Path
 from threading import Thread, Lock
 from zipfile import ZipFile
 
+from attrs import define, field
 import tblib
 
 from ..facade import EngineFacade
@@ -35,6 +36,7 @@ from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
 
 
+@define(slots=False)
 class EngineProxyManager:
 	"""Container for a Lisien proxy and a logger for it
 
@@ -44,25 +46,26 @@ class EngineProxyManager:
 	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
-	:param sub_mode: What form the subprocess should take. ``Sub.thread``
+	"""
+
+	sub_mode: Sub = field(converter=Sub, default=Sub.thread)
+	"""What form the subprocess should take. ``Sub.thread``
 	is the most widely available, and is therefore the default, but doesn't
 	allow true parallelism unless you're running a GIL-less build of Python.
 	``Sub.process`` does allow true parallelism, but isn't available on Android.
 	``Sub.interpreter`` is, and allows true parallelism as well, but is only
-	available on Python 3.14 or later.
-
-	"""
-
-	loglevel = logging.DEBUG
-	android = False
-	_really_shutdown = True
-
-	def __init__(self, sub_mode: Sub = Sub.thread):
-		self.sub_mode = Sub(sub_mode)
-		self._top_uid = 0
-		self._pipe_out_lock = Lock()
-		self._pipe_in_lock = Lock()
-		self._round_trip_lock = Lock()
+	available on Python 3.14 or later."""
+	loglevel: int = logging.DEBUG
+	"""What level to log at"""
+	android: bool = False
+	"""Are we running on Android?"""
+	really_shutdown: bool = field(default=True)
+	"""Whether to close the subprocess (or subinterpreter, etc) when finished."""
+	_top_uid: int = field(init=False, default=0)
+	_pipe_out_lock: Lock = field(init=False, factory=Lock)
+	_pipe_in_lock: Lock = field(init=False, factory=Lock)
+	_round_trip_lock: Lock = field(init=False, factory=Lock)
+	logger: logging.Logger = field(init=False)
 
 	def start(self, *args, **kwargs):
 		self._config_logger(kwargs)
@@ -278,7 +281,7 @@ class EngineProxyManager:
 		"""Close the engine in the subprocess, then join the subprocess"""
 		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			self.engine_proxy.close()
-		if self._really_shutdown:
+		if self.really_shutdown:
 			if hasattr(self, "_logq"):
 				self._logq.put(b"shutdown")
 				del self._logq
@@ -375,7 +378,7 @@ class EngineProxyManager:
 
 	def _start_subprocess(self, prefix: str | None = None, **kwargs):
 		if hasattr(self, "_p"):
-			if self._really_shutdown:
+			if self.really_shutdown:
 				raise RuntimeError("Already started")
 			if not self._p.is_alive():
 				raise RuntimeError("Tried to reuse a dead process")
@@ -571,7 +574,7 @@ class EngineProxyManager:
 
 	def _start_subthread(self, prefix: str | None = None, **kwargs):
 		if hasattr(self, "_t"):
-			if self._really_shutdown:
+			if self.really_shutdown:
 				raise RuntimeError("Already started")
 			self.logger.info(
 				"EngineProxyManager: already have a subthread, will reuse"
@@ -622,7 +625,7 @@ class EngineProxyManager:
 
 	def _start_subinterpreter(self, prefix: str | None = None, **kwargs):
 		if hasattr(self, "_terp"):
-			if self._really_shutdown:
+			if self.really_shutdown:
 				raise RuntimeError("Already started")
 			self.logger.info(
 				"EngineProxyManager: already have a subinterpreter"
