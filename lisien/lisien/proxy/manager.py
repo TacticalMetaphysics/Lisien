@@ -33,6 +33,7 @@ import tblib
 
 from ..facade import EngineFacade
 from ..types import Branch, EternalKey, Key, Tick, Turn, Value, Sub
+from ..util import unpack_expected
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
 
@@ -302,20 +303,12 @@ class EngineProxyManager:
 					with self._proxman_send_lock:
 						self._proxman_send_pipe.send_bytes(b"shutdown")
 					with self._proxman_recv_lock:
-						if (
-							got := self._proxman_recv_pipe.recv_bytes()
-						) != b"shutdown":
-							gotten = unpack(got)
-							if not isinstance(gotten, tuple) or gotten == ():
-								raise TypeError(
-									"Weird output from subprocess", gotten
-								)
-							if isinstance(gotten[-1], Exception):
-								raise gotten[-1]
-							raise RuntimeError(
-								"Subprocess didn't respond to shutdown signal",
-								got,
+						if not self._proxman_recv_pipe.poll(10):
+							raise TimeoutError(
+								"No response to shutdown signal"
 							)
+						got = self._proxman_recv_pipe.recv_bytes()
+						unpack_expected(unpack, got, b"shutdown")
 				self._p.join(timeout=10.0)
 				if self._p.is_alive():
 					self._p.kill()
@@ -338,20 +331,7 @@ class EngineProxyManager:
 							raise TimeoutError(
 								"Didn't get a timely response from the core thread"
 							)
-					if got != b"shutdown":
-						gotten = unpack(got)
-						if isinstance(gotten, Exception):
-							raise gotten
-						if not isinstance(gotten, tuple) or gotten == ():
-							raise TypeError(
-								"Got weird output from thread", gotten
-							)
-						if isinstance(gotten[-1], Exception):
-							raise gotten[-1]
-						raise RuntimeError(
-							"Subthread didn't respond to shutdown signal",
-							gotten,
-						)
+					unpack_expected(unpack, got, b"shutdown")
 				self._t.join(timeout=5.0)
 				if self._t.is_alive():
 					raise TimeoutError("Couldn't join thread")
@@ -442,16 +422,7 @@ class EngineProxyManager:
 					if not (
 						got := self._proxman_recv_pipe.recv_bytes()
 					).endswith(b"\xa9restarted"):
-						gotten = unpack(got)
-						if isinstance(gotten, Exception):
-							raise gotten
-						if not isinstance(gotten, tuple) or gotten == ():
-							raise TypeError(
-								"Strange output from subprocess", gotten
-							)
-						if isinstance(gotten[-1], Exception):
-							raise gotten[-1]
-						raise RuntimeError("Failed to restart subprocess", got)
+						unpack_expected(unpack, got, b"\xa9restarted")
 			return
 		from multiprocessing import Pipe, Process, SimpleQueue
 
@@ -747,33 +718,23 @@ class EngineProxyManager:
 		with self._round_trip_lock:
 			if hasattr(self, "_proxman_put_queue"):
 				with self._proxman_send_lock:
-					self._proxman_put_queue.put(b"echoReadyToMakeProxy")
+					self._proxman_put_queue.put(b"echo\xb0ReadyToMakeProxy")
 				with self._proxman_recv_lock:
 					try:
 						got = self._proxman_get_queue.get(timeout=10.0)
 					except Empty:
 						raise TimeoutError("Core didn't respond")
-					if got != b"ReadyToMakeProxy":
-						gotten = unpack(got)
-						if not isinstance(gotten, tuple) or gotten == ():
-							raise TypeError(
-								"Strange response from core", gotten
-							)
-						if isinstance(gotten[-1], Exception):
-							raise gotten[-1]
-						raise RuntimeError("Core isn't ready", gotten)
+				unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
 			else:
 				with self._proxman_send_lock:
-					self._proxman_send_pipe.send_bytes(b"echoReadyToMakeProxy")
+					self._proxman_send_pipe.send_bytes(
+						b"echo\xb0ReadyToMakeProxy"
+					)
 				if not self._proxman_recv_pipe.poll(10.0):
 					raise TimeoutError("Subprocess isn't ready")
 				with self._proxman_recv_lock:
-					if (
-						got := self._proxman_recv_pipe.recv_bytes()
-					) != b"ReadyToMakeProxy":
-						if isinstance(got, BaseException):
-							raise got
-						raise RuntimeError("Subprocess isn't ready", got)
+					got = self._proxman_recv_pipe.recv_bytes()
+			unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
