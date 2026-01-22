@@ -821,13 +821,14 @@ class EngineProxyManager:
 
 			self._start_osc(prefix, **kwargs)
 		except ModuleNotFoundError:
-			match self.sub_mode:
-				case Sub.interpreter:
-					self._start_subinterpreter(prefix, **kwargs)
-				case Sub.process:
-					self._start_subprocess(prefix, **kwargs)
-				case Sub.thread:
-					self._start_subthread(prefix, **kwargs)
+			pass
+		match self.sub_mode:
+			case Sub.interpreter:
+				self._start_subinterpreter(prefix, **kwargs)
+			case Sub.process:
+				self._start_subprocess(prefix, **kwargs)
+			case Sub.thread:
+				self._start_subthread(prefix, **kwargs)
 		pack = EngineFacade(None).pack
 		if hasattr(self, "_proxy_out_pipe"):
 			self._proxy_out_pipe.send_bytes(
