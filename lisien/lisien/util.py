@@ -24,7 +24,7 @@ from pprint import pformat
 from queue import SimpleQueue
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, Protocol, TypeVar
+from typing import Callable, Iterable, Protocol, TypeVar, Any
 
 try:
 	import msgpack
@@ -152,6 +152,21 @@ def print_call_sig(
 	func: Callable | str, *args, file=sys.stdout, end="\n", **kwargs
 ):
 	print(format_call_sig(func, *args, **kwargs), file=file, end=end)
+
+
+def unpack_expected(
+	unpack: Callable[[bytes], Any], received: bytes, expected: bytes
+):
+	if received == expected:
+		return
+	gotten = unpack(received)
+	if isinstance(gotten, Exception):
+		raise gotten
+	if not isinstance(gotten, tuple) or gotten == ():
+		raise TypeError(f"Invalid output (expected: {expected})", gotten)
+	if isinstance(gotten[-1], Exception):
+		raise gotten[-1]
+	raise RuntimeError(f"Invalid output (expected: {expected})", gotten)
 
 
 @contextmanager

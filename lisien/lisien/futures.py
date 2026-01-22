@@ -40,7 +40,7 @@ from attrs import Factory, define, field
 from .proxy.routine import worker_subthread, worker_subprocess
 from .proxy.worker_subinterpreter import worker_subinterpreter
 from .types import AbstractEngine, Time, EternalKey, Value, Branch, Turn, Tick
-from .util import msgpack_array_header, msgpack_map_header
+from .util import msgpack_array_header, msgpack_map_header, unpack_expected
 
 if TYPE_CHECKING:
 	try:
@@ -468,16 +468,11 @@ class ThreadWorker(Worker):
 	def shutdown(self) -> None:
 		with self.lock:
 			self.input_queue.put(b"shutdown")
-			got = self.output_queue.get()
-			if got != b"done":
-				gotten = self.unpack(got)
-				if isinstance(gotten, Exception):
-					raise gotten
-				if not isinstance(gotten, tuple) or gotten == ():
-					raise TypeError("Weird output from worker", gotten)
-				if isinstance(gotten[-1], Exception):
-					raise gotten[-1]
-				raise RuntimeError("Worker didn't shutdown", gotten)
+			try:
+				got = self.output_queue.get(timeout=15.0)
+			except Empty:
+				raise TimeoutError("No response to worker shutdown")
+			unpack_expected(self.unpack, got, b"done")
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
 				self.log_thread.join()
@@ -513,8 +508,11 @@ class ThreadWorker(Worker):
 		logthread.start()
 		thred.start()
 		inq.put(b"echoImReady")
-		if (echoed := outq.get(timeout=5.0)) != b"ImReady":
-			raise RuntimeError(f"Got garbled output from worker {i}", echoed)
+		try:
+			echoed = outq.get(timeout=10.0)
+		except Empty:
+			raise TimeoutError("No echo from worker thread")
+		unpack_expected(engine.unpack, echoed, b"ImReady")
 		return cls(
 			(engine.branch, engine.turn, engine.tick),
 			engine.unpack,
@@ -551,18 +549,11 @@ class ProcessWorker(Worker):
 	def shutdown(self) -> None:
 		with self.lock:
 			self.input_connection.send_bytes(b"shutdown")
-			got = self.output_connection.recv_bytes()
-			if got != b"done":
-				gotten = self.unpack(got)
-				if isinstance(gotten, Exception):
-					raise gotten
-				if not isinstance(gotten, tuple) or gotten == ():
-					raise TypeError(
-						"Strange response to worker shutdown", gotten
-					)
-				if isinstance(gotten[-1], Exception):
-					raise gotten[-1]
-				raise RuntimeError("Worker didn't respond to shutdown", got)
+			if not self.output_connection.poll(10):
+				raise TimeoutError("No response to shutdown")
+			unpack_expected(
+				self.unpack, self.output_connection.recv_bytes(), b"done"
+			)
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
 				self.log_thread.join(timeout=10.0)
@@ -610,10 +601,9 @@ class ProcessWorker(Worker):
 				raise TimeoutError(
 					f"Couldn't connect to worker process {i} in 5s"
 				)
-			if (received := outpipe_here.recv_bytes()) != b"ImReady":
-				raise RuntimeError(
-					f"Got garbled output from worker process {i}", received
-				)
+			unpack_expected(
+				engine.unpack, outpipe_here.recv_bytes(), b"ImReady"
+			)
 			return cls(
 				(engine.branch, engine.turn, engine.tick),
 				engine.unpack,
@@ -659,19 +649,7 @@ class InterpreterWorker(Worker):
 				echoed = self.output_queue.get(timeout=10)
 			except Empty:
 				raise TimeoutError("Worker terp didn't shut down", echoed)
-			if echoed != b"done":
-				gotten = self.unpack(echoed)
-				if isinstance(gotten, Exception):
-					raise gotten
-				if not isinstance(gotten, tuple) or gotten == ():
-					raise TypeError(
-						"Strange shutdown response from worker", gotten
-					)
-				if isinstance(gotten[-1], Exception):
-					raise gotten[-1]
-				raise RuntimeError(
-					"Worker interpreter didn't shut down", gotten
-				)
+			unpack_expected(self.unpack, echoed, b"done")
 			if self.thread.is_alive():
 				self.thread.join(timeout=5)
 				if self.thread.is_alive():
