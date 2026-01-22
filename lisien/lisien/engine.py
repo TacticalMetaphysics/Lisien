@@ -668,10 +668,13 @@ class Engine(AbstractEngine, Executor):
 			if self.connect_string is None:
 				from .pqdb import ParquetDatabaseConnector
 
+				path = self._prefix.joinpath("world")
+				path.mkdir(parents=True)
+
 				return ParquetDatabaseConnector(
 					self.pack,
 					self.unpack,
-					self._prefix.joinpath("world"),
+					path,
 					clear=self.clear,
 				)
 			else:
