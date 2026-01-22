@@ -281,53 +281,52 @@ class EngineProxyManager:
 		"""Close the engine in the subprocess, then join the subprocess"""
 		if hasattr(self, "engine_proxy") and not self.engine_proxy.closed:
 			self.engine_proxy.close()
-		if self.really_shutdown:
-			if hasattr(self, "_logq"):
-				self._logq.put(b"shutdown")
-				del self._logq
-			if hasattr(self, "_p"):
-				if self._p.is_alive():
-					with self._round_trip_lock:
-						with self._pipe_out_lock:
-							self._proxy_out_pipe.send_bytes(b"shutdown")
-						with self._pipe_in_lock:
-							if (
-								got := self._proxy_in_pipe.recv_bytes()
-							) != b"shutdown":
-								raise RuntimeError(
-									"Subprocess didn't respond to shutdown signal",
-									got,
-								)
-					self._p.join(timeout=10.0)
-					if self._p.is_alive():
-						self._p.kill()
-						self._p.join(timeout=10.0)
-						if self._p.is_alive():
-							self._p.terminate()
-					self._p.close()
-				del self._p
-			if hasattr(self, "_t"):
-				if self._t.is_alive():
-					with self._round_trip_lock:
-						self._input_queue.put(b"shutdown")
+		if hasattr(self, "_logq"):
+			self._logq.put(b"shutdown")
+			del self._logq
+		if hasattr(self, "_p"):
+			if self._p.is_alive():
+				with self._round_trip_lock:
+					with self._pipe_out_lock:
+						self._proxy_out_pipe.send_bytes(b"shutdown")
+					with self._pipe_in_lock:
 						if (
-							got := self._output_queue.get(timeout=5.0)
+							got := self._proxy_in_pipe.recv_bytes()
 						) != b"shutdown":
 							raise RuntimeError(
-								"Subthread didn't respond to shutdown signal",
+								"Subprocess didn't respond to shutdown signal",
 								got,
 							)
-					self._t.join(timeout=5.0)
-					if self._t.is_alive():
-						raise TimeoutError("Couldn't join thread")
-				del self._t
-			if hasattr(self, "_log_thread"):
-				self._log_thread.join()
-				del self._log_thread
-			if hasattr(self, "_terp"):
-				if self._terp.is_running():
-					self._terp.close()
-				del self._terp
+				self._p.join(timeout=10.0)
+				if self._p.is_alive():
+					self._p.kill()
+					self._p.join(timeout=10.0)
+					if self._p.is_alive():
+						self._p.terminate()
+				self._p.close()
+			del self._p
+		if hasattr(self, "_t"):
+			if self._t.is_alive():
+				with self._round_trip_lock:
+					self._input_queue.put(b"shutdown")
+					if (
+						got := self._output_queue.get(timeout=5.0)
+					) != b"shutdown":
+						raise RuntimeError(
+							"Subthread didn't respond to shutdown signal",
+							got,
+						)
+				self._t.join(timeout=5.0)
+				if self._t.is_alive():
+					raise TimeoutError("Couldn't join thread")
+			del self._t
+		if hasattr(self, "_log_thread"):
+			self._log_thread.join()
+			del self._log_thread
+		if hasattr(self, "_terp"):
+			if self._terp.is_running():
+				self._terp.close()
+			del self._terp
 		if hasattr(self, "_client"):
 			while not self._output_queue.empty():
 				time.sleep(0.01)
