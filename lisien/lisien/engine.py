@@ -7689,32 +7689,47 @@ class Engine(AbstractEngine, Executor):
 				import_database.close()
 		if logger is None:
 			logger = getLogger("lisien")
-		return cls(
-			prefix=prefix,
-			string=string,
-			trigger=trigger,
-			prereq=prereq,
-			action=action,
-			function=function,
-			method=method,
-			trunk=trunk,
-			connect_string=connect_string,
-			connect_args=connect_args,
-			schema=schema,
-			flush_interval=flush_interval,
-			keyframe_interval=keyframe_interval,
-			commit_interval=commit_interval,
-			random_seed=random_seed,
-			clear=clear,
-			keep_rules_journal=keep_rules_journal,
-			keyframe_on_close=keyframe_on_close,
-			enforce_end_of_time=enforce_end_of_time,
-			logger=logger,
-			workers=workers,
-			sub_mode=sub_mode,
-			database=database,
-			executor=executor,
-		)
+		kwargs = {
+			"logger": logger,
+			"keyframe_interval": keyframe_interval,
+			"schema": schema,
+			"keep_rules_journal": keep_rules_journal,
+			"keyframe_on_close": keyframe_on_close,
+			"enforce_end_of_time": enforce_end_of_time,
+		}
+		if database is not None:
+			kwargs["database"] = database
+		if executor is not None:
+			kwargs["executor"] = executor
+		if string is not None:
+			kwargs["string"] = string
+		if trigger is not None:
+			kwargs["trigger"] = trigger
+		if prereq is not None:
+			kwargs["prereq"] = prereq
+		if action is not None:
+			kwargs["action"] = action
+		if function is not None:
+			kwargs["function"] = function
+		if method is not None:
+			kwargs["method"] = method
+		if trunk is not None:
+			kwargs["trunk"] = trunk
+		if connect_string is not None:
+			kwargs["connect_string"] = connect_string
+		if connect_args is not None:
+			kwargs["connect_args"] = connect_args
+		if flush_interval is not None:
+			kwargs["flush_interval"] = flush_interval
+		if commit_interval is not None:
+			kwargs["commit_interval"] = commit_interval
+		if random_seed is not None:
+			kwargs["random_seed"] = random_seed
+		if workers is not None:
+			kwargs["workers"] = workers
+		if sub_mode is not None:
+			kwargs["sub_mode"] = sub_mode
+		return cls(prefix, **kwargs)
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
 		import json
