@@ -5442,7 +5442,10 @@ class Engine(AbstractEngine, Executor):
 		btt_to = validate_time(btt_to)
 		if len(btt_to) != 3:
 			raise TypeError("Not a full time with a branch", btt_to)
-		import numpy as np
+		try:
+			import numpy as np
+		except ImportError:
+			np = None
 
 		def newgraph():
 			return {
@@ -5668,9 +5671,13 @@ class Engine(AbstractEngine, Executor):
 				for orig in kf_to["edges"][graph]:
 					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
-			values_changed: np.array[bool] = np.array(ids_from) != np.array(
-				ids_to
-			)
+			if np is None:
+				values_changed: list[bool] = [
+					a != b for (a, b) in zip(ids_from, ids_to)
+				]
+			else:
+				values_changed: np.typing.NDArray[np.bool[bool]]
+				values_changed = np.array(ids_from) != np.array(ids_to)
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
