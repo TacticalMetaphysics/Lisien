@@ -3256,11 +3256,11 @@ class AbstractEngine(ABC):
 				self.pack(
 					[
 						exc.__class__.__name__,
+						exc.args,
 						Traceback(exc.__traceback__).to_dict()
 						if hasattr(exc, "__traceback__")
 						else None,
 					]
-					+ list(exc.args)
 				),
 			),
 			self.char_cls: lambda obj: umsgpack.Ext(
