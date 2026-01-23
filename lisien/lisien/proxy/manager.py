@@ -857,7 +857,7 @@ class EngineProxyManager:
 				**kwargs,
 			}
 		)
-		if hasattr(self, "_proxy_out_pipe"):
+		if hasattr(self, "_proxman_send_pipe"):
 			self._proxman_send_pipe.send_bytes(payload)
 		else:
 			self._proxman_put_queue.put(payload)
