@@ -72,13 +72,7 @@ def worker_subroutine(
 	pack = eng.pack
 	unpack = eng.unpack
 
-	while True:
-		inst = get_input_bytes()
-		if inst == b"shutdown":
-			if logq and hasattr(logq, "close"):
-				logq.close()
-			send_output_bytes(b"done")
-			return 0
+	while (inst := get_input_bytes()) != b"shutdown":
 		if inst.startswith(b"echo"):
 			send_output_bytes(inst.removeprefix(b"echo"))
 			continue
@@ -110,6 +104,10 @@ def worker_subroutine(
 		if uid != sys.maxsize:
 			send_output_bytes(inst[:8] + pack(ret))
 		eng._initialized = True
+	if logq and hasattr(logq, "close"):
+		logq.close()
+	send_output_bytes(b"done")
+	return 0
 
 
 def worker_subprocess(
