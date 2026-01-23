@@ -669,7 +669,7 @@ class Engine(AbstractEngine, Executor):
 				from .pqdb import ParquetDatabaseConnector
 
 				path = self._prefix.joinpath("world")
-				path.mkdir(parents=True)
+				path.mkdir(parents=True, exist_ok=True)
 
 				return ParquetDatabaseConnector(
 					self.pack,
