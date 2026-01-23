@@ -352,6 +352,7 @@ class EngineProxyManager:
 			del self.engine_proxy
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: shutdown")
+		print("EngineProxyManager.shutdown end")
 
 	def _config_logger(self, kwargs):
 		handlers = []
@@ -438,6 +439,7 @@ class EngineProxyManager:
 				kwargs,
 				self._handle_recv_pipe,
 				self._handle_send_pipe,
+				self.reuse,
 				self._logq,
 			),
 		)
@@ -643,6 +645,7 @@ class EngineProxyManager:
 				kwargs,
 				self._proxman_put_queue,
 				self._proxman_get_queue,
+				self.reuse,
 				None,
 			),
 		)
@@ -813,6 +816,7 @@ class EngineProxyManager:
 		**kwargs,
 	) -> EngineProxy:
 		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
+		print("load_archive start")
 		if isinstance(archive_path, Path):
 			if not archive_path.name.endswith(".lisien"):
 				raise RuntimeError("Not a .lisien archive")
@@ -858,7 +862,9 @@ class EngineProxyManager:
 		else:
 			self._proxman_put_queue.put(payload)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
+		print("made the proxy")
 		self.engine_proxy._init_pull_from_core()
+		print("pulled from core")
 		return self.engine_proxy
 
 	def close(self):
@@ -875,6 +881,7 @@ class EngineProxyManager:
 			self.logger.debug("EngineProxyManager: stopped core service")
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: closed")
+		print("EngineProxyManager closed")
 
 	def __enter__(self):
 		return self

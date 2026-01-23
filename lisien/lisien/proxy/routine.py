@@ -214,6 +214,7 @@ def engine_subroutine(
 	kwargs,
 	get_input_bytes: Callable[[], bytes],
 	send_output_bytes: Callable[[bytes], None],
+	reuse_executor=False,
 	log_queue=None,
 ):
 	engine_handle = None
@@ -235,14 +236,27 @@ def engine_subroutine(
 			send_output_bytes(recvd.removeprefix(b"echo"))
 			continue
 		if recvd.startswith(b"from_archive"):
-			if engine_handle is not None:
+			if engine_handle is None:
+				engine_handle = EngineHandle.from_archive(
+					recvd.removeprefix(b"from_archive"),
+					log_queue=log_queue,
+					reuse_executor=reuse_executor,
+				)
+			else:
 				engine_handle.close()
-			engine_handle = EngineHandle.from_archive(
-				recvd.removeprefix(b"from_archive"), log_queue=log_queue
-			)
+				engine_handle.load_archive(
+					recvd.removeprefix(b"from_archive"),
+					log_queue=log_queue,
+					reuse_executor=reuse_executor,
+				)
 			continue
 		if engine_handle is None:
-			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
+			engine_handle = EngineHandle(
+				*args,
+				log_queue=log_queue,
+				reuse_executor=reuse_executor,
+				**kwargs,
+			)
 			send_output("get_btt", engine_handle.get_btt())
 			continue
 		unpacked = engine_handle.unpack(recvd)
@@ -273,13 +287,32 @@ def engine_subroutine(
 	return 0
 
 
-def engine_subprocess(args, kwargs, in_pipe, out_pipe, log_queue):
+def engine_subprocess(
+	args, kwargs, in_pipe, out_pipe, reuse_executor=False, log_queue=None
+):
 	return engine_subroutine(
-		args, kwargs, in_pipe.recv_bytes, out_pipe.send_bytes, log_queue
+		args,
+		kwargs,
+		in_pipe.recv_bytes,
+		out_pipe.send_bytes,
+		reuse_executor,
+		log_queue,
 	)
 
 
-def engine_subthread(args, kwargs, input_queue, output_queue, log_queue):
+def engine_subthread(
+	args,
+	kwargs,
+	input_queue,
+	output_queue,
+	reuse_executor=False,
+	log_queue=None,
+):
 	return engine_subroutine(
-		args, kwargs, input_queue.get, output_queue.put, log_queue
+		args,
+		kwargs,
+		input_queue.get,
+		output_queue.put,
+		reuse_executor,
+		log_queue,
 	)
