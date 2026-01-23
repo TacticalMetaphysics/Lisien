@@ -1152,10 +1152,6 @@ class Engine(AbstractEngine, Executor):
 				executor.engine = self
 			executor.lock.acquire()
 			executor.restart(self._get_worker_kf_payload)
-		elif self.workers > 0:
-			raise RuntimeError(
-				f"Didn't start an executor, though {self.workers} workers were requested"
-			)
 
 	cache_neighbors: int = field(default=1000)
 	"""Number of nodes to cache the neighbors of"""
@@ -6036,7 +6032,7 @@ class Engine(AbstractEngine, Executor):
 			self.executor.lock.release()
 			if self._shutdown_executor:
 				self.executor.shutdown(wait, cancel_futures=cancel_futures)
-			del self.executor
+			self.executor = None
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
