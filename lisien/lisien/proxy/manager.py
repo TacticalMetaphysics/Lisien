@@ -766,8 +766,8 @@ class EngineProxyManager:
 					with open(jsonpath) as inf:
 						game_strings = json.load(inf)
 
-		if hasattr(self, "_proxy_in_pipe") and hasattr(
-			self, "_proxy_out_pipe"
+		if hasattr(self, "_proxman_recv_pipe") and hasattr(
+			self, "_proxman_send_pipe"
 		):
 			self.engine_proxy = EngineProxy(
 				self._proxman_recv_pipe.recv_bytes,
