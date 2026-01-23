@@ -248,8 +248,8 @@ def engine_subroutine(
 							RuntimeError("Still running a worker")
 						)
 					)
-					send_output_bytes(b"shutdown")
-					return 0
+			send_output_bytes(b"shutdown")
+			return 0
 		if recvd.startswith(b"echo"):
 			send_output_bytes(recvd.removeprefix(b"echo"))
 			continue
