@@ -249,11 +249,16 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 			for table, schema in self.schema.items():
 				schema = self._get_schema(table)
 				db = self._get_db(table)
-				if db.is_empty() and table in initial:
-					db.create(
-						initial[table],
-						schema=schema,
-					)
+				if db.is_empty():
+					if table in initial:
+						db.create(
+							initial[table],
+							schema=schema,
+						)
+					else:
+						self.connector.path.joinpath(table).mkdir(
+							exist_ok=True
+						)
 			glob_d = {}
 			for d in self.dump("global"):
 				if d["key"] in glob_d:
