@@ -144,8 +144,11 @@ class EngineHandle:
 	"""
 
 	_after_ret: Callable
+	reuse_executor: bool
 
-	def __init__(self, *args, log_queue=None, **kwargs):
+	def __init__(
+		self, *args, log_queue=None, reuse_executor: bool = False, **kwargs
+	):
 		"""Instantiate an engine with the given arguments"""
 		from ..engine import Engine
 
@@ -155,6 +158,9 @@ class EngineHandle:
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
+		if reuse_executor:
+			self._real._shutdown_executor = False
+		self._reuse_executor = reuse_executor
 		self.debug("started engine in a handle")
 		self._executor = self._real.executor
 		self.pack = pack = self._real.pack
@@ -206,7 +212,9 @@ class EngineHandle:
 		return "restarted"
 
 	@classmethod
-	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
+	def from_archive(
+		cls, b: bytes | dict, *, log_queue=None, reuse_executor=False
+	) -> EngineHandle:
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
@@ -222,16 +230,23 @@ class EngineHandle:
 			raise TypeError("No archive path")
 		if "prefix" not in kwargs:
 			raise TypeError("No prefix")
+		do_game_start = kwargs.pop("do_game_start", False)
+
+		new = cls.__new__(cls)
+		new.reuse_executor = reuse_executor
 		if log_queue:
 			logger = kwargs["logger"] = Logger("lisien")
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
-		do_game_start = kwargs.pop("do_game_start", False)
-
-		new = cls.__new__(cls)
+			new._logger = logger
+		elif "logger" in kwargs:
+			new._logger = kwargs["logger"]
 		new._real = Engine.from_archive(
 			kwargs.pop("archive_path"), kwargs.pop("prefix"), **kwargs
 		)
+		if reuse_executor:
+			new._real._shutdown_executor = False
+			new._executor = new._real.executor
 		new.pack = pack = new._real.pack
 
 		def pack_pair(pair):
@@ -243,6 +258,67 @@ class EngineHandle:
 		if do_game_start:
 			new.do_game_start()
 		return new
+
+	def load_archive(
+		self,
+		b: bytes | dict,
+		*,
+		log_queue=None,
+		reuse_executor=False,
+	):
+		from ..engine import Engine
+
+		if not hasattr(self, "_real") or not self._real._closed:
+			raise RuntimeError(
+				"Only use `load_archive` when you already made "
+				"an engine, and you closed it"
+			)
+		if isinstance(b, bytes):
+			kwargs = self._real.unpack(b)
+		elif not isinstance(b, dict):
+			raise TypeError("Invalid input", b)
+		else:
+			kwargs = b
+		if "archive_path" not in kwargs:
+			raise TypeError("No archive path")
+		if "prefix" not in kwargs:
+			raise TypeError("No prefix")
+
+		if log_queue:
+			logger = kwargs["logger"] = Logger("lisien")
+			handler = EngineHandleLogHandler(0, log_queue)
+			logger.addHandler(handler)
+			self._logger = logger
+		elif "logger" in kwargs:
+			self._logger = kwargs["logger"]
+		if reuse_executor:
+			if getattr(self, "_executor", None) is not None:
+				kwargs["executor"] = self._executor
+		elif self._executor:
+			self.warning(
+				"Previous executor wasn't shut down, "
+				"but isn't going to be reused. I'll shut it down now..."
+			)
+			self._executor.shutdown()
+			self._executor = None
+		do_game_start = kwargs.pop("do_game_start", False)
+
+		self._real = Engine.from_archive(
+			kwargs.pop("archive_path"), kwargs.pop("prefix"), **kwargs
+		)
+		if reuse_executor and getattr(self, "_executor", None) is None:
+			self._executor = self._real.executor
+
+		pack = self.pack = self._real.pack
+		self.unpack = self._real.unpack
+
+		def pack_pair(pair):
+			k, v = pair
+			return pack(k), pack(v)
+
+		self.pack_pair = pack_pair
+		if do_game_start:
+			self.do_game_start()
 
 	def get_time(self) -> Time:
 		branch, turn, tick = self._real.time
