@@ -1091,41 +1091,43 @@ class Engine(AbstractEngine, Executor):
 
 	_shutdown_executor: bool = field(init=False, default=False)
 
+	def _executor_factory(self):
+		if self.workers <= 0:
+			return None
+		if self._prefix is not None:
+			for store in self.stores:
+				if hasattr(store, "save"):
+					store.save(reimport=False)
+		self._shutdown_executor = True
+		match self.sub_mode:
+			case Sub.interpreter if sys.version_info[1] >= 14:
+				return LisienInterpreterExecutor(self)
+			case Sub.process:
+				return LisienProcessExecutor(self)
+			case Sub.thread:
+				return LisienThreadExecutor(self)
+			case _:
+				if sys.version_info[1] >= 14:
+					try:
+						return LisienInterpreterExecutor(self)
+					except ModuleNotFoundError:
+						pass
+				if get_all_start_methods():
+					return LisienProcessExecutor(self)
+				else:
+					return LisienThreadExecutor(self)
+
 	@staticmethod
 	def _convert_executor(
 		executor: LisienExecutor | None, self
 	) -> LisienExecutor | None:
 		if executor:
 			self._shutdown_executor = False
-			return executor
-		elif self.workers > 0:
-			if self._prefix is not None:
-				for store in self.stores:
-					if hasattr(store, "save"):
-						store.save(reimport=False)
-			self._shutdown_executor = True
-			match self.sub_mode:
-				case Sub.interpreter if sys.version_info[1] >= 14:
-					return LisienInterpreterExecutor(self)
-				case Sub.process:
-					return LisienProcessExecutor(self)
-				case Sub.thread:
-					return LisienThreadExecutor(self)
-				case _:
-					if sys.version_info[1] >= 14:
-						try:
-							return LisienInterpreterExecutor(self)
-						except ModuleNotFoundError:
-							pass
-					if get_all_start_methods():
-						return LisienProcessExecutor(self)
-					else:
-						return LisienThreadExecutor(self)
-		return None
+		return executor
 
 	executor: LisienExecutor | None = field(
 		kw_only=True,
-		default=None,
+		default=Factory(_executor_factory, takes_self=True),
 		converter=Converter(_convert_executor, takes_self=True),
 	)
 	"""A :class:`LisienExecutor` instance we'll use to do
