@@ -473,6 +473,7 @@ class ThreadWorker(Worker):
 			except Empty:
 				raise TimeoutError("No response to worker shutdown")
 			unpack_expected(self.unpack, got, b"done")
+			self.worker_thread.join(timeout=15.0)
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
 				self.log_thread.join()
