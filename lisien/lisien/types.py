@@ -2264,6 +2264,10 @@ class MsgpackExtensionType(Enum):
 	action = 0x76
 	database = 0x75
 	path = 0x74
+	character_facade = 0x73
+	facade_place = 0x72
+	facade_thing = 0x71
+	facade_portal = 0x70
 
 
 class get_rando:
@@ -2857,6 +2861,12 @@ class AbstractEngine(ABC):
 	@cached_property
 	def pack(self) -> Callable[[ValueHint | Value], bytes]:
 		from .db import AbstractDatabaseConnector
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
+		)
 
 		try:
 			from msgpack import Packer
@@ -2909,6 +2919,51 @@ class AbstractEngine(ABC):
 			SubSetWrapper: lambda obj: obj.unwrap(),
 			type(...): lambda _: msgpack.ExtType(
 				MsgpackExtensionType.ellipsis.value, b""
+			),
+			CharacterFacade: lambda char: msgpack.ExtType(
+				MsgpackExtensionType.character_facade.value,
+				self.pack(
+					[
+						char.name,
+						char.stat._patch,
+						{
+							name: place._patch
+							for (name, place) in char.place._patch.items()
+						},
+						{
+							name: (thing["location"], thing._patch)
+							for (name, thing) in char.thing._patch.items()
+						},
+						{
+							orig: {
+								dest: port._patch
+								for (dest, port) in dests.items()
+							}
+							for (orig, dests) in char.portal._patch.items()
+						},
+					]
+				),
+			),
+			FacadePlace: lambda node: msgpack.ExtType(
+				MsgpackExtensionType.facade_place.value,
+				self.pack([node.character.name, node.name, node._patch]),
+			),
+			FacadeThing: lambda node: msgpack.ExtType(
+				MsgpackExtensionType.facade_thing.value,
+				self.pack(
+					[
+						node.character.name,
+						node.name,
+						node["location"],
+						node._patch,
+					]
+				),
+			),
+			FacadePortal: lambda port: msgpackExtType(
+				MsgpackExtensionType.facade_portal.value,
+				self.pack(
+					[port.character.name, port.orig, port.dest, port._patch]
+				),
 			),
 			nx.Graph: lambda graf: msgpack.ExtType(
 				MsgpackExtensionType.graph.value,
@@ -2978,7 +3033,7 @@ class AbstractEngine(ABC):
 				return handlers[typ](obj)
 			elif isinstance(obj, DiGraph):
 				return msgpack.ExtType(
-					MsgpackExtensionType.character.value, packer(obj.name)
+					MsgpackExtensionType.graph.value, packer(obj.name)
 				)
 			elif isinstance(obj, AbstractThing):
 				return msgpack.ExtType(
@@ -3021,6 +3076,14 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def _unpack_handlers(self):
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
+			FacadePortalSuccessors,
+		)
+
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
@@ -3082,6 +3145,47 @@ class AbstractEngine(ABC):
 			charn = self.unpack(getattr(ext, "data", ext))
 			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
 
+		def unpack_character_facade(ext: bytes) -> CharacterFacade:
+			name, stats, places, things, portals = self.unpack(
+				getattr(ext, "data", ext)
+			)
+			fac = CharacterFacade(self, name)
+			fac.graph._cache = stats
+			for place, patch in places.items():
+				fac.place._patch[place] = FacadePlace(fac, place, **patch)
+			for thing, (location, patch) in things.items():
+				fac.thing._patch[thing] = FacadeThing(
+					fac, thing, location, **patch
+				)
+			for orig, dests in portals.items():
+				patched = fac.portal._patch[orig] = {}
+				for dest, patch in dests.items():
+					patched[dest] = FacadePortal(orig, dest, **patch)
+
+		def unpack_facade_place(ext: bytes) -> FacadePlace:
+			charn, name, stats = self.unpack(getattr(ext, "data", ext))
+			char = CharacterFacade(self, charn)
+			place = char.place._patch[name] = FacadePlace(char, name, **stats)
+			return place
+
+		def unpack_facade_thing(ext: bytes) -> FacadeThing:
+			charn, name, locn, stats = self.unpack(getattr(ext, "data", ext))
+			char = CharacterFacade(self, charn)
+			thing = char.thing._patch[name] = FacadeThing(
+				char, name, locn, **stats
+			)
+			return thing
+
+		def unpack_facade_portal(ext: bytes) -> FacadePortal:
+			charn, orign, destn, stats = self.unpack(getattr(ext, "data", ext))
+			char = CharacterFacade(self, charn)
+			port = FacadePortal(char, orign, destn, **stats)
+			succs = char.portal._patch[orign] = FacadePortalSuccessors(
+				char, orign
+			)
+			succs._patch[destn] = port
+			return port
+
 		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = self.unpack(getattr(ext, "data", ext))
 			return place_cls(
@@ -3124,6 +3228,10 @@ class AbstractEngine(ABC):
 			MsgpackExtensionType.path.value: unpack_path,
 			MsgpackExtensionType.database.value: unpack_database_connector,
 			MsgpackExtensionType.ellipsis.value: lambda _: ...,
+			MsgpackExtensionType.character_facade.value: unpack_character_facade,
+			MsgpackExtensionType.facade_place.value: unpack_facade_place,
+			MsgpackExtensionType.facade_thing.value: unpack_facade_thing,
+			MsgpackExtensionType.facade_portal.value: unpack_facade_portal,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
 			MsgpackExtensionType.place.value: unpack_place,
@@ -3191,6 +3299,12 @@ class AbstractEngine(ABC):
 	@cached_property
 	def _umsgpack_pack_handlers(self):
 		from .db import PythonDatabaseConnector
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
+		)
 
 		from .collections import CompositeDict
 		import umsgpack
@@ -3198,6 +3312,22 @@ class AbstractEngine(ABC):
 		def pack_path(p):
 			return umsgpack.Ext(
 				MsgpackExtensionType.path.value, self.pack(str(p))
+			)
+
+		def pack_graph(typstr: str, graf: nx.Graph):
+			return umsgpack.Ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(
+					[
+						typstr,
+						{k: v for (k, v) in graf.nodes.items()},
+						{
+							u: {v: w for (v, w) in vs.items()}
+							for (u, vs) in graf.edges.items()
+						},
+						{k: v for (k, v) in graf.graph.items()},
+					]
+				),
 			)
 
 		ret = {
@@ -3216,29 +3346,55 @@ class AbstractEngine(ABC):
 			type(...): lambda _: umsgpack.Ext(
 				MsgpackExtensionType.ellipsis.value, b""
 			),
-			nx.Graph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
+			CharacterFacade: lambda char: umsgpack.Ext(
+				MsgpackExtensionType.character_facade.value,
 				self.pack(
 					[
-						"Graph",
-						graf._node,
-						graf._adj,
-						graf.graph,
+						char.name,
+						char.stat._patch,
+						{
+							name: place._patch
+							for (name, place) in char.place._patch.items()
+						},
+						{
+							name: (thing["location"], thing._patch)
+							for (name, thing) in char.thing._patch.items()
+						},
+						{
+							orig: {
+								dest: port._patch
+								for (dest, port) in dests.items()
+							}
+							for (orig, dests) in char.portal._patch.items()
+						},
 					]
 				),
 			),
-			nx.DiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["DiGraph", graf._node, graf._adj, graf.graph]),
+			FacadePlace: lambda node: umsgpack.Ext(
+				MsgpackExtensionType.facade_place.value,
+				self.pack([node.character.name, node.name, node._patch]),
 			),
-			nx.MultiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["MultiGraph", graf._node, graf._adj, graf.graph]),
+			FacadeThing: lambda node: umsgpack.Ext(
+				MsgpackExtensionType.facade_thing.value,
+				self.pack(
+					[
+						node.character.name,
+						node.name,
+						node["location"],
+						node._patch,
+					]
+				),
 			),
-			nx.MultiDiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
+			FacadePortal: lambda port: umsgpack.Ext(
+				MsgpackExtensionType.facade_portal.value,
+				self.pack(
+					[port.character.name, port.orig, port.dest, port._patch]
+				),
 			),
+			nx.Graph: partial(pack_graph, "Graph"),
+			nx.DiGraph: partial(pack_graph, "DiGraph"),
+			nx.MultiGraph: partial(pack_graph, "MultiGraph"),
+			nx.MultiDiGraph: partial(pack_graph, "MultiDiGraph"),
 			tuple: lambda tup: umsgpack.Ext(
 				MsgpackExtensionType.tuple.value, self.pack(list(tup))
 			),
