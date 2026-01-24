@@ -2667,6 +2667,32 @@ class TimeSignalDescriptor:
 		)
 
 
+def pack_database_connector(db):
+	from .db import PythonDatabaseConnector
+
+	if isinstance(db, partial):
+		data = {
+			"class": db.func.__name__,
+		}
+		if (
+			db.func is PythonDatabaseConnector
+			and PythonDatabaseConnector._old_data is not None
+		):
+			data["load_me"] = PythonDatabaseConnector._old_data
+		data.update(db.keywords)
+	elif isinstance(db, PythonDatabaseConnector):
+		data = {
+			"class": "PythonDatabaseConnector",
+			"load_me": db.dump_everything(),
+		}
+	else:
+		data = {"class": db.__name__}
+	return msgpack.ExtType(
+		MsgpackExtensionType.database.value,
+		packer(data),
+	)
+
+
 @define
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
@@ -2853,31 +2879,6 @@ class AbstractEngine(ABC):
 		def pack_set(s):
 			return msgpack.ExtType(
 				MsgpackExtensionType.set.value, packer(list(s))
-			)
-
-		def pack_database_connector(db):
-			from .db import PythonDatabaseConnector
-
-			if isinstance(db, partial):
-				data = {
-					"class": db.func.__name__,
-				}
-				if (
-					db.func is PythonDatabaseConnector
-					and PythonDatabaseConnector._old_data is not None
-				):
-					data["load_me"] = PythonDatabaseConnector._old_data
-				data.update(db.keywords)
-			elif isinstance(db, PythonDatabaseConnector):
-				data = {
-					"class": "PythonDatabaseConnector",
-					"load_me": db.dump_everything(),
-				}
-			else:
-				data = {"class": db.__name__}
-			return msgpack.ExtType(
-				MsgpackExtensionType.database.value,
-				packer(data),
 			)
 
 		def pack_path(p):
@@ -3189,7 +3190,9 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def _umsgpack_pack_handlers(self):
-		from .db import AbstractDatabaseConnector
+		from .db import PythonDatabaseConnector
+
+		from .collections import CompositeDict
 		import umsgpack
 
 		def pack_path(p):
@@ -3197,14 +3200,15 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.path.value, self.pack(str(p))
 			)
 
-		return {
+		ret = {
 			Path: pack_path,
 			PosixPath: pack_path,
 			WindowsPath: pack_path,
-			AbstractDatabaseConnector: lambda db: umsgpack.Ext(
+			type: lambda db: umsgpack.Ext(
 				MsgpackExtensionType.database.value,
 				self.pack({"class": db.__name__}),
 			),
+			PythonDatabaseConnector: pack_database_connector,
 			partial: lambda db: umsgpack.Ext(
 				MsgpackExtensionType.database.value,
 				self.pack({"class": db.func.__name__, **db.keywords}),
@@ -3285,6 +3289,19 @@ class AbstractEngine(ABC):
 				),
 			),
 		}
+		try:
+			from .sql import SQLAlchemyDatabaseConnector
+
+			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
+		except ImportError:
+			pass
+		try:
+			from .pqdb import ParquetDatabaseConnector
+
+			ret[ParquetDatabaseConnector] = pack_database_connector
+		except ImportError:
+			pass
+		return ret
 
 	@abstractmethod
 	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
