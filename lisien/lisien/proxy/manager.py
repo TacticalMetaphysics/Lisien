@@ -80,6 +80,8 @@ class EngineProxyManager:
 
 	def start(self, *args, **kwargs):
 		self._config_logger(kwargs)
+		if "sub_mode" in kwargs:
+			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
 		if self.android:
 			self._start_osc(*args, **kwargs)
