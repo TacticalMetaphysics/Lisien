@@ -275,7 +275,7 @@ def kind_of_proxy_manager(request):
 
 
 @pytest.fixture(scope="session")
-def session_proxy_manager(
+def proxy_manager(
 	serial_or_parallel,
 	kind_of_proxy_manager,
 ):
@@ -288,21 +288,9 @@ def session_proxy_manager(
 	if kind_of_proxy_manager == "no_manager":
 		yield None
 		return
-	proxman = EngineProxyManager(
-		sub_mode=kind_of_proxy_manager.removesuffix("_manager")
-	)
-	proxman._really_shutdown = False
-	yield proxman
-	proxman._really_shutdown = True
-	proxman.shutdown()
-
-
-@pytest.fixture(scope="function")
-def proxy_manager(session_proxy_manager):
-	if session_proxy_manager is None:
-		yield None
-		return
-	with session_proxy_manager as proxman:
+	with EngineProxyManager(
+		sub_mode=kind_of_proxy_manager.removesuffix("_manager"), reuse=True
+	) as proxman:
 		yield proxman
 
 
