@@ -38,6 +38,9 @@ from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
 
 
+TIMEOUT = 30
+
+
 @define(slots=False)
 class EngineProxyManager:
 	"""Container for a Lisien proxy and a logger for it
@@ -303,16 +306,16 @@ class EngineProxyManager:
 					with self._proxman_send_lock:
 						self._proxman_send_pipe.send_bytes(b"shutdown")
 					with self._proxman_recv_lock:
-						if not self._proxman_recv_pipe.poll(10):
+						if not self._proxman_recv_pipe.poll(TIMEOUT):
 							raise TimeoutError(
 								"No response to shutdown signal"
 							)
 						got = self._proxman_recv_pipe.recv_bytes()
 						unpack_expected(unpack, got, b"shutdown")
-				self._p.join(timeout=10.0)
+				self._p.join(timeout=TIMEOUT)
 				if self._p.is_alive():
 					self._p.kill()
-					self._p.join(timeout=10.0)
+					self._p.join(timeout=TIMEOUT)
 					if self._p.is_alive():
 						self._p.terminate()
 				self._p.close()
@@ -325,14 +328,14 @@ class EngineProxyManager:
 					with self._proxman_recv_lock:
 						try:
 							got: bytes = self._proxman_get_queue.get(
-								timeout=10.0
+								timeout=TIMEOUT
 							)
 						except Empty:
 							raise TimeoutError(
 								"Didn't get a timely response from the core thread"
 							)
 					unpack_expected(unpack, got, b"shutdown")
-				self._t.join(timeout=5.0)
+				self._t.join(timeout=TIMEOUT)
 				if self._t.is_alive():
 					raise TimeoutError("Couldn't join thread")
 			del self._t
@@ -416,7 +419,7 @@ class EngineProxyManager:
 						)
 					)
 				with self._proxman_recv_lock:
-					if not self._proxman_recv_pipe.poll(5.0):
+					if not self._proxman_recv_pipe.poll(TIMEOUT):
 						raise TimeoutError(
 							"Subprocess didn't respond to restart command"
 						)
@@ -724,7 +727,7 @@ class EngineProxyManager:
 					self._proxman_put_queue.put(b"echo\xb0ReadyToMakeProxy")
 				with self._proxman_recv_lock:
 					try:
-						got = self._proxman_get_queue.get(timeout=10.0)
+						got = self._proxman_get_queue.get(timeout=TIMEOUT)
 					except Empty:
 						raise TimeoutError("Core didn't respond")
 				unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
@@ -733,7 +736,7 @@ class EngineProxyManager:
 					self._proxman_send_pipe.send_bytes(
 						b"echo\xb0ReadyToMakeProxy"
 					)
-				if not self._proxman_recv_pipe.poll(10.0):
+				if not self._proxman_recv_pipe.poll(TIMEOUT):
 					raise TimeoutError("Subprocess isn't ready")
 				with self._proxman_recv_lock:
 					got = self._proxman_recv_pipe.recv_bytes()
