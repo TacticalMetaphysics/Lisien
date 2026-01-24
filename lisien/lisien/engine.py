@@ -1117,18 +1117,9 @@ class Engine(AbstractEngine, Executor):
 				else:
 					return LisienThreadExecutor(self)
 
-	@staticmethod
-	def _convert_executor(
-		executor: LisienExecutor | None, self
-	) -> LisienExecutor | None:
-		if executor:
-			self._shutdown_executor = False
-		return executor
-
 	executor: LisienExecutor | None = field(
 		kw_only=True,
 		default=Factory(_executor_factory, takes_self=True),
-		converter=Converter(_convert_executor, takes_self=True),
 	)
 	"""A :class:`LisienExecutor` instance we'll use to do
 		work in parallel. We'll make our own if one isn't supplied. Note that
