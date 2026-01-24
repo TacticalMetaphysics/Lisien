@@ -1092,7 +1092,7 @@ class Engine(AbstractEngine, Executor):
 	_shutdown_executor: bool = field(init=False, default=False)
 
 	def _executor_factory(self):
-		if self.workers <= 0:
+		if self.workers is not None and self.workers <= 0:
 			return None
 		if self._prefix is not None:
 			for store in self.stores:
