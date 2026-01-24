@@ -4999,9 +4999,22 @@ class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
 		with self._lock:
 			if k in self:
 				return super().__getitem__(k)
-			ret = self[k] = self.value_type(
+			if isinstance(self.value_type, GenericAlias):
+				value_type = get_origin(self.value_type)
+				if hasattr(value_type, "key_type"):
+					value_type = partial(
+						value_type, *get_args(self.value_type)
+					)
+				else:
+					value_type = partial(
+						value_type, get_args(self.value_type)[-1]
+					)
+			else:
+				value_type = self.value_type
+			ret = value_type(
 				*self.args_munger(self, k), **self.kwargs_munger(self, k)
 			)
+			super().__setitem__(k, ret)
 			return ret
 
 	@classmethod
