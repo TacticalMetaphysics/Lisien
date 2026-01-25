@@ -357,7 +357,6 @@ class EngineProxyManager:
 			del self.engine_proxy
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: shutdown")
-		print("EngineProxyManager.shutdown end")
 
 	def _config_logger(self, kwargs):
 		handlers = []
