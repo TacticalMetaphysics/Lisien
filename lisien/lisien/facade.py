@@ -1564,8 +1564,6 @@ class EngineFacade(AbstractEngine):
 
 		def __getitem__(self, key: CharName | KeyHint, /):
 			realeng = self.engine._real
-			if realeng and key not in realeng.character:
-				raise KeyError("No character", key)
 			if key not in self._patch:
 				if realeng:
 					if key not in realeng.character:
