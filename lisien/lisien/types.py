@@ -2671,7 +2671,7 @@ class TimeSignalDescriptor:
 		)
 
 
-def pack_database_connector(db):
+def pack_database_connector(packer, ext, db):
 	from .db import PythonDatabaseConnector
 
 	if isinstance(db, partial):
@@ -2691,7 +2691,7 @@ def pack_database_connector(db):
 		}
 	else:
 		data = {"class": db.__name__}
-	return msgpack.ExtType(
+	return ext(
 		MsgpackExtensionType.database.value,
 		packer(data),
 	)
@@ -2919,7 +2919,9 @@ class AbstractEngine(ABC):
 		)
 
 		handlers = {
-			AbstractDatabaseConnector: pack_database_connector,
+			AbstractDatabaseConnector: lambda db: pack_database_connector(
+				packer, msgpack.ExtType, db
+			),
 			Path: pack_path,
 			WindowsPath: pack_path,
 			PosixPath: pack_path,
@@ -3137,7 +3139,10 @@ class AbstractEngine(ABC):
 			name, stats, places, things, portals = self.unpack(
 				getattr(ext, "data", ext)
 			)
-			fac = CharacterFacade(self, name)
+			if name in self.character:
+				fac = self.character[name].facade()
+			else:
+				fac = self.facade().new_character(name)
 			fac.graph._cache = stats
 			for place, patch in places.items():
 				fac.place._patch[place] = FacadePlace(fac, place, **patch)
@@ -3321,7 +3326,9 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.database.value,
 				self.pack({"class": db.__name__}),
 			),
-			PythonDatabaseConnector: pack_database_connector,
+			PythonDatabaseConnector: lambda db: pack_database_connector(
+				self.pack, umsgpack.Ext, db
+			),
 			partial: lambda db: umsgpack.Ext(
 				MsgpackExtensionType.database.value,
 				self.pack({"class": db.func.__name__, **db.keywords}),
@@ -3425,13 +3432,19 @@ class AbstractEngine(ABC):
 		try:
 			from .sql import SQLAlchemyDatabaseConnector
 
-			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
+			ret[SQLAlchemyDatabaseConnector] = (
+				lambda db: pack_database_connector(
+					self.pack, umsgpack.Ext, SQLAlchemyDatabaseConnector
+				)
+			)
 		except ImportError:
 			pass
 		try:
 			from .pqdb import ParquetDatabaseConnector
 
-			ret[ParquetDatabaseConnector] = pack_database_connector
+			ret[ParquetDatabaseConnector] = lambda db: pack_database_connector(
+				self.pack, umsgpack.Ext, ParquetDatabaseConnector
+			)
 		except ImportError:
 			pass
 		return ret
