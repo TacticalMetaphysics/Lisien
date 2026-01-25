@@ -1733,13 +1733,7 @@ class EngineFacade(AbstractEngine):
 	def tick(self, tick: int | Tick) -> None:
 		self._otick = tick
 
-	def _validate_random(self, attr, rando):
-		if self._real:
-			rando.setstate(self._real._rando.getstate())
-
-	_rando: Random = field(
-		factory=Random, validator=_validate_random, init=False
-	)
+	_rando: Random = field(factory=Random, init=False)
 
 	@cached_property
 	def logger(self) -> Logger:
