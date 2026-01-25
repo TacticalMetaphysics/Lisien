@@ -2858,6 +2858,19 @@ class AbstractEngine(ABC):
 			return True
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
+	def _pack_graph(self, cls: type, typstr: str, graf: nx.Graph):
+		return cls(
+			MsgpackExtensionType.graph.value,
+			self.pack(
+				[
+					typstr,
+					{k: dict(v) for (k, v) in graf.nodes.items()},
+					{uv: dict(w) for (uv, w) in graf.adj.items()},
+					{k: v for (k, v) in graf.graph.items()},
+				]
+			),
+		)
+
 	@cached_property
 	def pack(self) -> Callable[[ValueHint | Value], bytes]:
 		from .db import AbstractDatabaseConnector
@@ -2965,28 +2978,13 @@ class AbstractEngine(ABC):
 					[port.character.name, port.orig, port.dest, port._patch]
 				),
 			),
-			nx.Graph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(
-					[
-						"Graph",
-						graf._node,
-						graf._adj,
-						graf.graph,
-					]
-				),
+			nx.Graph: partial(self._pack_graph, msgpack.ExtType, "Graph"),
+			nx.DiGraph: partial(self._pack_graph, msgpack.ExtType, "DiGraph"),
+			nx.MultiGraph: partial(
+				self._pack_graph, msgpack.ExtType, "MultiGraph"
 			),
-			nx.DiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["DiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["MultiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiDiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
+			nx.MultiDiGraph: partial(
+				self._pack_graph, msgpack.ExtType, "MultiDiGraph"
 			),
 			tuple: lambda tup: msgpack.ExtType(
 				MsgpackExtensionType.tuple.value, packer(list(tup))
@@ -3314,19 +3312,6 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.path.value, self.pack(str(p))
 			)
 
-		def pack_graph(typstr: str, graf: nx.Graph):
-			return umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(
-					[
-						typstr,
-						{k: dict(v) for (k, v) in graf.nodes.items()},
-						{uv: dict(w) for (uv, w) in graf.adj.items()},
-						{k: dict(v) for (k, v) in graf.graph.items()},
-					]
-				),
-			)
-
 		ret = {
 			Path: pack_path,
 			PosixPath: pack_path,
@@ -3388,10 +3373,14 @@ class AbstractEngine(ABC):
 					[port.character.name, port.orig, port.dest, port._patch]
 				),
 			),
-			nx.Graph: partial(pack_graph, "Graph"),
-			nx.DiGraph: partial(pack_graph, "DiGraph"),
-			nx.MultiGraph: partial(pack_graph, "MultiGraph"),
-			nx.MultiDiGraph: partial(pack_graph, "MultiDiGraph"),
+			nx.Graph: partial(self._pack_graph, umsgpack.Ext, "Graph"),
+			nx.DiGraph: partial(self._pack_graph, umsgpack.Ext, "DiGraph"),
+			nx.MultiGraph: partial(
+				self._pack_graph, umsgpack.Ext, "MultiGraph"
+			),
+			nx.MultiDiGraph: partial(
+				self._pack_graph, umsgpack.Ext, "MultiDiGraph"
+			),
 			tuple: lambda tup: umsgpack.Ext(
 				MsgpackExtensionType.tuple.value, self.pack(list(tup))
 			),
