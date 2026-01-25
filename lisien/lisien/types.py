@@ -101,6 +101,7 @@ from .wrap import (
 	unwrap_items,
 	wrapval,
 )
+from .util import concat_d, concat_list
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -2668,30 +2669,8 @@ class TimeSignalDescriptor:
 		)
 
 
-def pack_database_connector(packer, ext, db):
-	from .db import PythonDatabaseConnector
-
-	if isinstance(db, partial):
-		data = {
-			"class": db.func.__name__,
-		}
-		if (
-			db.func is PythonDatabaseConnector
-			and PythonDatabaseConnector._old_data is not None
-		):
-			data["load_me"] = PythonDatabaseConnector._old_data
-		data.update(db.keywords)
-	elif isinstance(db, PythonDatabaseConnector):
-		data = {
-			"class": "PythonDatabaseConnector",
-			"load_me": db.dump_everything(),
-		}
-	else:
-		data = {"class": db.__name__}
-	return ext(
-		MsgpackExtensionType.database.value,
-		packer(data),
-	)
+_EXT = TypeVar("_EXT")
+_TYP = TypeVar("_TYP")
 
 
 @define
@@ -2860,21 +2839,66 @@ class AbstractEngine(ABC):
 			return True
 		return self.is_ancestor_of(parent, self.branch_parent(child))
 
-	def _pack_graph(self, cls: type, typstr: str, graf: nx.Graph):
-		return cls(
-			MsgpackExtensionType.graph.value,
-			self.pack(
-				[
-					typstr,
-					{k: dict(v) for (k, v) in graf.nodes.items()},
-					{uv: dict(w) for (uv, w) in graf.adj.items()},
-					{k: v for (k, v) in graf.graph.items()},
-				]
-			),
-		)
-
 	@cached_property
 	def pack(self) -> Callable[[ValueHint | Value], bytes]:
+		try:
+			from msgpack import Packer
+
+			if Packer.__module__.endswith("cmsgpack"):
+				return self._msgpack_packer()
+			else:
+				return self._pack_with_umsgpack
+		except ImportError:
+			return self._pack_with_umsgpack
+
+	def _pack_with_umsgpack(self, obj: ValueHint | Value) -> bytes:
+		from umsgpack import Ext, packb
+		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
+
+		if inspect.isclass(obj) and issubclass(obj, AbstractDatabaseConnector):
+			return packb(
+				Ext(
+					MsgpackExtensionType.database.value,
+					self._pack_with_umsgpack({"class": obj.__name__}),
+				)
+			)
+		elif (
+			isinstance(obj, partial)
+			and inspect.isclass(obj.func)
+			and issubclass(obj.func, AbstractDatabaseConnector)
+		):
+			return packb(
+				Ext(
+					MsgpackExtensionType.database.value,
+					self._pack_with_umsgpack(
+						{"class": obj.func.__name__, **obj.keywords}
+					),
+				)
+			)
+		elif isinstance(obj, TimeSignal):
+			return packb(tuple(obj))
+		elif isinstance(obj, list):
+			return concat_list(list(map(self._pack_with_umsgpack, obj)))
+		elif isinstance(obj, tuple):
+			return packb(
+				Ext(
+					MsgpackExtensionType.tuple.value,
+					concat_list(list(map(self._pack_with_umsgpack, obj))),
+				)
+			)
+		elif (
+			isinstance(obj, Mapping)
+			and type(obj) not in self._umsgpack_pack_handlers
+		):
+			return concat_d(
+				{
+					self._pack_with_umsgpack(k): self._pack_with_umsgpack(v)
+					for (k, v) in obj.items()
+				}
+			)
+		return packb(obj, ext_handlers=self._umsgpack_pack_handlers)
+
+	def _msgpack_packer(self) -> Callable[[ValueHint | value], bytes]:
 		from .db import AbstractDatabaseConnector
 		from .facade import (
 			CharacterFacade,
@@ -2882,129 +2906,9 @@ class AbstractEngine(ABC):
 			FacadePlace,
 			FacadePortal,
 		)
+		import msgpack
 
-		try:
-			from msgpack import Packer
-
-			if Packer.__module__.endswith("cmsgpack"):
-				import msgpack
-			else:
-				import umsgpack
-
-				return partial(
-					umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
-				)
-		except ImportError:
-			import umsgpack
-
-			return partial(
-				umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
-			)
-
-		def pack_set(s):
-			return msgpack.ExtType(
-				MsgpackExtensionType.set.value, packer(list(s))
-			)
-
-		def pack_path(p):
-			return msgpack.ExtType(
-				MsgpackExtensionType.path.value, packer(str(p))
-			)
-
-		from .wrap import (
-			DictWrapper,
-			ListWrapper,
-			SetWrapper,
-			SubDictWrapper,
-			SubListWrapper,
-			SubSetWrapper,
-		)
-
-		def pack_char(obj):
-			return msgpack.ExtType(
-				MsgpackExtensionType.character.value, packer(obj.name)
-			)
-
-		def pack_node(code, obj):
-			return msgpack.ExtType(
-				code, packer([obj.character.name, obj.name])
-			)
-
-		pack_thing = partial(pack_node, MsgpackExtensionType.thing.value)
-		pack_place = partial(pack_node, MsgpackExtensionType.place.value)
-
-		def pack_portal(obj):
-			return msgpack.ExtType(
-				MsgpackExtensionType.portal.value,
-				packer(
-					[
-						obj.character.name,
-						obj.origin.name,
-						obj.destination.name,
-					]
-				),
-			)
-
-		handlers = {
-			AbstractDatabaseConnector: lambda db: pack_database_connector(
-				packer, msgpack.ExtType, db
-			),
-			Path: pack_path,
-			WindowsPath: pack_path,
-			PosixPath: pack_path,
-			Sub: lambda sbu: sbu.value,
-			ListWrapper: lambda obj: obj.unwrap(),
-			DictWrapper: lambda obj: obj.unwrap(),
-			SetWrapper: lambda obj: obj.unwrap(),
-			SubListWrapper: lambda obj: obj.unwrap(),
-			SubDictWrapper: lambda obj: obj.unwrap(),
-			SubSetWrapper: lambda obj: obj.unwrap(),
-			type(...): lambda _: msgpack.ExtType(
-				MsgpackExtensionType.ellipsis.value, b""
-			),
-			self.char_cls: pack_char,
-			CharacterFacade: pack_char,
-			self.place_cls: pack_place,
-			FacadePlace: pack_place,
-			self.thing_cls: pack_thing,
-			FacadeThing: pack_thing,
-			self.portal_cls: pack_portal,
-			FacadePortal: pack_portal,
-			nx.Graph: partial(self._pack_graph, msgpack.ExtType, "Graph"),
-			nx.DiGraph: partial(self._pack_graph, msgpack.ExtType, "DiGraph"),
-			nx.MultiGraph: partial(
-				self._pack_graph, msgpack.ExtType, "MultiGraph"
-			),
-			nx.MultiDiGraph: partial(
-				self._pack_graph, msgpack.ExtType, "MultiDiGraph"
-			),
-			tuple: lambda tup: msgpack.ExtType(
-				MsgpackExtensionType.tuple.value, packer(list(tup))
-			),
-			frozenset: lambda frozs: msgpack.ExtType(
-				MsgpackExtensionType.frozenset.value, packer(list(frozs))
-			),
-			set: pack_set,
-			FunctionType: lambda func: msgpack.ExtType(
-				getattr(MsgpackExtensionType, func.__module__).value,
-				packer(func.__name__),
-			),
-			MethodType: lambda meth: msgpack.ExtType(
-				MsgpackExtensionType.method.value, packer(meth.__name__)
-			),
-			Exception: lambda exc: msgpack.ExtType(
-				MsgpackExtensionType.exception.value,
-				packer(
-					[
-						exc.__class__.__name__,
-						exc.args,
-						Traceback(exc.__traceback__).to_dict()
-						if getattr(exc, "__traceback__", None)
-						else None,
-					]
-				),
-			),
-		}
+		handlers = self._msgpack_pack_handlers
 
 		def pack_handler(obj):
 			if isinstance(obj, Exception):
@@ -3016,7 +2920,7 @@ class AbstractEngine(ABC):
 				isinstance(obj, partial)
 				and issubclass(obj.func, AbstractDatabaseConnector)
 			):
-				typ = AbstractDatabaseConnector
+				typ = obj.func
 			else:
 				typ = type(obj)
 			if typ in handlers:
@@ -3047,7 +2951,7 @@ class AbstractEngine(ABC):
 					),
 				)
 			elif isinstance(obj, Set):
-				return pack_set(obj)
+				return self._pack_set(msgpack.ExtType, obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
 			elif isinstance(obj, list):
@@ -3268,131 +3172,169 @@ class AbstractEngine(ABC):
 			self.pack([thing.character.name, thing.name, locn, patch]),
 		)
 
-	@cached_property
-	def _umsgpack_pack_handlers(self):
-		from .db import PythonDatabaseConnector
+	def _pack_set(self, ext: type[_EXT], s: Set) -> _EXT:
+		return ext(MsgpackExtensionType.set.value, self.pack(list(s)))
+
+	def _generate_pack_handlers(
+		self, ext: type[_EXT]
+	) -> dict[type[_TYP], Callable[[_TYP], _EXT]]:
+		from .collections import CompositeDict
+		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
 		from .facade import (
 			CharacterFacade,
 			FacadeThing,
 			FacadePlace,
 			FacadePortal,
 		)
+		from .wrap import (
+			DictWrapper,
+			ListWrapper,
+			SetWrapper,
+			SubDictWrapper,
+			SubListWrapper,
+			SubSetWrapper,
+		)
 
-		from .collections import CompositeDict
-		import umsgpack
+		pack_set = self._pack_set
 
-		def pack_path(p):
-			return umsgpack.Ext(
-				MsgpackExtensionType.path.value, self.pack(str(p))
-			)
+		def pack_path(p: Path) -> ext:
+			return ext(MsgpackExtensionType.path.value, self.pack(str(p)))
 
-		def pack_char(obj):
-			return umsgpack.Ext(
+		def pack_char(obj: self.char_cls) -> ext:
+			return ext(
 				MsgpackExtensionType.character.value, self.pack(obj.name)
 			)
 
-		def pack_node(code, obj):
-			return umsgpack.Ext(
-				code,
-				self.pack([obj.character.name, obj.name]),
-			)
+		def pack_node(
+			code: MsgpackExtensionType, obj: self.thing_cls | self.place_cls
+		) -> ext:
+			return ext(code.value, self.pack([obj.character.name, obj.name]))
 
-		pack_place = partial(pack_node, MsgpackExtensionType.place.value)
-		pack_thing = partial(pack_node, MsgpackExtensionType.thing.value)
+		pack_thing = partial(pack_node, MsgpackExtensionType.thing)
+		pack_place = partial(pack_node, MsgpackExtensionType.place)
 
-		def pack_edge(obj):
-			return umsgpack.Ext(
+		def pack_portal(obj: self.portal_cls) -> ext:
+			return ext(
 				MsgpackExtensionType.portal.value,
 				self.pack(
+					[obj.character.name, obj.origin.name, obj.destination.name]
+				),
+			)
+
+		def pack_graph(typstr: str, obj: nx.Graph) -> ext:
+			return ext(
+				MsgpackExtensionType.graph.value,
+				self.pack(
 					[
-						obj.character.name,
-						obj.orig,
-						obj.dest,
+						typstr,
+						{k: dict(v) for (k, v) in obj.nodes.items()},
+						{uv: dict(w) for (uv, w) in obj.adj.items()},
+						{k: v for (k, v) in obj.graph.items()},
 					]
 				),
 			)
 
-		ret = {
-			Path: pack_path,
-			PosixPath: pack_path,
-			WindowsPath: pack_path,
-			type: lambda db: umsgpack.Ext(
+		def pack_database_connector(
+			db: AbstractDatabaseConnector | partial[AbstractDatabaseConnector],
+		) -> ext:
+			if isinstance(db, partial):
+				data = {
+					"class": db.func.__name__,
+				}
+				if (
+					db.func is PythonDatabaseConnector
+					and PythonDatabaseConnector._old_data is not None
+				):
+					data["load_me"] = PythonDatabaseConnector._old_data
+				data.update(db.keywords)
+			elif isinstance(db, PythonDatabaseConnector):
+				data = {
+					"class": "PythonDatabaseConnector",
+					"load_me": db.dump_everything(),
+				}
+			else:
+				data = {"class": db.__name__}
+			return ext(
 				MsgpackExtensionType.database.value,
-				self.pack({"class": db.__name__}),
-			),
-			PythonDatabaseConnector: lambda db: pack_database_connector(
-				self.pack, umsgpack.Ext, db
-			),
-			partial: lambda db: umsgpack.Ext(
-				MsgpackExtensionType.database.value,
-				self.pack({"class": db.func.__name__, **db.keywords}),
-			),
-			type(...): lambda _: umsgpack.Ext(
-				MsgpackExtensionType.ellipsis.value, b""
-			),
-			nx.Graph: partial(self._pack_graph, umsgpack.Ext, "Graph"),
-			nx.DiGraph: partial(self._pack_graph, umsgpack.Ext, "DiGraph"),
-			nx.MultiGraph: partial(
-				self._pack_graph, umsgpack.Ext, "MultiGraph"
-			),
-			nx.MultiDiGraph: partial(
-				self._pack_graph, umsgpack.Ext, "MultiDiGraph"
-			),
-			tuple: lambda tup: umsgpack.Ext(
-				MsgpackExtensionType.tuple.value, self.pack(list(tup))
-			),
-			frozenset: lambda frozs: umsgpack.Ext(
-				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
-			),
-			set: lambda s: umsgpack.Ext(
-				MsgpackExtensionType.set.value, self.pack(list(s))
-			),
-			FunctionType: lambda func: umsgpack.Ext(
-				getattr(MsgpackExtensionType, func.__module__).value,
-				self.pack(func.__name__),
-			),
-			MethodType: lambda meth: umsgpack.Ext(
-				MsgpackExtensionType.method.value, self.pack(meth.__name__)
-			),
-			Exception: lambda exc: umsgpack.Ext(
+				self.pack(data),
+			)
+
+		def pack_exception(exc: Exception) -> ext:
+			return ext(
 				MsgpackExtensionType.exception.value,
 				self.pack(
 					[
 						exc.__class__.__name__,
 						exc.args,
 						Traceback(exc.__traceback__).to_dict()
-						if hasattr(exc, "__traceback__")
+						if getattr(exc, "__traceback__", None)
 						else None,
 					]
 				),
-			),
+			)
+
+		ret = {
+			PythonDatabaseConnector: pack_database_connector,
+			Path: pack_path,
+			WindowsPath: pack_path,
+			PosixPath: pack_path,
+			type(...): lambda _: ext(MsgpackExtensionType.ellipsis.value, b""),
 			self.char_cls: pack_char,
 			CharacterFacade: pack_char,
-			self.thing_cls: pack_thing,
-			FacadeThing: pack_thing,
 			self.place_cls: pack_place,
 			FacadePlace: pack_place,
-			self.portal_cls: pack_edge,
+			self.thing_cls: pack_thing,
+			FacadeThing: pack_thing,
+			self.portal_cls: pack_portal,
+			FacadePortal: pack_portal,
+			nx.Graph: partial(pack_graph, "Graph"),
+			nx.DiGraph: partial(pack_graph, "DiGraph"),
+			nx.MultiGraph: partial(pack_graph, "MultiGraph"),
+			nx.MultiDiGraph: partial(pack_graph, "MultiDiGraph"),
+			tuple: lambda tup: ext(
+				MsgpackExtensionType.tuple.value, self.pack(list(tup))
+			),
+			frozenset: lambda frozs: ext(
+				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
+			),
+			set: partial(self._pack_set, ext),
+			FunctionType: lambda func: ext(
+				getattr(MsgpackExtensionType, func.__module__).value,
+				self.pack(func.__name__),
+			),
+			MethodType: lambda meth: ext(
+				MsgpackExtensionType.method.value, self.pack(meth.__name__)
+			),
 		}
+		for module in (builtins, nx.exception, exc):
+			for name, cls in inspect.getmembers(module):
+				if inspect.isclass(cls) and issubclass(cls, Exception):
+					ret[cls] = pack_exception
 		try:
 			from .sql import SQLAlchemyDatabaseConnector
 
-			ret[SQLAlchemyDatabaseConnector] = (
-				lambda db: pack_database_connector(
-					self.pack, umsgpack.Ext, SQLAlchemyDatabaseConnector
-				)
-			)
+			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
 		except ImportError:
 			pass
 		try:
 			from .pqdb import ParquetDatabaseConnector
 
-			ret[ParquetDatabaseConnector] = lambda db: pack_database_connector(
-				self.pack, umsgpack.Ext, ParquetDatabaseConnector
-			)
+			ret[ParquetDatabaseConnector] = pack_database_connector
 		except ImportError:
 			pass
 		return ret
+
+	@cached_property
+	def _msgpack_pack_handlers(self):
+		from msgpack import ExtType
+
+		return self._generate_pack_handlers(ExtType)
+
+	@cached_property
+	def _umsgpack_pack_handlers(self):
+		from umsgpack import Ext
+
+		return self._generate_pack_handlers(Ext)
 
 	@abstractmethod
 	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...

@@ -299,3 +299,16 @@ def getatt(attribute_name: str) -> property:
 	ret = property(attrgetter(attribute_name))
 	ret.__doc__ = "Alias to `{}`".format(attribute_name)
 	return ret
+
+
+def concat_d(r: dict[bytes, bytes]) -> bytes:
+	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
+	resp = msgpack_map_header(len(r))
+	for k, v in r.items():
+		resp += k + v
+	return resp
+
+
+def concat_list(r: list[bytes]) -> bytes:
+	"""Pack a dictionary of msgpack-encoded values into msgpack array"""
+	return msgpack_array_header(len(r)) + b"".join(r)
