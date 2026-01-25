@@ -1569,7 +1569,7 @@ class EngineFacade(AbstractEngine):
 					if key not in realeng.character:
 						raise KeyError("No such character", key)
 					fac = CharacterFacade(engine=self.engine, name=key)
-				elif self.engine._mock:
+				elif getattr(self.engine, "_mock", None):
 					fac = CharacterFacade(engine=self.engine, name=key)
 				else:
 					raise KeyError("No character", key)
