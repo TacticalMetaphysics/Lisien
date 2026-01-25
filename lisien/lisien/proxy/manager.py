@@ -854,10 +854,14 @@ class EngineProxyManager:
 				self._start_subprocess(prefix, **kwargs)
 			case Sub.thread:
 				self._start_subthread(prefix, **kwargs)
+		core_sub = kwargs.pop("sub_mode", None)
+		if core_sub is not None:
+			core_sub = Sub(core_sub).value
 		payload = b"from_archive" + EngineFacade(None).pack(
 			{
 				"archive_path": str(archive_path),
 				"prefix": str(prefix),
+				"sub_mode": core_sub,
 				**kwargs,
 			}
 		)
