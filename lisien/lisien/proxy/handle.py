@@ -79,8 +79,8 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	msgpack_map_header,
 	timer,
+	concat_d,
 )
 
 SlightlyPackedDeltaType = dict[
@@ -91,14 +91,6 @@ SlightlyPackedDeltaType = dict[
 	],
 ]
 FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
-
-
-def concat_d(r: dict[bytes, bytes]) -> bytes:
-	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack_map_header(len(r))
-	for k, v in r.items():
-		resp += k + v
-	return resp
 
 
 def prepacked(fun: Callable) -> Callable:
