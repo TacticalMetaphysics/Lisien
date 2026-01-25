@@ -2744,6 +2744,11 @@ class AbstractEngine(ABC):
 			if exc_val:
 				raise exc_val
 
+	def facade(self) -> EngineFacade:
+		from .facade import EngineFacade
+
+		return EngineFacade(self)
+
 	@abstractmethod
 	def close(self) -> None: ...
 
