@@ -263,7 +263,7 @@ class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
 		return n
 
 	def __getitem__(self, k: _NAME) -> _CLS:
-		if k not in self and not self.engine._mock:
+		if k not in self and not getattr(self.engine, "_mock", False):
 			raise KeyError(k)
 		if k not in self._patch:
 			inner = self._get_inner_map()
