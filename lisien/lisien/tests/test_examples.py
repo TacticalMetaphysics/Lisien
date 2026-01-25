@@ -159,6 +159,7 @@ def test_pathfind(pathfind):
 		)
 	]
 	for i in range(10):
+		print(i)
 		pathfind.next_turn()
 	assert locs != [
 		thing.location.name
