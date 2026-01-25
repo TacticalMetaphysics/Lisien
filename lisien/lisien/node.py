@@ -836,7 +836,7 @@ class Thing(Node, AbstractThing):
 		return self.character.place[self.name]
 
 	def facade(self) -> FacadeThing:
-		return FacadeThing(self.character.facade(), self.name)
+		return FacadeThing(self.character.facade(), self.name, self.location)
 
 	def __copy__(self) -> FacadeThing:
 		return self.facade()
