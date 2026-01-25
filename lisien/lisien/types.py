@@ -2959,7 +2959,7 @@ class AbstractEngine(ABC):
 					]
 				),
 			),
-			FacadePortal: lambda port: msgpackExtType(
+			FacadePortal: lambda port: msgpack.ExtType(
 				MsgpackExtensionType.facade_portal.value,
 				self.pack(
 					[port.character.name, port.orig, port.dest, port._patch]
