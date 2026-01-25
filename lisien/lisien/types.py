@@ -3320,12 +3320,9 @@ class AbstractEngine(ABC):
 				self.pack(
 					[
 						typstr,
-						{k: v for (k, v) in graf.nodes.items()},
-						{
-							u: {v: w for (v, w) in vs.items()}
-							for (u, vs) in graf.edges.items()
-						},
-						{k: v for (k, v) in graf.graph.items()},
+						{k: dict(v) for (k, v) in graf.nodes.items()},
+						{uv: dict(w) for (uv, w) in graf.adj.items()},
+						{k: dict(v) for (k, v) in graf.graph.items()},
 					]
 				),
 			)
