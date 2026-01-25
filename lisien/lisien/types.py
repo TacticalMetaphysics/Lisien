@@ -2961,17 +2961,7 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.facade_place.value,
 				self.pack([node.character.name, node.name, node._patch]),
 			),
-			FacadeThing: lambda node: msgpack.ExtType(
-				MsgpackExtensionType.facade_thing.value,
-				self.pack(
-					[
-						node.character.name,
-						node.name,
-						node["location"],
-						node._patch,
-					]
-				),
-			),
+			FacadeThing: partial(self._pack_facade_thing, msgpack.ExtType),
 			FacadePortal: lambda port: msgpack.ExtType(
 				MsgpackExtensionType.facade_portal.value,
 				self.pack(
@@ -3294,6 +3284,17 @@ class AbstractEngine(ABC):
 
 		return unpacker
 
+	def _pack_facade_thing(self, cls, thing: FacadeThing):
+		patch = dict(thing._patch)
+		if "location" in thing._patch:
+			locn = patch.pop("location")
+		else:
+			locn = thing["location"]
+		return cls(
+			MsgpackExtensionType.facade_thing.value,
+			self.pack([thing.character.name, thing.name, locn, patch]),
+		)
+
 	@cached_property
 	def _umsgpack_pack_handlers(self):
 		from .db import PythonDatabaseConnector
@@ -3356,17 +3357,7 @@ class AbstractEngine(ABC):
 				MsgpackExtensionType.facade_place.value,
 				self.pack([node.character.name, node.name, node._patch]),
 			),
-			FacadeThing: lambda node: umsgpack.Ext(
-				MsgpackExtensionType.facade_thing.value,
-				self.pack(
-					[
-						node.character.name,
-						node.name,
-						node["location"],
-						node._patch,
-					]
-				),
-			),
+			FacadeThing: partial(self._pack_facade_thing, umsgpack.Ext),
 			FacadePortal: lambda port: umsgpack.Ext(
 				MsgpackExtensionType.facade_portal.value,
 				self.pack(
