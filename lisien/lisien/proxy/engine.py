@@ -1335,6 +1335,7 @@ class EngineProxy(AbstractEngine):
 			elif (
 				store._filename is not None
 				and store._filename.parent == self.prefix
+				and store._filename.is_file()
 			):
 				store.reimport()
 			else:
