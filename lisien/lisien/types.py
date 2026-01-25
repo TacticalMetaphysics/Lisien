@@ -109,6 +109,7 @@ if TYPE_CHECKING:
 	from .node import Thing
 	from .portal import Portal
 	from .rule import Rule, RuleBook
+	from .facade import EngineFacade
 
 
 type KeyHint = (
