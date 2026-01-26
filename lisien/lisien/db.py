@@ -1290,7 +1290,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		thing: NodeName,
-		location: NodeName | type(...),
+		location: NodeName | EllipsisType,
 	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@abstractmethod
@@ -2224,7 +2224,7 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		loc: NodeName,
+		loc: NodeName | EllipsisType,
 	):
 		self._things2set.append((branch, turn, tick, character, thing, loc))
 

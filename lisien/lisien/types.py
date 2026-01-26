@@ -12,6 +12,8 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Base classes and type hints for Lisien"""
+
 from __future__ import annotations
 
 import builtins
@@ -116,6 +118,7 @@ if TYPE_CHECKING:
 type KeyHint = (
 	str | int | float | None | tuple[KeyHint, ...] | frozenset[KeyHint]
 )
+"""This can be serialized as a key in a mapping"""
 
 type ValueHint = (
 	str
@@ -131,6 +134,7 @@ type ValueHint = (
 	| FunctionType
 	| MethodType
 )
+"""This can be serialized, generally"""
 
 
 def is_valid_value(obj: Any) -> TypeGuard[Value]:
@@ -202,6 +206,8 @@ class _ValueMeta(type):
 
 
 class Value(metaclass=_ValueMeta):
+	"""Serializable object. Used for dynamic typing."""
+
 	def __new__(cls, obj: ValueHint) -> Value:
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
@@ -235,6 +241,8 @@ class _KeyMeta(_ValueMeta):
 
 
 class Key(Value, metaclass=_KeyMeta):
+	"""Serializable key for mappings. Used in dynamic typing."""
+
 	def __new__(cls, obj: KeyHint) -> Key:
 		if not is_valid_key(obj):
 			raise TypeError("Invalid key")
@@ -242,17 +250,25 @@ class Key(Value, metaclass=_KeyMeta):
 
 
 def keyval(pair: tuple[KeyHint, ValueHint]) -> tuple[Key, Value]:
+	"""Convenience function to serialize both items of a pair"""
 	k, v = pair
 	return Key(k), Value(v)
 
 
 Stat = NewType("Stat", Key)
+"""Key of a Lisien entity's variable"""
 EternalKey = NewType("EternalKey", Key)
+"""Key in the ``eternal`` mapping, not subject to time travel"""
 UniversalKey = NewType("UniversalKey", Key)
+"""Key in the ``universal`` mapping, subject to time travel"""
 Branch = NewType("Branch", str)
+"""Name of a branch of time"""
 Turn = NewType("Turn", Annotated[int, Ge(0)])
+"""Turn number. Starts at zero and increases monotonically."""
 Tick = NewType("Tick", Annotated[int, Ge(0)])
+"""Tick number. Starts at zero and increases one by one, but resets every turn."""
 type Time = tuple[Branch, Turn, Tick]
+"""A point in time in a Lisien timestream."""
 
 
 class ValidateTimeProtocol(Protocol):
@@ -315,6 +331,8 @@ validate_time: ValidateTimeProtocol = _validate_time
 
 
 class LinearTime(tuple[Turn, Tick]):
+	"""A point in time within some branch"""
+
 	def __new__(
 		cls, tup: tuple[Turn, Tick] | Turn, tick: Tick | None = None
 	) -> LinearTime:
@@ -334,10 +352,19 @@ class LinearTime(tuple[Turn, Tick]):
 
 
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
+"""The span of time between two points in the same branch, inclusive"""
 Plan = NewType("Plan", Annotated[int, Ge(0)])
+"""Identifier for a plan, corresponding to some state changes that may be canceled"""
 type PlanTicksRowType = tuple[Plan, Branch, Turn, Tick]
+"""Row in the ``plan_ticks`` table
+
+Indicates that the given point in time is planned, and hasn't 'really happened'.
+
+"""
 CharName = NewType("CharName", Key)
+"""Name of a :class:`lisien.character.Character`"""
 NodeName = NewType("NodeName", Key)
+"""Name of a :class:`lisien.node.Place` or :class:`lisien.node.Thing`"""
 
 
 type EntityKey = (
@@ -345,55 +372,99 @@ type EntityKey = (
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
 )
+"""Key identifying a Lisien entity
+
+Possible entity types are :class:`lisien.character.Character`, identified by
+its name; :class:`lisien.node.Place` and :class:`lisien.node.Thing`,
+identified by the name of the character they're in and their own name;
+and :class:`lisien.portal.Portal`, identified by the name of the character
+it's in, and the names of its two endpoints (origin and destination).
+
+"""
 RulebookName = NewType("RulebookName", Key)
+"""Key identifying a rulebook
+
+Every Lisien entity gets its own rulebook by default, named the same as its
+:type:`EntityKey`, but the user may assign it another rulebook if they like.
+
+"""
 
 
 RulebookPriority = NewType("RulebookPriority", float)
+"""Priority of a rulebook, used to sort rulebooks before evaluation
+
+Infinite values are permitted, though not recommended. Defaults to ``0.0``.
+
+"""
 RuleName = NewType("RuleName", str)
+"""Name of a rule
 
+Rules are made of three function lists: triggers, prereqs, and actions.
+They can be assigned to arbitrarily many rulebooks, which in turn can be
+assigned to as many Lisien entities as the user wants.
 
-def rulename(s: str) -> RuleName:
-	if not isinstance(s, str):
-		raise TypeError("Invalid rule name", s)
-	return RuleName(s)
+"""
 
 
 type RuleNeighborhood = Annotated[int, Ge(0)] | None
+"""Size of a rule's neighborhood
+
+:type:`RuleNeighborhood` is an integer specifying how far away the rules engine
+will look to determine whether to evaluate the trigger functions for a rule.
+It only has effects on rules applied to nodes. If not ``None``, it
+is how many edges (:class:`lisien.portal.Portal` objects) the rules engine
+will traverse to build a collection of nodes, and only evaluate the rule's
+triggers if something changed in that collection since the previous turn.
+If ``None`` (the default), triggers will be evaluated each and every turn.
+
+"""
 RuleBig = NewType("RuleBig", bool)
+"""Whether a rule makes a lot of changes to the world
+
+Big rules won't be run on regular Lisien entities; instead, they will be run
+on their facades. The changes to those facades will then be applied to the
+real entities in a batch, which is faster when the number of changes is big,
+but slower when it's small.
+
+"""
 RuleFunc = NewType("RuleFunc", FunctionType)
+"""A function that's in one of the lists that make up a rule
+
+A trigger, prereq, or action.
+
+"""
 FuncName = NewType("FuncName", str)
+"""The name of a function in one of Lisien's function stores"""
 type FuncStoreName = Literal[
 	"trigger", "prereq", "action", "function", "method"
 ]
+"""Name of one of Lisien's function stores"""
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
+"""Name of a Boolean function to trigger a rule"""
 TriggerFunc = NewType("TriggerFunc", RuleFunc)
-
-
-def trigfuncn(s: str) -> TriggerFuncName:
-	return TriggerFuncName(FuncName(s))
+"""Boolean function to trigger a rule"""
 
 
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
+"""Name of a Boolean function required to return ``True`` before a rule runs"""
 PrereqFunc = NewType("PrereqFunc", RuleFunc)
-
-
-def preqfuncn(s: str) -> PrereqFuncName:
-	return PrereqFuncName(FuncName(s))
-
+"""Boolean function required to return ``True`` before a rule runs"""
 
 ActionFuncName = NewType("ActionFuncName", FuncName)
+"""Name of a function that alters the world state for a rule"""
 ActionFunc = NewType("ActionFunc", RuleFunc)
-
-
-def actfuncn(s: str) -> ActionFuncName:
-	return ActionFuncName(FuncName(s))
+"""Function that alters the world state as a result of a rule"""
 
 
 type RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
+"""Name of a function that can be used in a rule somehow"""
 type UniversalKeyframe = dict[UniversalKey, Value]
+"""The state of the ``universal`` mapping at a point in the timestream"""
 
 
 class RuleKeyframe(TypedDict):
+	"""The state of all rules at a point in the timestream"""
+
 	triggers: dict[RuleName, list[TriggerFuncName]]
 	prereqs: dict[RuleName, list[PrereqFuncName]]
 	actions: dict[RuleName, list[ActionFuncName]]
@@ -404,7 +475,9 @@ class RuleKeyframe(TypedDict):
 type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
+"""The state of all rulebooks at a point in the timestream"""
 type UniversalRowType = tuple[Branch, Turn, Tick, UniversalKey, Value]
+"""A row from the ``universals`` table, declaring a key's value at a point in the timestream"""
 type RulebookRowType = tuple[
 	Branch,
 	Turn,
@@ -413,6 +486,7 @@ type RulebookRowType = tuple[
 	list[RuleName],
 	RulebookPriority,
 ]
+"""A row from the ``rulebooks`` table, declaring a rulebook's rules and priority at a point in the timestream"""
 type RuleRowType = tuple[
 	Branch,
 	Turn,
@@ -424,41 +498,199 @@ type RuleRowType = tuple[
 	| RuleNeighborhood
 	| RuleBig,
 ]
+"""A row from one of the rule tables"""
 type TriggerRowType = tuple[
 	Branch, Turn, Tick, RuleName, list[TriggerFuncName]
 ]
+"""A row from the ``rule_triggers`` table
+
+Gives the names of a rule's trigger functions at a point in the timestream.
+
+"""
 type PrereqRowType = tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]
+"""A row from the ``rule_prereqs`` table
+
+Gives the names of a rule's prereq functions at a point in the timestream.
+
+"""
 type ActionRowType = tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]
+"""A row from the ``rule_actions`` table
+
+Gives the names of a rule's action functions at a point in the timestream.
+
+"""
 type RuleNeighborhoodRowType = tuple[
 	Branch, Turn, Tick, RuleName, RuleNeighborhood
 ]
+"""A row from the ``rule_neighborhood`` table
+
+Gives the number of edges to traverse to build the neighborhood of nodes to
+consider in deciding whether to evaluate the rule's triggers. If it's ``None``,
+the triggers will be evaluated every turn.
+
+"""
 type RuleBigRowType = tuple[Branch, Turn, Tick, RuleName, RuleBig]
+"""A row from the ``rule_big`` table
+
+Has a Boolean value that determines whether all of a rule's changes to the
+world should be batched.
+
+"""
 type BranchRowType = tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]
+"""A row from the ``branches`` table
+
+Has the parent branch, if any, and the linear span of time contained in the
+branch.
+
+"""
 type TurnRowType = tuple[Branch, Turn, Tick, Tick]
+"""A row from the ``turns`` table
+
+Has the 'real' last tick of each turn that's been simulated, as well as the
+'planned' last tick, which may be higher, if there are planned changes left.
+
+"""
 type GraphTypeStr = Literal["DiGraph", "Deleted"]
+"""Permissible graph types
+
+Currently, Lisien only supports the 'DiGraph' type, and the type 'Deleted' for
+graphs that don't exist anymore.
+
+Graphs are most often called 'characters' in Lisien.
+
+"""
 type GraphRowType = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
+"""A row from the ``graphs`` table
+
+Marks the point in the timestream when a character is created or deleted.
+
+The last element is a string identifying the type of graph, but only 'DiGraph'
+and 'Deleted' are accepted at the moment.
+
+"""
 type NodeRowType = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
+"""A row from the ``nodes`` table
+
+Marks the point in the timestream when a node is created or deleted.
+
+The last element is ``True`` when the node is created, and ``False`` when
+it is deleted.
+
+In Lisien, nodes are categorized as places or things, but that distinction
+doesn't matter in the ``nodes`` table.
+
+"""
 type EdgeRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, bool
 ]
+"""A row from the ``edges`` table
+
+Marks the point in the timestream when an edge is created or deleted.
+
+The last element is ``True`` when the edge is created, and ``False`` when it
+is deleted.
+
+In Lisien, edges are usually called portals.
+
+"""
 type GraphValRowType = tuple[Branch, Turn, Tick, CharName, Stat, Value]
+"""A row from the ``graph_val`` table
+
+The last element is the value that the given stat of the given character takes
+at this point in the timestream.
+
+"""
 type NodeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, Stat, Value
 ]
+"""A row from the ``node_val`` table
+
+The last element is the value that the given stat of a node takes at this
+point in the timestream.
+
+In Lisien, nodes are either places or things, but that distinction doesn't
+matter in the ``node_val`` table.
+
+The stat cannot be ``'location'``. Things' locations are stored in the
+``things`` table--see :type:`ThingRowType`, below.
+
+"""
 type EdgeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value
 ]
-type ThingRowType = tuple[Branch, Turn, Tick, CharName, NodeName, NodeName]
+"""A row from the ``edge_val`` table
+
+The last element is the value that the given stat of an edge takes at this
+point in the timestream.
+
+Edges are usually called portals in Lisien.
+
+"""
+type ThingRowType = tuple[
+	Branch, Turn, Tick, CharName, NodeName, NodeName | EllipsisType
+]
+"""A row from the ``things`` table
+
+The last element is the location that the given thing is in at this point in
+the timestream. It must be the name of a node in the same character, or the
+ellipsis object, if the thing becomes a place.
+
+It doesn't matter whether the location is a thing or a place.
+
+"""
 type UnitRowType = tuple[
 	Branch, Turn, Tick, CharName, CharName, NodeName, bool
 ]
+"""A row from the ``units`` table
+
+Indicates whether a node in the latter character should be considered a unit
+of the former character. If the last element is ``True``, then the former
+character is the leader of the node.
+
+The latter character is most commonly one representing the physical world,
+and the former is usually a fictional person.
+
+"""
 type CharRulebookRowType = tuple[Branch, Turn, Tick, CharName, RulebookName]
+"""A row from one of the character-rulebook tables
+
+Has a rulebook for a character to follow, starting at this point in the
+timestream.
+
+Depending on which table it's in, the rule might act on the
+:class:`lisien.character.Character` object itself, or on a set of entities
+in the character.
+
+The tables in question are:
+* ``character_rulebook``
+* ``unit_rulebook``
+* ``character_thing_rulebook``
+* ``character_place_rulebook``
+* ``character_portal_rulebook``
+
+"""
 type NodeRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, RulebookName
 ]
+"""A row from the ``node_rulebook`` table
+
+Has a rulebook for a node in a character to follow, starting at this point in
+the timestream.
+
+The node may be a place or a thing.
+
+"""
 type PortalRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName
 ]
+"""A row from the ``portal_rulebook`` table
+
+Has a rulebook for a portal in a character to follow, starting at this point
+in the timestream.
+
+Portals are edges in graphs, which are also called characters.
+
+"""
 type AssignmentRowType = (
 	NodeRowType
 	| NodeValRowType
@@ -471,6 +703,12 @@ type AssignmentRowType = (
 	| NodeRulebookRowType
 	| PortalRulebookRowType
 )
+"""A row from one of the tables that stores entity state
+
+Includes rows in tables that don't exactly reflect 'stats' but are stored
+similarly.
+
+"""
 type AssignmentRowListType = (
 	list[NodeRowType]
 	| list[NodeValRowType]
@@ -483,6 +721,7 @@ type AssignmentRowListType = (
 	| list[NodeRulebookRowType]
 	| list[PortalRulebookRowType]
 )
+"""A list of rows reflecting entity state, which might be loaded in bulk"""
 type CharacterRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -491,6 +730,12 @@ type CharacterRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``character_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given character this turn.
+
+"""
 type PortalRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -501,6 +746,12 @@ type PortalRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``portal_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given portal this turn.
+
+"""
 type NodeRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -510,6 +761,12 @@ type NodeRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``node_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given node this turn.
+
+"""
 type UnitRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -520,6 +777,12 @@ type UnitRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``unit_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given unit this turn.
+
+"""
 type StatDict = dict[Stat | Literal["rulebook"], Value | RulebookName]
 type ThingDict = dict[
 	Stat | Literal["rulebook", "location"], Value | RulebookName
