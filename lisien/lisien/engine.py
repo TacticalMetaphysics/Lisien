@@ -689,7 +689,13 @@ class Engine(AbstractEngine, Executor):
 				)
 
 	@staticmethod
-	def _convert_database(database, self):
+	def _convert_database(
+		database: AbstractDatabaseConnector
+		| type[AbstractDatabaseConnector]
+		| partial[AbstractDatabaseConnector]
+		| None,
+		self,
+	):
 		if callable(database):
 			return database(self.pack, self.unpack)
 		elif database is None:
@@ -7629,7 +7635,10 @@ class Engine(AbstractEngine, Executor):
 		logger: Optional[Logger] = None,
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
-		database: AbstractDatabaseConnector | None = None,
+		database: AbstractDatabaseConnector
+		| type[AbstractDatabaseConnector]
+		| partial[AbstractDatabaseConnector]
+		| None = None,
 		executor: LisienExecutor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
