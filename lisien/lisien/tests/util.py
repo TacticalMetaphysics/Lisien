@@ -146,7 +146,7 @@ def make_test_engine(
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
 	match database:
-		case "python":
+		case "python" | "pythondb":
 			kwargs["database"] = PythonDatabaseConnector()
 		case "sqlite":
 			kwargs["database"] = partial(
