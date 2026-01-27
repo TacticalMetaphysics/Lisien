@@ -5924,7 +5924,17 @@ class Engine(AbstractEngine, Executor):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	@staticmethod
+	def _all_worker_locks_dec(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self.executor.all_worker_locks_ctx:
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
 	@world_locked
+	@_all_worker_locks_dec
 	def _update_all_worker_process_states(
 		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
 	):
