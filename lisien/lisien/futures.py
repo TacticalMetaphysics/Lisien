@@ -348,7 +348,7 @@ class LisienExecutor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 			self._workers.pop().shutdown()
 
 	@contextmanager
-	def _all_worker_locks_ctx(self):
+	def all_worker_locks_ctx(self):
 		for worker in self._workers:
 			worker.lock.acquire()
 		yield
@@ -362,15 +362,15 @@ class LisienExecutor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 		return self._workers[i].get_output_bytes()
 
 	@staticmethod
-	def _all_worker_locks(fn):
+	def _all_worker_locks_dec(fn):
 		@wraps(fn)
 		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self._all_worker_locks_ctx():
+			with self.all_worker_locks_ctx():
 				return fn(self, *args, **kwargs)
 
 		return call_with_all_worker_locks
 
-	@_all_worker_locks
+	@_all_worker_locks_dec
 	def call_every_worker(
 		self,
 		methodbytes: bytes,

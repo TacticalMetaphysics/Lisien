@@ -56,6 +56,7 @@ def test_college_premade(college10):
 def test_kobold(engine):
 	kobold.inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
 	for i in range(10):
+		print(f"turn {i}")
 		engine.next_turn()
 
 
