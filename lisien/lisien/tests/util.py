@@ -154,8 +154,10 @@ def make_test_engine(
 				connect_string=f"sqlite:///{path}/world.sqlite3",
 			)
 		case "parquetdb":
+			worldpath = Path(path).joinpath("world")
+			worldpath.mkdir(parents=True)
 			kwargs["database"] = partial(
-				ParquetDatabaseConnector, path=os.path.join(path, "world")
+				ParquetDatabaseConnector, path=worldpath
 			)
 		case "nodb":
 			kwargs["database"] = NullDatabaseConnector()

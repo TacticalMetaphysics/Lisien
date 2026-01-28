@@ -238,9 +238,9 @@ def database_connector_partial(tmp_path, database):
 				connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 			)
 		case "parquetdb":
-			return partial(
-				ParquetDatabaseConnector, path=tmp_path.joinpath("world")
-			)
+			worldpath = tmp_path.joinpath("world")
+			worldpath.mkdir(parents=True)
+			return partial(ParquetDatabaseConnector, path=worldpath)
 
 
 @pytest.fixture
