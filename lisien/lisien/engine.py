@@ -28,7 +28,11 @@ import shutil
 import sys
 from abc import ABC, abstractmethod
 from collections import UserDict, defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import (
+	Executor as BaseExecutor,
+	Future,
+	ThreadPoolExecutor,
+)
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
@@ -445,7 +449,7 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 
 @define
-class Engine(AbstractEngine, Executor):
+class Engine(AbstractEngine, BaseExecutor):
 	"""Lisien, the Life Simulator Engine."""
 
 	is_proxy: ClassVar = False
