@@ -3176,12 +3176,12 @@ class AbstractEngine(ABC):
 		def pack_handler(obj):
 			if isinstance(obj, Exception):
 				typ = Exception
-			elif (
-				isinstance(obj, type)
-				and issubclass(obj, AbstractDatabaseConnector)
-			) or (
-				isinstance(obj, partial)
-				and issubclass(obj.func, AbstractDatabaseConnector)
+			elif isinstance(obj, type) and issubclass(
+				obj, AbstractDatabaseConnector
+			):
+				typ = obj
+			elif isinstance(obj, partial) and issubclass(
+				obj.func, AbstractDatabaseConnector
 			):
 				typ = obj.func
 			else:
