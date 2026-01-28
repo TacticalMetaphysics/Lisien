@@ -699,7 +699,7 @@ class Engine(AbstractEngine, Executor):
 		if callable(database):
 			return database(self.pack, self.unpack)
 		elif database is None:
-			return self._database_factory()
+			return PythonDatabaseConnector(self.pack, self.unpack)
 		else:
 			return database  # hope you know what you're doing
 
@@ -708,12 +708,12 @@ class Engine(AbstractEngine, Executor):
 		default=Factory(_database_factory, takes_self=True),
 		converter=Converter(_convert_database, takes_self=True),
 	)
-	"""The database connector to use. If left ``None``, Lisien will construct 
+	"""The database connector to use. By default, Lisien will construct 
 	a database connector based on the other arguments: SQLAlchemy if a 
 	``connect_string`` is provided; if not, but a ``prefix`` is provided, 
 	then ParquetDB; or, if ``prefix`` is ``None``, then an in-memory 
 	database. You may use the class of the connector, rather than an
-	instance."""
+	instance. If set to ``None``, an in-memory database will be used."""
 
 	@database.validator
 	@garbage
