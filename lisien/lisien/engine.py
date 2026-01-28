@@ -5918,7 +5918,7 @@ class Engine(AbstractEngine, BaseExecutor):
 	def _all_worker_locks_dec(fn):
 		@wraps(fn)
 		def call_with_all_worker_locks(self, *args, **kwargs):
-			with self.executor.all_worker_locks_ctx:
+			with self.executor.all_worker_locks_ctx():
 				return fn(self, *args, **kwargs)
 
 		return call_with_all_worker_locks
