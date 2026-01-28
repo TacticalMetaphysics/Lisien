@@ -4662,7 +4662,7 @@ class Engine(AbstractEngine, Executor):
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
-		if hasattr(self, "_worker_processes") and update_worker_processes:
+		if update_worker_processes and self.executor is not None:
 			self._update_all_worker_process_states(clobber=True)
 		return ret
 
