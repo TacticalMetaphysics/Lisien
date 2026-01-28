@@ -247,65 +247,6 @@ class InnerStopIteration(StopIteration):
 	pass
 
 
-class PlanningContext(ContextDecorator):
-	"""A context manager for 'hypothetical' edits.
-
-	Start a block of code like::
-
-		with orm.plan():
-			...
-
-
-	and any changes you make to the world state within that block will be
-	'plans,' meaning that they are used as defaults. The world will
-	obey your plan unless you make changes to the same entities outside
-	the plan, in which case the world will obey those, and cancel any
-	future plan.
-
-	Plans are *not* canceled when concerned entities are deleted, although
-	they are unlikely to be followed.
-
-	New branches cannot be started within plans. The ``with orm.forward():``
-	optimization is disabled within a ``with orm.plan():`` block, so
-	consider another approach instead of making a very large plan.
-
-	With ``reset=True`` (the default), when the plan block closes,
-	the time will reset to when it began.
-
-	"""
-
-	__slots__ = ["orm", "id", "forward", "reset"]
-
-	def __init__(self, orm: "Engine", reset=True):
-		self.orm = orm
-		if reset:
-			self.reset = tuple(orm.time)
-		else:
-			self.reset = None
-
-	def __enter__(self):
-		orm = self.orm
-		if orm._planning:
-			raise ValueError("Already planning")
-		orm._planning = True
-		branch, turn, tick = orm.time
-		self.id = myid = orm._last_plan = orm._last_plan + 1
-		self.forward = orm._forward
-		if orm._forward:
-			orm._forward = False
-		orm._plans[myid] = branch, turn, tick
-		orm.database.plans_insert(myid, branch, turn, tick)
-		orm._branches_plans[branch].add(myid)
-		return myid
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.orm._planning = False
-		if self.reset is not None:
-			self.orm.time = self.reset
-		if self.forward:
-			self.orm._forward = True
-
-
 class NextTurn(Signal):
 	"""Make time move forward in the simulation.
 
@@ -1951,9 +1892,54 @@ class Engine(AbstractEngine, Executor):
 		edge_objs[key] = ret
 		return ret
 
-	def plan(self, reset: bool = True) -> PlanningContext:
-		__doc__ = PlanningContext.__doc__
-		return PlanningContext(self, reset)
+	@contextmanager
+	def plan(self, reset: bool = True) -> Iterator[Plan]:
+		"""A context manager for 'hypothetical' edits.
+
+		Start a block of code like::
+
+			with orm.plan():
+				...
+
+
+		and any changes you make to the world state within that block will be
+		'plans,' meaning that they are used as defaults. The world will
+		obey your plan unless you make changes to the same entities outside
+		the plan, in which case the world will obey those, and cancel any
+		future plan.
+
+		Plans are *not* canceled when concerned entities are deleted, although
+		they are unlikely to be followed.
+
+		New branches cannot be started within plans. The ``with orm.forward():``
+		optimization is disabled within a ``with orm.plan():`` block, so
+		consider another approach instead of making a very large plan.
+
+		With ``reset=True`` (the default), when the plan block closes,
+		the time will reset to when it began.
+
+		"""
+		if self._planning:
+			raise ValueError("Already planning")
+		self._planning = True
+		reset_to = None
+		if reset:
+			reset_to = tuple(self.time)
+		branch, turn, tick = self.time
+		myid = self._last_plan = self._last_plan + 1
+		forward = self._forward
+		if forward:
+			self._forward = False
+		self._plans[myid] = branch, turn, tick
+		self.database.plans_insert(myid, branch, turn, tick)
+		self._branches_plans[branch].add(myid)
+		yield myid
+		if reset:
+			assert isinstance(reset_to, tuple) and len(reset_to) == 3
+			self.time = reset_to
+		if forward:
+			self._forward = True
+		self._planning = False
 
 	@world_locked
 	def _copy_plans(
