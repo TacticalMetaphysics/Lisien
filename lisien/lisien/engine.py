@@ -4092,10 +4092,20 @@ class Engine(AbstractEngine, BaseExecutor):
 				)
 		return time_from[0], branched_turn_from, branched_tick_from
 
+	@cached_property
+	def _char_exists_stuff(self):
+		return self._graph_cache._base_retrieve, self.time
+
+	def _char_exists(self, character: CharName) -> bool:
+		retrieve, btt = self._char_exists_stuff
+		args = (character, *btt)
+		retrieved = retrieve(args, store_hint=False)
+		return retrieved and not isinstance(retrieved, Exception)
+
 	def _node_exists(self, character: CharName, node: NodeName) -> bool:
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node, *btt)
-		retrieved = retrieve(args)
+		retrieved = retrieve(args, store_hint=False)
 		return retrieved and not isinstance(retrieved, Exception)
 
 	@world_locked
@@ -4127,7 +4137,7 @@ class Engine(AbstractEngine, BaseExecutor):
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, *btt)
-		retrieved = retrieve(args)
+		retrieved = retrieve(args, store_hint=False)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked

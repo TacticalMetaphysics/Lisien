@@ -3065,6 +3065,17 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def logger(self) -> Logger: ...
 
+	@abstractmethod
+	def _char_exists(self, character: CharName) -> bool: ...
+
+	@abstractmethod
+	def _node_exists(self, character: CharName, node: NodeName) -> bool: ...
+
+	@abstractmethod
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool: ...
+
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
 
@@ -3300,16 +3311,14 @@ class AbstractEngine(ABC):
 
 		def unpack_char(ext: bytes) -> char_cls:
 			charn = self.unpack(getattr(ext, "data", ext))
-			if charn in self.character:
+			if self._char_exists(charn):
 				return self.character[charn]
 			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
 
 		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = self.unpack(getattr(ext, "data", ext))
-			if charn in self.character:
-				char = self.character[charn]
-				if placen in char.place:
-					return char.place[placen]
+			if self._node_exists(charn, placen):
+				return self.character[charn].place[placen]
 			return place_cls(
 				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
 				NodeName(Key(placen)),
@@ -3317,10 +3326,8 @@ class AbstractEngine(ABC):
 
 		def unpack_thing(ext: bytes) -> thing_cls:
 			charn, thingn = self.unpack(getattr(ext, "data", ext))
-			if charn in self.character:
-				char = self.character[charn]
-				if thingn in char.thing:
-					return char.thing[thingn]
+			if self._node_exists(charn, thingn):
+				return self.character[charn].thing[thingn]
 			return thing_cls(
 				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
 				NodeName(Key(thingn)),
@@ -3328,12 +3335,8 @@ class AbstractEngine(ABC):
 
 		def unpack_portal(ext: bytes) -> portal_cls:
 			charn, orign, destn = self.unpack(getattr(ext, "data", ext))
-			if charn in self.character:
-				char = self.character[charn]
-				if orign in char.portal:
-					dests = char.portal[orign]
-					if destn in dests:
-						return dests[destn]
+			if self._edge_exists(charn, orign, destn):
+				return self.character[charn].portal[orign][destn]
 			return portal_cls(
 				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
 				NodeName(Key(orign)),
