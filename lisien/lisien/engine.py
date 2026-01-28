@@ -136,10 +136,10 @@ from .exc import (
 )
 from .facade import CharacterFacade, EngineFacade
 from .futures import (
-	LisienExecutor,
-	LisienThreadExecutor,
-	LisienProcessExecutor,
-	LisienInterpreterExecutor,
+	Executor,
+	ThreadExecutor,
+	ProcessExecutor,
+	InterpreterExecutor,
 )
 from .node import Place, Thing
 from .portal import Portal
@@ -1107,23 +1107,23 @@ class Engine(AbstractEngine, Executor):
 		self._shutdown_executor = True
 		match self.sub_mode:
 			case Sub.interpreter if sys.version_info[1] >= 14:
-				return LisienInterpreterExecutor(self)
+				return InterpreterExecutor(self)
 			case Sub.process:
-				return LisienProcessExecutor(self)
+				return ProcessExecutor(self)
 			case Sub.thread:
-				return LisienThreadExecutor(self)
+				return ThreadExecutor(self)
 			case _:
 				if sys.version_info[1] >= 14:
 					try:
-						return LisienInterpreterExecutor(self)
+						return InterpreterExecutor(self)
 					except ModuleNotFoundError:
 						pass
 				if get_all_start_methods():
-					return LisienProcessExecutor(self)
+					return ProcessExecutor(self)
 				else:
-					return LisienThreadExecutor(self)
+					return ThreadExecutor(self)
 
-	executor: LisienExecutor | None = field(
+	executor: Executor | None = field(
 		kw_only=True,
 		default=Factory(_executor_factory, takes_self=True),
 	)
@@ -1133,7 +1133,7 @@ class Engine(AbstractEngine, Executor):
 		:class:`Engine` instances at once."""
 
 	@executor.validator
-	def _validate_executor(self, attribute, executor: LisienExecutor | None):
+	def _validate_executor(self, attribute, executor: Executor | None):
 		if executor:
 			# make sure the executor has code to run
 			if self._prefix is not None:
@@ -7649,7 +7649,7 @@ class Engine(AbstractEngine, Executor):
 		| type[AbstractDatabaseConnector]
 		| partial[AbstractDatabaseConnector]
 		| None = None,
-		executor: LisienExecutor | None = None,
+		executor: Executor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 		if database is None:
