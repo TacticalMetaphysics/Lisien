@@ -163,7 +163,7 @@ class _BaseLisienExecutor[WRKR: Worker](Executor, ABC):
 
 
 @define
-class LisienExecutor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
+class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 	"""Lisien's parallelism
 
 	Starts workers in threads, processes, or interpreters.
@@ -526,7 +526,7 @@ class ThreadWorker(Worker):
 
 
 @define
-class LisienThreadExecutor(LisienExecutor[ThreadWorker]):
+class ThreadExecutor(Executor[ThreadWorker]):
 	def _make_worker(self, engine: AbstractEngine) -> ThreadWorker:
 		return ThreadWorker.from_executor(self, engine)
 
@@ -617,7 +617,7 @@ class ProcessWorker(Worker):
 
 
 @define
-class LisienProcessExecutor(LisienExecutor[ProcessWorker]):
+class ProcessExecutor(Executor[ProcessWorker]):
 	_mp_ctx: ForkContext | SpawnContext | DefaultContext = field(
 		init=False, factory=partial(get_context, "spawn")
 	)
@@ -666,7 +666,7 @@ class InterpreterWorker(Worker):
 	@classmethod
 	def from_executor(
 		cls,
-		executor: LisienInterpreterExecutor,
+		executor: InterpreterExecutor,
 		engine: AbstractEngine | None = None,
 	) -> InterpreterWorker:
 		from concurrent.interpreters import (
@@ -728,6 +728,6 @@ class InterpreterWorker(Worker):
 
 
 @define
-class LisienInterpreterExecutor(LisienExecutor[InterpreterWorker]):
+class InterpreterExecutor(Executor[InterpreterWorker]):
 	def _make_worker(self, engine: AbstractEngine) -> InterpreterWorker:
 		return InterpreterWorker.from_executor(self, engine)

@@ -22,9 +22,9 @@ import pytest
 
 from lisien.engine import Engine
 from ..futures import (
-	LisienThreadExecutor,
-	LisienProcessExecutor,
-	LisienInterpreterExecutor,
+	ThreadExecutor,
+	ProcessExecutor,
+	InterpreterExecutor,
 )
 from lisien.db import (
 	NullDatabaseConnector,
@@ -302,13 +302,13 @@ def serial_or_executor(
 		case "serial":
 			yield None
 		case "process":
-			with LisienProcessExecutor(None) as ex:
+			with ProcessExecutor(None) as ex:
 				yield ex
 		case "thread":
-			with LisienThreadExecutor(None) as ex:
+			with ThreadExecutor(None) as ex:
 				yield ex
 		case "interpreter":
-			with LisienInterpreterExecutor(None) as ex:
+			with InterpreterExecutor(None) as ex:
 				yield ex
 		case _:
 			raise ValueError("Unknown form of parallelism", serial_or_parallel)
