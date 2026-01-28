@@ -1362,6 +1362,55 @@ class EngineFacade(AbstractEngine):
 		init=False,
 	)
 
+	def _char_exists(self, character: CharName) -> bool:
+		if character in self.character._patch:
+			return self.character._patch[character] is not ...
+		if self._real:
+			return self._real._char_exists(character)
+		return False
+
+	def _node_exists(self, character: CharName, node: NodeName) -> bool:
+		if character in self.character._patch:
+			cha = self.character._patch[character]
+			if cha is ...:
+				return False
+			if not isinstance(cha, CharacterFacade):
+				raise TypeError(
+					"Invalid facade cache", self, self.character._patch, cha
+				)
+			if node in cha.place._patch or node in cha.thing._patch:
+				return (
+					cha.place._patch.get(node, ...) is not ...
+					and cha.thing._patch.get(node, ...) is not ...
+				)
+		if self._real:
+			return self._real._node_exists(character, node)
+		return False
+
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool:
+		if character in self.character._patch:
+			cha = self.character._patch[character]
+			if cha is ...:
+				return False
+			if not isinstance(cha, CharacterFacade):
+				raise TypeError(
+					"Invalid facade cache", self, self.character._patch, cha
+				)
+			if orig not in cha.adj._patch:
+				if self._real:
+					return self._real._edge_exists(character, orig, dest)
+				return False
+			if dest not in cha.adj._patch[orig]._patch:
+				if self._real:
+					return self._real._edge_exists(character, orig, dest)
+				return False
+			return cha.adj._patch[orig]._patch[dest] is not ...
+		if self._real:
+			return self._real._edge_exists(character, orig, dest)
+		return False
+
 	@staticmethod
 	def _validate_turn_end(self, attr, turn_end):
 		if self._real and not self._real.is_proxy:

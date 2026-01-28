@@ -755,8 +755,28 @@ class EngineProxy(AbstractEngine):
 		self._worker_check()
 		self.handle("game_init", cb=self._upd_from_game_start)
 
-	def _node_exists(self, char: CharName, node: NodeName) -> bool:
-		return self.handle("node_exists", char=char, node=node)
+	def _place_exists(self, character: CharName, node: NodeName) -> bool:
+		places = self._character_places_cache
+		cha = places.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError("Invalid places cache", places, cha)
+		return node in cha
+
+	def _thing_exists(self, character: CharName, node: NodeName) -> bool:
+		things = self._things_cache
+		cha = things.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError("Invalid things cache", things, cha)
+		return node in cha
+
+	def _node_exists(self, character: CharName, node: NodeName) -> bool:
+		return self._place_exists(character, node) or self._thing_exists(
+			character, node
+		)
 
 	def _upd_from_game_start(
 		self,
@@ -1320,6 +1340,33 @@ class EngineProxy(AbstractEngine):
 		method = super().__getattribute__("method")
 		meth = method.__getattr__(item)
 		return MethodType(meth, self)
+
+	def _char_exists(self, character: CharName) -> bool:
+		return character in self._char_cache
+
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool:
+		cha = self._character_portals_cache.successors.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError(
+				"Invalid portals cache",
+				self._character_portals_cache.successors,
+				cha,
+			)
+		dests = cha.get(orig, ...)
+		if dests is ...:
+			return False
+		if not isinstance(dests, dict):
+			raise TypeError(
+				"Invalid portals cache",
+				self._character_portals_cache.successors,
+				cha,
+				dests,
+			)
+		return dest in dests
 
 	def _reimport_triggers(self) -> None:
 		if hasattr(self.trigger, "reimport"):
