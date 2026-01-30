@@ -155,7 +155,7 @@ def make_test_engine(
 			)
 		case "parquetdb":
 			worldpath = Path(path).joinpath("world")
-			worldpath.mkdir(parents=True)
+			worldpath.mkdir(parents=True, exist_ok=True)
 			kwargs["database"] = partial(
 				ParquetDatabaseConnector, path=worldpath
 			)
