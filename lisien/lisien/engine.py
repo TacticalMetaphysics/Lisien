@@ -5941,14 +5941,6 @@ class Engine(AbstractEngine, BaseExecutor):
 		if self.executor is None:
 			raise RuntimeError("Not parallel")
 		assert len(self.executor._workers) == self.workers
-		stores_to_reimport = stores_to_reimport or set()
-		for store in self.stores:
-			if getattr(store, "_need_save", None):
-				if hasattr(store, "reimport"):
-					store.save(reimport=False)
-					stores_to_reimport.add(store._store)
-				else:
-					store.save()
 		kf_payload = None
 		deltas = {}
 		n = self.executor.workers
@@ -5964,13 +5956,6 @@ class Engine(AbstractEngine, BaseExecutor):
 				put = worker.input_connection.send_bytes
 			else:
 				put = worker.input_queue.put
-			if stores_to_reimport:
-				put(
-					sys.maxsize.to_bytes(8, "little")
-					+ self.pack(
-						("_reimport_code", (list(stores_to_reimport),), {})
-					)
-				)
 			if clobber or branch_from != self.branch:
 				if kf_payload is None:
 					kf_payload = self._get_worker_kf_payload()
@@ -6000,23 +5985,22 @@ class Engine(AbstractEngine, BaseExecutor):
 				if eternal_delta:
 					delt["eternal"] = eternal_delta
 				kwargs = {}
-				if self._prefix is None:
-					kwargs["_replace_funcs_plain"] = plain = {}
-					kwargs["_replace_funcs_pkl"] = pkl = {}
-					for name, store in [
-						("function", self.function),
-						("method", self.method),
-						("trigger", self.trigger),
-						("prereq", self.prereq),
-						("action", self.action),
-					]:
-						if hasattr(store, "iterplain") and callable(
-							store.iterplain
-						):
-							plain[name] = dict(store.iterplain())
-							continue
-						else:
-							pkl[name] = pickle.dumps(store)
+				kwargs["_replace_funcs_plain"] = plain = {}
+				kwargs["_replace_funcs_pkl"] = pkl = {}
+				for name, store in [
+					("function", self.function),
+					("method", self.method),
+					("trigger", self.trigger),
+					("prereq", self.prereq),
+					("action", self.action),
+				]:
+					if hasattr(store, "iterplain") and callable(
+						store.iterplain
+					):
+						plain[name] = dict(store.iterplain())
+						continue
+					else:
+						pkl[name] = pickle.dumps(store)
 				argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
 					(
 						"_upd",
