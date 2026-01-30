@@ -93,6 +93,8 @@ class EngineProxyManager:
 					self._start_subthread(*args, **kwargs)
 				case Sub.interpreter:
 					self._start_subinterpreter(*args, **kwargs)
+				case Sub.none:
+					raise NotImplementedError("Just use Engine")
 		if args and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", args[0], kwargs["prefix"]
