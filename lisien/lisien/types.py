@@ -5541,3 +5541,4 @@ class Sub(Enum):
 	process = "process"
 	interpreter = "interpreter"
 	thread = "thread"
+	none = None
