@@ -5,19 +5,6 @@ RUN <<EOF
 	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip;
 	unzip kivy.zip;
 	cd kivy-$COMMIT_HASH;
-	patch -p1 << EOT
---- a/kivy/uix/recycleview/__init__.py
-+++ b/kivy/uix/recycleview/__init__.py
-@@ -310,7 +310,7 @@ class RecycleViewBehavior(object):
-         if lm is None or self.view_adapter is None or self.data_model is None:
-             return
- 
--        data = self.data
-+        data = self.data.copy()
-         f = flags['data']
-         if f:
-             self.save_viewport()
-EOT
 	for minor in $(seq 12 14); do
 		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
 		USE_X11=1 python3.$minor -m pip wheel .;
