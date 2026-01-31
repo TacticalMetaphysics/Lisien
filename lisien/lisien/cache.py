@@ -69,10 +69,10 @@ from .types import (
 )
 from .window import (
 	AssignmentTimeDict,
-	Direction,
 	EntikeySettingsTurnDict,
 	WindowDict,
 )
+from .enum import Direction
 from .wrap import OrderlyFrozenSet
 
 if TYPE_CHECKING:

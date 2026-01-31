@@ -210,8 +210,8 @@ from .types import (
 	validate_time,
 	PickyDefaultDict,
 	StructuredDefaultDict,
-	Sub,
 )
+from .enum import Sub
 from .util import (
 	ACTIONS,
 	BIG,

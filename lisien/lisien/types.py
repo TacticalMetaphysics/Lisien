@@ -92,6 +92,7 @@ from tblib import Traceback
 from zict import LRU
 
 from . import exc
+from .enum import MsgpackExtensionType
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
 from .wrap import (
 	DictWrapper,
@@ -2507,28 +2508,6 @@ type LoadedDict = dict[
 	| list[GraphRowType]
 	| LoadedCharWindow,
 ]
-
-
-class MsgpackExtensionType(Enum):
-	"""Type codes for packing special lisien types into msgpack"""
-
-	tuple = 0x00
-	frozenset = 0x01
-	set = 0x02
-	exception = 0x03
-	graph = 0x04
-	character = 0x7F
-	place = 0x7E
-	thing = 0x7D
-	portal = 0x7C
-	ellipsis = 0x7B
-	function = 0x7A
-	method = 0x79
-	trigger = 0x78
-	prereq = 0x77
-	action = 0x76
-	database = 0x75
-	path = 0x74
 
 
 class get_rando:
@@ -5535,10 +5514,3 @@ class AbstractLanguageDescriptor(Signal, ABC):
 		self.send(inst, language=val)
 
 
-class Sub(Enum):
-	"""Enum for the different forms of parallelism"""
-
-	process = "process"
-	interpreter = "interpreter"
-	thread = "thread"
-	serial = None
