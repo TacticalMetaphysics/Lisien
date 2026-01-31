@@ -33,8 +33,8 @@ from lisien.types import (
 	Keyframe,
 	GraphNodeValKeyframe,
 	GraphValKeyframe,
-	Sub,
 )
+from ..enum import Sub
 
 if TYPE_CHECKING:
 	from ..futures import Executor

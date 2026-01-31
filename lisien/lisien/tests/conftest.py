@@ -31,7 +31,7 @@ from lisien.db import (
 	PythonDatabaseConnector,
 )
 from lisien.proxy.handle import EngineHandle
-from ..types import Sub
+from ..enum import Sub
 
 from ..pqdb import ParquetDatabaseConnector
 from ..proxy.manager import EngineProxyManager

@@ -31,7 +31,6 @@ from collections.abc import (
 	MutableMapping,
 	ValuesView,
 )
-from enum import Enum
 from functools import cached_property, partial
 from itertools import chain
 from operator import ge, itemgetter, le
@@ -51,6 +50,7 @@ from typing import (
 
 from attrs import define
 
+from .enum import Direction
 from .exc import HistoricKeyError
 from .types import (
 	LinearTime,
@@ -64,11 +64,6 @@ from .types import (
 
 get0 = itemgetter(0)
 get1 = itemgetter(1)
-
-
-class Direction(Enum):
-	FORWARD = "forward"
-	BACKWARD = "backward"
 
 
 class UpdateFunctionProtocol(Protocol):

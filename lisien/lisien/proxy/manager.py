@@ -32,7 +32,8 @@ from attrs import define, field
 import tblib
 
 from ..facade import EngineFacade
-from ..types import Branch, EternalKey, Key, Tick, Turn, Value, Sub
+from ..types import Branch, EternalKey, Key, Tick, Turn, Value
+from ..enum import Sub
 from ..util import unpack_expected
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread

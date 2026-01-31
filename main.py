@@ -38,7 +38,7 @@ if __name__ == "__main__":
 	freeze_support()
 	from kivy.logger import Logger
 	from elide.app import ElideApp
-	from lisien.types import Sub
+	from lisien.enum import Sub
 
 	Logger.setLevel(10)
 

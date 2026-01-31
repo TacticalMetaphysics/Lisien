@@ -89,7 +89,6 @@ from ..types import (
 	Keyframe,
 	KeyHint,
 	LinearTime,
-	MsgpackExtensionType,
 	Node,
 	NodeName,
 	NodesDict,
@@ -115,6 +114,7 @@ from ..types import (
 	CharacterRulebookTypeStr,
 	AttrSignal,
 )
+from ..enum import MsgpackExtensionType
 from ..util import (
 	dedent_source,
 	format_call_sig,

@@ -60,7 +60,7 @@ from lisien.proxy.character import (
 	ThingProxy,
 )
 from lisien.proxy.manager import EngineProxyManager
-from lisien.types import Sub
+from lisien.enum import Sub
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard
