@@ -29,7 +29,12 @@ from lisien.tests.util import make_test_engine, make_test_engine_kwargs
 
 @pytest.mark.parametrize("sim", ["kobold", "polygons"])
 def test_start(
-	tmp_path, sim, persistent_database, worker_sub_mode, random_seed
+	tmp_path,
+	sim,
+	persistent_database,
+	kind_of_proxy_manager,
+	worker_sub_mode,
+	random_seed,
 ):
 	if (
 		persistent_database == "parquetdb"
@@ -48,15 +53,24 @@ def test_start(
 			case "polygons":
 				polygons.install(eng)
 
-	mgr = EngineProxyManager(
-		tmp_path,
-		sub_mode=worker_sub_mode,
-		**make_test_engine_kwargs(
-			tmp_path, "serial", persistent_database, random_seed
-		),
-	)
-	mgr.start(sub_mode=None)  # we're not testing workers
-	mgr.shutdown()
+	if kind_of_proxy_manager == "no_manager":
+		with Engine(
+			tmp_path,
+			**make_test_engine_kwargs(
+				tmp_path, "serial", persistent_database, random_seed
+			),
+		):
+			return
+	with EngineProxyManager(
+		kind_of_proxy_manager.removesuffix("_manager")
+	) as mgr:
+		with mgr.start(
+			tmp_path,
+			**make_test_engine_kwargs(
+				tmp_path, worker_sub_mode, persistent_database, random_seed
+			),
+		):
+			return
 
 
 def test_fast_delta(handle_initialized):
