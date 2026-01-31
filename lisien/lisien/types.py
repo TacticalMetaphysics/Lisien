@@ -92,6 +92,7 @@ from tblib import Traceback
 from zict import LRU
 
 from . import exc
+from . import enum
 from .enum import MsgpackExtensionType
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
 from .wrap import (
@@ -3166,6 +3167,8 @@ class AbstractEngine(ABC):
 		def pack_handler(obj):
 			if isinstance(obj, Exception):
 				typ = Exception
+			elif isinstance(obj, Enum):
+				typ = Enum
 			elif isinstance(obj, type) and issubclass(
 				obj, AbstractDatabaseConnector
 			):
@@ -3338,7 +3341,12 @@ class AbstractEngine(ABC):
 			unpacked = self.unpack(getattr(ext, "data", ext))
 			return Path(unpacked)
 
+		def unpack_enum(ext: bytes) -> Enum:
+			enum_typ_str, enum_name = self.unpack(getattr(ext, "data", ext))
+			return getattr(getattr(enum, enum_typ_str), enum_name)
+
 		return {
+			MsgpackExtensionType.enum.value: unpack_enum,
 			MsgpackExtensionType.path.value: unpack_path,
 			MsgpackExtensionType.database.value: unpack_database_connector,
 			MsgpackExtensionType.ellipsis.value: lambda _: ...,
@@ -3518,7 +3526,14 @@ class AbstractEngine(ABC):
 				),
 			)
 
+		def pack_enum(en: Enum) -> ext:
+			return ext(
+				MsgpackExtensionType.enum.value,
+				self.pack([en.__class__.__name__, en.name])
+			)
+
 		ret = {
+			Enum: pack_enum,
 			PythonDatabaseConnector: pack_database_connector,
 			Path: pack_path,
 			WindowsPath: pack_path,

@@ -23,6 +23,7 @@ class MsgpackExtensionType(Enum):
 	action = 0x76
 	database = 0x75
 	path = 0x74
+	enum = 0x73
 
 
 class Sub(Enum):
