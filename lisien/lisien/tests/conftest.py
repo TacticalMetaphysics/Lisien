@@ -349,9 +349,7 @@ def engine(
 			tmp_path,
 			random_seed=random_seed,
 			workers=0 if serial_or_parallel == "serial" else 2,
-			sub_mode=None
-			if serial_or_parallel == "serial"
-			else serial_or_parallel,
+			sub_mode=Sub(serial_or_parallel),
 			database=database_connector_part,
 		) as proxy:
 			yield proxy
@@ -364,9 +362,7 @@ def sqleng(tmp_path, request, serial_or_parallel):
 		random_seed=69105,
 		enforce_end_of_time=False,
 		workers=0 if serial_or_parallel == "serial" else 2,
-		sub_mode=Sub(serial_or_parallel)
-		if serial_or_parallel != "serial"
-		else None,
+		sub_mode=Sub(serial_or_parallel),
 		connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 	) as eng:
 		yield eng
@@ -437,9 +433,7 @@ def engine_from_archive(
 			data.DATA_DIR.joinpath(archive_name),
 			tmp_path,
 			workers=0 if serial_or_parallel == "serial" else 2,
-			sub_mode=None
-			if serial_or_parallel == "serial"
-			else serial_or_parallel,
+			sub_mode=Sub(serial_or_parallel),
 			database=database_connector_part,
 		) as eng:
 			yield eng
