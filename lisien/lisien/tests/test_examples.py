@@ -98,7 +98,7 @@ def test_sickle(sickle):
 def test_wolfsheep(
 	tmp_path,
 	serial_or_parallel,
-	database_connector_part,
+	persistent_database_connector_part,
 ):
 	workers = 0 if serial_or_parallel == "serial" else 2
 	sub_mode = None if serial_or_parallel == "serial" else serial_or_parallel
@@ -106,7 +106,7 @@ def test_wolfsheep(
 		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 		sub_mode=sub_mode,
 	) as engine:
 		sheep = engine.character["sheep"]
@@ -135,7 +135,7 @@ def test_wolfsheep(
 		tmp_path,
 		workers=workers,
 		sub_mode=sub_mode,
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 	)
 	try:
 		hand.next_turn()
