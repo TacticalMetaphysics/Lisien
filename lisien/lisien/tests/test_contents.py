@@ -57,19 +57,18 @@ def test_contents_over_time(char):
 	assert set(place.content.keys()) == {1, 2, 3, 4}
 
 
-def test_contents_in_plan(chara_chron):
-	chara = chara_chron
-	place = chara.new_place(0)
+def test_contents_in_plan(char):
+	place = char.new_place(0)
 	correct_contents = {1, 2, 3, 4, 5}
 	for th in correct_contents:
 		place.new_thing(th)
-	engine = chara.engine
+	engine = char.engine
 	with engine.plan():
 		for i in range(6, 15):
 			engine.turn += 1
 			assert set(place.content) == correct_contents
 			place.new_thing(i)
-			del chara.thing[i]
+			del char.thing[i]
 			assert set(place.content) == correct_contents
 			place.new_thing(i)
 			correct_contents.add(i)
@@ -94,9 +93,9 @@ def test_contents_in_plan(chara_chron):
 	engine.tick = engine.turn_end_plan()
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15}
 	# this neither
-	there = chara.new_place("there")
+	there = char.new_place("there")
 	# but this does
-	chara.thing[9].location = there
+	char.thing[9].location = there
 	assert set(place.content) == {1, 2, 3, 4, 5, 6, 7, 8, 10, 15}
 	with engine.plan():
 		engine.turn = 10
