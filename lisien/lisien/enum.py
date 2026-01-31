@@ -35,6 +35,11 @@ class Sub(Enum):
 	serial = None
 
 
+try:
+	Sub.serial._add_value_alias_("serial")
+except AttributeError:
+	Sub._value2member_map_["serial"] = Sub.serial
+
 class Direction(Enum):
 	FORWARD = "forward"
 	BACKWARD = "backward"
