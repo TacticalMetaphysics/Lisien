@@ -4171,15 +4171,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	_pack = field(default=None)
 	_unpack = field(default=None)
-	_reload: bool = field(default=False)
-	_old_data: ClassVar = None
+	_old_data: dict | None = field(default=None)
 	is_python: ClassVar = True
 	db_type: ClassVar = "python"
 
-	@_reload.validator
-	def _do_reload(self, _, reload):
-		if reload and PythonDatabaseConnector._old_data is not None:
-			self.load_everything(PythonDatabaseConnector._old_data)
+	@_old_data.validator
+	def _load_old_data(self, _, old_data):
+		if old_data is None:
+			return
+		self.load_everything(old_data)
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -5096,8 +5096,6 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	def close(self):
 		self.flush()
-		if self._reload:
-			PythonDatabaseConnector._old_data = self.dump_everything()
 
 	def truncate_all(self) -> None:
 		for table in Batch.cached_properties:
