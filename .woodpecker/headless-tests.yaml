@@ -67,6 +67,6 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
+      - PYTEST_MARKS="(slow or big) and $DATABASE and ${EXECUTION}"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
