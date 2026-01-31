@@ -552,29 +552,3 @@ def pathfind(
 		proxy_manager,
 	) as eng:
 		yield eng
-
-
-def pytest_collection_modifyitems(items):
-	for item in items:
-		fixturenames = getattr(item, "fixturenames", ())
-		if "college10" in fixturenames or "college24" in fixturenames:
-			item.add_marker("college")
-
-
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_sessionfinish(session, exitstatus):
-	# Remove handlers from all loggers to prevent logging errors on exit
-	# From https://github.com/blacklanternsecurity/bbot/pull/1555
-	# Works around a bug in Python 3.10 I think?
-	import logging
-	import threading
-
-	loggers = list(logging.Logger.manager.loggerDict.values())
-	for logger in loggers:
-		handlers = getattr(logger, "handlers", [])
-		for handler in handlers:
-			logger.removeHandler(handler)
-
-	print("Remaining threads:", threading.enumerate())
-
-	yield
