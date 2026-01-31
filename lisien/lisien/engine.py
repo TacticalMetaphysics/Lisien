@@ -5786,7 +5786,11 @@ class Engine(AbstractEngine, BaseExecutor):
 			else:
 				self.snap_keyframe(silent=True, update_worker_processes=False)
 		for store in self.stores:
-			if hasattr(store, "save"):
+			if (
+				self._prefix
+				and self._prefix.exists()
+				and hasattr(store, "save")
+			):
 				store.save(reimport=False)
 			if not hasattr(store, "_filename") or store._filename is None:
 				continue
