@@ -454,6 +454,8 @@ def college10(
 	serial_or_executor,
 	proxy_manager,
 ):
+	if proxy_manager and proxy_manager.sub_mode == Sub.interpreter and non_null_database == "parquetdb":
+		raise pytest.skip("Can't run PyArrow in subinterpreters yet")
 	with engine_from_archive(
 		"college10.lisien",
 		tmp_path,
@@ -475,6 +477,8 @@ def college24(
 	serial_or_executor,
 	proxy_manager,
 ):
+	if proxy_manager and proxy_manager.sub_mode == Sub.interpreter and non_null_database == "parquetdb":
+		raise pytest.skip("Can't run PyArrow in subinterpreters yet")
 	with engine_from_archive(
 		"college24.lisien",
 		tmp_path,
@@ -496,6 +500,8 @@ def sickle(
 	serial_or_executor,
 	proxy_manager,
 ):
+	if proxy_manager and proxy_manager.sub_mode == Sub.interpreter and non_null_database == "parquetdb":
+		raise pytest.skip("Can't run PyArrow in subinterpreters yet")
 	with engine_from_archive(
 		"sickle.lisien",
 		tmp_path,
@@ -517,6 +523,8 @@ def wolfsheep(
 	serial_or_executor,
 	proxy_manager,
 ):
+	if proxy_manager and proxy_manager.sub_mode == Sub.interpreter and non_null_database == "parquetdb":
+		raise pytest.skip("Can't run PyArrow in subinterpreters yet")
 	with engine_from_archive(
 		"wolfsheep.lisien",
 		tmp_path,
@@ -538,6 +546,8 @@ def pathfind(
 	serial_or_executor,
 	proxy_manager,
 ):
+	if proxy_manager and proxy_manager.sub_mode == Sub.interpreter and non_null_database == "parquetdb":
+		raise pytest.skip("Can't run PyArrow in subinterpreters yet")
 	with engine_from_archive(
 		"pathfind.lisien",
 		tmp_path,
