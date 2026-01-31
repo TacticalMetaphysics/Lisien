@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import Executor, Future, wait as futwait
 from contextlib import contextmanager
@@ -473,11 +474,14 @@ class ThreadWorker(Worker):
 			except Empty:
 				raise TimeoutError("No response to worker shutdown")
 			unpack_expected(self.unpack, got, b"done")
-			self.worker_thread.join(timeout=15.0)
+			self.worker_thread.join(15.0)
+			if self.worker_thread.is_alive():
+				raise TimeoutError(
+					"Worker thread didn't terminate", self.worker_thread
+				)
 			if self.log_thread.is_alive():
 				self.log_queue.put(b"shutdown")
 				self.log_thread.join()
-			self.worker_thread.join()
 
 	@classmethod
 	def from_executor(
