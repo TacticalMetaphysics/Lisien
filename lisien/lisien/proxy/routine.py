@@ -21,6 +21,8 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from lisien.facade import EngineFacade
+
 if TYPE_CHECKING:
 	from multiprocessing.connection import Connection
 	from queue import Queue
@@ -237,27 +239,39 @@ def engine_subroutine(
 			continue
 		if recvd.startswith(b"from_archive"):
 			if engine_handle is None:
-				engine_handle = EngineHandle.from_archive(
-					recvd.removeprefix(b"from_archive"),
-					log_queue=log_queue,
-					reuse_executor=reuse_executor,
-				)
+				try:
+					engine_handle = EngineHandle.from_archive(
+						recvd.removeprefix(b"from_archive"),
+						log_queue=log_queue,
+						reuse_executor=reuse_executor,
+					)
+				except BaseException as exc:
+					send_output_bytes(EngineFacade(None).pack(exc))
+					return 1
 			else:
-				engine_handle.close()
-				engine_handle.load_archive(
-					recvd.removeprefix(b"from_archive"),
-					log_queue=log_queue,
-					reuse_executor=reuse_executor,
-				)
+				try:
+					engine_handle.close()
+					engine_handle.load_archive(
+						recvd.removeprefix(b"from_archive"),
+						log_queue=log_queue,
+						reuse_executor=reuse_executor,
+					)
+				except BaseException as exc:
+					send_output_bytes(engine_handle.pack(exc))
+					return 1
 			continue
 		if engine_handle is None:
-			engine_handle = EngineHandle(
-				*args,
-				log_queue=log_queue,
-				reuse_executor=reuse_executor,
-				**kwargs,
-			)
-			send_output("get_btt", engine_handle.get_btt())
+			try:
+				engine_handle = EngineHandle(
+					*args,
+					log_queue=log_queue,
+					reuse_executor=reuse_executor,
+					**kwargs,
+				)
+				send_output("get_btt", engine_handle.get_btt())
+			except BaseException as exc:
+				send_output_bytes(EngineFacade(None).pack(exc))
+				return 1
 			continue
 		unpacked = engine_handle.unpack(recvd)
 		_engine_subroutine_step(
@@ -267,7 +281,11 @@ def engine_subroutine(
 			send_output_prepacked,
 		)
 	if engine_handle:
-		engine_handle.shutdown()
+		try:
+			engine_handle.shutdown()
+		except BaseException as exc:
+			send_output_bytes(engine_handle.pack(exc))
+			return 1
 	send_output_bytes(b"shutdown")
 	return 0
 
