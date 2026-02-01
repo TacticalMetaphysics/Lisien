@@ -22550,20 +22550,19 @@ KOBOLD_KEYFRAME_0 = {
 	"prereqs": {
 		"fight": ["kobold_alive", "aware"],
 		"go2kobold": ["kobold_alive", "kobold_not_here"],
-		"kill_kobold": ["unmerciful"],
 		"shrubsprint": ["breakcover", "not_traveling"],
 	},
 	"rulebook": {
 		("physical", "dwarf"): (
-			["fight", "kill_kobold", "go2kobold", "wander"],
+			["fight", "go2kobold", "wander"],
 			0.0,
 		),
-		("physical", "kobold"): (["shrubsprint"], 0.0),
+		("physical", "kobold"): (["shrubsprint", "kill_kobold"], 0.0),
 	},
 	"triggers": {
 		"fight": ["sametile"],
 		"go2kobold": ["aware"],
-		"kill_kobold": ["kobold_alive"],
+		"kill_kobold": ["unmerciful"],
 		"shrubsprint": ["uncovered"],
 		"wander": ["standing_still"],
 	},
@@ -23665,14 +23664,13 @@ KOBOLD_KEYFRAME_1 = {
 	"triggers": {
 		"shrubsprint": ["uncovered"],
 		"fight": ["sametile"],
-		"kill_kobold": ["kobold_alive"],
+		"kill_kobold": ["unmerciful"],
 		"go2kobold": ["aware"],
 		"wander": ["standing_still"],
 	},
 	"prereqs": {
 		"shrubsprint": ["breakcover", "not_traveling"],
 		"fight": ["kobold_alive", "aware"],
-		"kill_kobold": ["unmerciful"],
 		"go2kobold": ["kobold_alive", "kobold_not_here"],
 	},
 	"actions": {
@@ -23685,9 +23683,9 @@ KOBOLD_KEYFRAME_1 = {
 	"neighborhood": {},
 	"big": {},
 	"rulebook": {
-		("physical", "kobold"): (["shrubsprint"], 0.0),
+		("physical", "kobold"): (["shrubsprint", "kill_kobold"], 0.0),
 		("physical", "dwarf"): (
-			["fight", "kill_kobold", "go2kobold", "wander"],
+			["fight", "go2kobold", "wander"],
 			0.0,
 		),
 	},
