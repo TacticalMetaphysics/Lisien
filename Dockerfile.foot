@@ -1,13 +1,13 @@
 # compile kivy
 RUN <<EOF
-	set -eux; 
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; 
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip;
-	unzip kivy.zip;
-	cd kivy-$COMMIT_HASH;
+	set -eux;
+	cd kivy-*;
+    KIVY_DEPS_ROOT="$PWD/kivy-dependencies";
+    echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT";
+    export KIVY_DEPS_ROOT;
 	for minor in $(seq 12 14); do
 		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
-		USE_X11=1 python3.$minor -m pip wheel .;
+		USE_SDL3=1 python3.$minor -m pip wheel .;
 		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
 	done;
 	cd ..
