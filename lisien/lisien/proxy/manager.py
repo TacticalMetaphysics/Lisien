@@ -39,7 +39,7 @@ from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
 
 
-TIMEOUT = 30
+TIMEOUT = 60
 
 
 @define(slots=False)
