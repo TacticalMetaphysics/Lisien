@@ -67,8 +67,10 @@ def test_polygons(engine):
 		engine.next_turn()
 
 
-def test_char_stat_startup(tmp_path, database_connector_part):
-	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
+def test_char_stat_startup(tmp_path, persistent_database_connector_part):
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part
+	) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -82,7 +84,9 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part
+	) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
