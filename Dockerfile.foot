@@ -1,7 +1,20 @@
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
+diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
+index 90c3a5011..af00697cd 100644
+--- a/kivy/uix/recyclelayout.py
++++ b/kivy/uix/recyclelayout.py
+@@ -265,7 +265,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+             if changed:
+                 self.clear_layout()
+
+-        assert len(data) == len(opts)
++        assert len(data) == len(opts), f"len({data}) != len({opts})"
+         ph_key = self.key_pos_hint
+         ph_def = self.default_pos_hint
+         sh_key = self.key_size_hint
 diff --git a/kivy/uix/recycleview/__init__.py b/kivy/uix/recycleview/__init__.py
-index 0a49b522e..3e9ec7a66 100644
+index 0a49b522e..fdaff6c94 100644
 --- a/kivy/uix/recycleview/__init__.py
 +++ b/kivy/uix/recycleview/__init__.py
 @@ -262,6 +262,8 @@ TODO:
@@ -9,7 +22,7 @@ index 0a49b522e..3e9ec7a66 100644
 
  from copy import deepcopy
 +from functools import cached_property, wraps
-+from threading import Lock
++from threading import RLock
 
  from kivy.uix.scrollview import ScrollView
  from kivy.properties import AliasProperty
@@ -19,7 +32,7 @@ index 0a49b522e..3e9ec7a66 100644
 
 +    @cached_property
 +    def _views_lock(self):
-+        return Lock()
++        return RLock()
 +
 +    @staticmethod
 +    def _views_locked(func):
