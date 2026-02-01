@@ -27,8 +27,32 @@ RUN set -eux; \
 		libgles-dev \
 		winehq-stable \
 		openjdk-21-jdk-headless \
+		autoconf \
+		automake \
+		build-essential \
+		ccache \
+		cmake \
+		gettext \
+		git \
+		libffi-dev \
+		libltdl-dev \
+		libssl-dev \
+		libtool \
+		patch \
+		pkg-config \
+		unzip \
+		zip \
+		zlib1g-dev \
+		libalsaplayer-dev \
+		libasound2-dev \
+		libfluidsynth-dev \
 	; \
-	apt-get dist-clean
+	apt-get dist-clean; \
+	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
+	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
+	unzip kivy.zip; \
+	cd kivy-$COMMIT_HASH; \
+    bash tools/build_linux_dependencies.sh;
 
 ENV GPG_KEY 7169605F62C751356D054A26A821E680E5FA6305
 ENV PYTHON_VERSION 3.12.12
@@ -302,14 +326,14 @@ RUN set -eux; \
 
 # compile kivy
 RUN <<EOF
-	set -eux; 
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; 
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip;
-	unzip kivy.zip;
-	cd kivy-$COMMIT_HASH;
+	set -eux;
+	cd kivy-*;
+    KIVY_DEPS_ROOT="$PWD/kivy-dependencies";
+    echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT";
+    export KIVY_DEPS_ROOT;
 	for minor in $(seq 12 14); do
 		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
-		USE_X11=1 python3.$minor -m pip wheel .;
+		USE_SDL3=1 python3.$minor -m pip wheel .;
 		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
 	done;
 	cd ..
