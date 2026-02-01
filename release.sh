@@ -41,8 +41,7 @@ git push
 git push --tags
 cd ../..
 git commit -am "Release v${VERSION}"
-git tag -d "v${VERSION}"
-git tag "v${VERSION}"
+git tag -f "v${VERSION}"
 git push
 git push --tags
 python -m build lisien/
