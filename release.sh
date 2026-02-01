@@ -14,7 +14,6 @@ pyclean --version
 wine git --version
 buildozer --version
 ls /usr/lib/jvm/java-21-openjdk-amd64
-wget https://clayote.codeberg.page/lisien-windows.zip
 if [ -n "$(git clean -n)" ]; then
   echo "Debris in the repository."
   git clean -n
@@ -25,6 +24,8 @@ if [ -n "${CC+x}" ]; then
   echo "$CC"
   exit 1
 fi
+wget https://clayote.codeberg.page/lisien-windows.zip
+unzip lisien-windows.zip
 isort lisien
 isort elide
 ruff format lisien
@@ -49,9 +50,7 @@ python -m build elide/
 twine check lisien/dist/* elide/dist/*
 twine upload lisien/dist/* elide/dist/*
 twine upload --repository codeberg lisien/dist/* elide/dist/*
-mkdir lisien_windows
 cd lisien_windows
-tar xf ../lisien-windows.tar.xz
 wine python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
 pyclean .
 cd ..
