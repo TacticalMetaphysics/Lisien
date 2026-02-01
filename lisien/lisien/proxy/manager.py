@@ -61,6 +61,14 @@ class EngineProxyManager:
 	``Sub.process`` does allow true parallelism, but isn't available on Android.
 	``Sub.interpreter`` is, and allows true parallelism as well, but is only
 	available on Python 3.14 or later."""
+
+	@sub_mode.validator
+	def _validate_sub_mode(self, _, sub_mode):
+		if sub_mode is None or sub_mode is Sub.serial:
+			raise NotImplementedError(
+				"Can't presently run proxies without some subroutine"
+			)
+
 	loglevel: int = logging.DEBUG
 	"""What level to log at"""
 	android: bool = False
