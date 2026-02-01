@@ -5634,12 +5634,16 @@ class Engine(AbstractEngine, BaseExecutor):
 			grap, node = map(pack, (graph, node))
 			if grap not in delta:
 				delta[grap] = newgraph()
+			elif delta[grap] is ELLIPSIS:
+				return
 			delta[grap][NODES][node] = existence
 
 		def pack_edge(graph, orig, dest, existence):
 			graph, orig, dest = map(pack, (graph, orig, dest))
 			if graph not in delta:
 				delta[graph] = newgraph()
+			elif delta[graph] is ELLIPSIS:
+				return
 			delta[graph][EDGES][orig][dest] = existence
 			assert graph in delta
 			assert EDGES in delta[graph]
