@@ -1,3 +1,40 @@
+# patch kivy
+RUN patch -p1 -d kivy-* <<EOF
+diff --git a/kivy/uix/recycleview/__init__.py b/kivy/uix/recycleview/__init__.py
+index 0a49b522e..3e9ec7a66 100644
+--- a/kivy/uix/recycleview/__init__.py
++++ b/kivy/uix/recycleview/__init__.py
+@@ -262,6 +262,8 @@ TODO:
+ __all__ = ('RecycleViewBehavior', 'RecycleView')
+
+ from copy import deepcopy
++from functools import cached_property, wraps
++from threading import Lock
+
+ from kivy.uix.scrollview import ScrollView
+ from kivy.properties import AliasProperty
+@@ -304,6 +306,20 @@ class RecycleViewBehavior(object):
+     def restore_viewport(self):
+         pass
+
++    @cached_property
++    def _views_lock(self):
++        return Lock()
++
++    @staticmethod
++    def _views_locked(func):
++        @wraps(func)
++        def locked_views(self, *args, **kwargs):
++            with self._views_lock:
++                return func(self, *args, **kwargs)
++
++        return locked_views
++
++    @_views_locked
+     def refresh_views(self, *largs):
+         lm = self.layout_manager
+         flags = self._refresh_flags
+EOF
 # compile kivy
 RUN <<EOF
 	set -eux;
