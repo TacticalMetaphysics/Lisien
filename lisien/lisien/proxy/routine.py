@@ -268,21 +268,6 @@ def engine_subroutine(
 		)
 	if engine_handle:
 		engine_handle.shutdown()
-	for th in threading.enumerate():
-		if th.name == "rundb":
-			send_output_bytes(
-				engine_handle.pack(
-					RuntimeError(
-						f"Still running a database thread: {th}#{id(th)}"
-					)
-				)
-			)
-		if th.name.startswith("lisien worker"):
-			send_output_bytes(
-				engine_handle.pack(
-					RuntimeError(f"Still running a worker: {th}#{id(th)}")
-				)
-			)
 	send_output_bytes(b"shutdown")
 	return 0
 
