@@ -336,7 +336,16 @@ RUN <<EOF
 		USE_SDL3=1 python3.$minor -m pip wheel .;
 		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
 	done;
-	cd ..
+	cd ..;
+EOF
+# download latest butler from itch
+RUN <<EOF
+	set -eux
+	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
+	unzip butler.zip
+	mv butler /usr/local/bin/
+	mv *.so /usr/local/lib/
+	butler --version
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
