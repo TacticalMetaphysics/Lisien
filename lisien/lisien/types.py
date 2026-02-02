@@ -3494,11 +3494,6 @@ class AbstractEngine(ABC):
 				data = {
 					"class": db.func.__name__,
 				}
-				if (
-					db.func is PythonDatabaseConnector
-					and PythonDatabaseConnector._old_data is not None
-				):
-					data["load_me"] = PythonDatabaseConnector._old_data
 				data.update(db.keywords)
 			elif isinstance(db, PythonDatabaseConnector):
 				data = {
