@@ -3210,7 +3210,7 @@ class AbstractEngine(ABC):
 				return self._pack_set(msgpack.ExtType, obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
-			elif isinstance(obj, list):
+			elif isinstance(obj, (list, ListWrapper)):
 				return list(obj)
 			elif isinstance(obj, TimeSignal):
 				return handlers[tuple](tuple(obj))
@@ -3529,7 +3529,7 @@ class AbstractEngine(ABC):
 		def pack_enum(en: Enum) -> ext:
 			return ext(
 				MsgpackExtensionType.enum.value,
-				self.pack([en.__class__.__name__, en.name])
+				self.pack([en.__class__.__name__, en.name]),
 			)
 
 		ret = {
@@ -5527,5 +5527,3 @@ class AbstractLanguageDescriptor(Signal, ABC):
 	def __set__(self, inst: AbstractStringStore, val: str):
 		self._set_language(inst, val)
 		self.send(inst, language=val)
-
-
