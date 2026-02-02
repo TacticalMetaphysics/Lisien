@@ -1,7 +1,7 @@
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..af00697cd 100644
+index 90c3a5011..769f3ed37 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
 @@ -265,7 +265,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
@@ -13,6 +13,17 @@ index 90c3a5011..af00697cd 100644
          ph_key = self.key_pos_hint
          ph_def = self.default_pos_hint
          sh_key = self.key_size_hint
+@@ -281,8 +281,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+         iw, ih = self.initial_size
+
+         sh = []
+-        for i, item in enumerate(data):
+-            if opts[i] is not None:
++        for item, opt in zip(data, opts):
++            if opt is not None:
+                 continue
+
+             ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
 diff --git a/kivy/uix/recycleview/__init__.py b/kivy/uix/recycleview/__init__.py
 index 0a49b522e..fdaff6c94 100644
 --- a/kivy/uix/recycleview/__init__.py
