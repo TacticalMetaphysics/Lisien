@@ -140,8 +140,8 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-ENV PYTHON_VERSION 3.13.11
-ENV PYTHON_SHA256 16ede7bb7cdbfa895d11b0642fa0e523f291e6487194d53cf6d3b338c3a17ea2
+ENV PYTHON_VERSION 3.13.12
+ENV PYTHON_SHA256 2a84cd31dd8d8ea8aaff75de66fc1b4b0127dd5799aa50a64ae9a313885b4593
 
 RUN set -eux; \
 	\
@@ -225,8 +225,8 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-ENV PYTHON_VERSION 3.14.2
-ENV PYTHON_SHA256 ce543ab854bc256b61b71e9b27f831ffd1bfd60a479d639f8be7f9757cf573e9
+ENV PYTHON_VERSION 3.14.3
+ENV PYTHON_SHA256 a97d5549e9ad81fe17159ed02c68774ad5d266c72f8d9a0b5a9c371fe85d902b
 
 RUN set -eux; \
 	\
@@ -326,8 +326,27 @@ RUN set -eux; \
 
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
+diff --git a/kivy/uix/recycleboxlayout.py b/kivy/uix/recycleboxlayout.py
+index 12d7d387f..ece0092f0 100644
+--- a/kivy/uix/recycleboxlayout.py
++++ b/kivy/uix/recycleboxlayout.py
+@@ -108,7 +108,13 @@ class RecycleBoxLayout(RecycleLayout, BoxLayout):
+             self.minimum_size = l + r, t + b
+             return
+
+-        view_opts = self.view_opts
++        view_opts = [
++            opt if opt is not None else {
++                'size': self.default_size, 'size_hint': self.default_size_hint,
++                'pos_hint': self.default_pos_hint,
++                'size_hint_min': self.default_size_hint_min,
++                'size_hint_max': self.default_size_hint_max} for opt
++            in self.view_opts]
+         n = len(view_opts)
+         for i, x, y, w, h in self._iterate_layout(
+                 [(opt['size'], opt['size_hint'], opt['pos_hint'],
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..e7bd31aff 100644
+index 90c3a5011..8088dc68e 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
 @@ -281,8 +281,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
@@ -341,6 +360,74 @@ index 90c3a5011..e7bd31aff 100644
                  continue
 
              ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
+@@ -366,7 +366,17 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+         assert False
+
+     def set_visible_views(self, indices, data, viewport):
+-        view_opts = self.view_opts
++        view_opts = [
++            opt if opt is not None else {
++                'size': self.default_size, 'size_hint': self.default_size_hint,
++                'pos_hint': self.default_pos_hint,
++                'size_hint_min': self.default_size_hint_min,
++                'size_hint_max': self.default_size_hint_max,
++                'viewclass': self.viewclass,
++                'width_none': self.default_width,
++                'height_none': self.default_height,
++            } for opt
++            in self.view_opts]
+         new, remaining, old = self.recycleview.view_adapter.set_visible_views(
+             indices, data, view_opts)
+
+@@ -414,7 +424,19 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+             self.recycleview.refresh_from_layout(view_size=True)
+
+     def refresh_view_layout(self, index, layout, view, viewport):
+-        opt = self.view_opts[index].copy()
++        opt = self.view_opts[index]
++        if opt is None:
++            opt = {
++                'size': self.default_size, 'size_hint': self.default_size_hint,
++                'pos_hint': self.default_pos_hint,
++                'size_hint_min': self.default_size_hint_min,
++                'size_hint_max': self.default_size_hint_max,
++                'viewclass': self.viewclass,
++                'width_none': self.default_width,
++                'height_none': self.default_height,
++            }
++        else:
++            opt = opt.copy()
+         width_none = opt.pop('width_none')
+         height_none = opt.pop('height_none')
+         opt.update(layout)
+diff --git a/kivy/uix/recycleview/views.py b/kivy/uix/recycleview/views.py
+index e4a95dd62..814795498 100644
+--- a/kivy/uix/recycleview/views.py
++++ b/kivy/uix/recycleview/views.py
+@@ -236,6 +236,7 @@ class RecycleDataAdapter(EventDispatcher):
+         If found in the cache it's removed from the source
+         before returning. It doesn't check the current views.
+         '''
++        global _cache_count
+         # is it in the dirtied views?
+         dirty_views = self.dirty_views
+         if viewclass is None:
+@@ -251,12 +252,14 @@ class RecycleDataAdapter(EventDispatcher):
+             elif _cached_views[viewclass]:
+                 # global cache has this class, update data
+                 view, stale = _cached_views[viewclass].pop(), True
++                _cache_count -= 1
+             elif dirty_class:
+                 # random any dirty view element - update data
+                 view, stale = dirty_class.popitem()[1], True
+         elif _cached_views[viewclass]:  # otherwise go directly to cache
+             # global cache has this class, update data
+             view, stale = _cached_views[viewclass].pop(), True
++            _cache_count -= 1
+
+         if view is None:
+             view = self.create_view(index, data_item, viewclass)
+
 EOF
 # compile kivy
 RUN <<EOF
