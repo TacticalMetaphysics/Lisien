@@ -18,6 +18,10 @@ matrix:
     - thread_workers
     - process_workers
     - not thread_workers and not process_workers and not interpreter_workers
+  MANAGER:
+    - not process_manager and not thread_manager and not interpreter_manager
+    - thread_manager
+    - process_manager
 
 variables:
   - &python_image python:${PYTHON_VERSION}
@@ -45,7 +49,7 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
+      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
   - name: *slow_headless_name
@@ -67,6 +71,6 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install lisien/
-      - PYTEST_MARKS="(slow or big) and $DATABASE and ${EXECUTION}"
+      - PYTEST_MARKS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
