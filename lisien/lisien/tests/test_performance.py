@@ -28,7 +28,7 @@ from lisien.util import timer
 @pytest.mark.parquetdb
 def test_follow_path(tmp_path):
 	with (
-		EngineProxyManager(tmp_path) as proxman,
+		EngineProxyManager() as proxman,
 		proxman.load_archive(
 			os.path.join(DATA_DIR, "big_grid.lisien"), tmp_path, workers=0
 		) as prox,
