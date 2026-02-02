@@ -3213,7 +3213,7 @@ class AbstractEngine(ABC):
 			elif isinstance(obj, (list, ListWrapper)):
 				return list(obj)
 			elif isinstance(obj, TimeSignal):
-				return handlers[tuple](tuple(obj))
+				return obj()
 			raise TypeError("Can't pack {}".format(typ))
 
 		packer = partial(
