@@ -367,7 +367,6 @@ RUN <<EOF
 	unzip butler.zip
 	mv butler /usr/local/bin/
 	mv *.so /usr/local/lib/
-	butler --version
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
