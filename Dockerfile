@@ -342,12 +342,6 @@ index 90c3a5011..e7bd31aff 100644
 
              ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
 EOF
-# install release kivy where available
-RUN <<EOF
-for py in python3.12 python3.13; do
-    $py -m pip install --root-user-action ignore kivy;
-done;
-EOF
 # compile kivy
 RUN <<EOF
 	set -eux;
@@ -355,9 +349,11 @@ RUN <<EOF
     KIVY_DEPS_ROOT="$PWD/kivy-dependencies";
     echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT";
     export KIVY_DEPS_ROOT;
-    python3.14 -m pip install --root-user-action ignore Cython tomli-w;
-    USE_SDL3=1 python3.14 -m pip wheel .;
-    python3.14 -m pip install --root-user-action ignore kivy*-cp314-linux_x86_64.whl;
+	for minor in $(seq 12 14); do
+		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
+		USE_SDL3=1 python3.$minor -m pip wheel .;
+		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
+	done;
 	cd ..;
 EOF
 # download latest butler from itch
