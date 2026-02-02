@@ -1,63 +1,20 @@
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..769f3ed37 100644
+index 90c3a5011..e7bd31aff 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
-@@ -265,7 +265,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
-             if changed:
-                 self.clear_layout()
-
--        assert len(data) == len(opts)
-+        assert len(data) == len(opts), f"len({data}) != len({opts})"
-         ph_key = self.key_pos_hint
-         ph_def = self.default_pos_hint
-         sh_key = self.key_size_hint
 @@ -281,8 +281,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
          iw, ih = self.initial_size
 
          sh = []
 -        for i, item in enumerate(data):
 -            if opts[i] is not None:
-+        for item, opt in zip(data, opts):
++        for i, (opt, item) in enumerate(zip(data, opts)):
 +            if opt is not None:
                  continue
 
              ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
-diff --git a/kivy/uix/recycleview/__init__.py b/kivy/uix/recycleview/__init__.py
-index 0a49b522e..fdaff6c94 100644
---- a/kivy/uix/recycleview/__init__.py
-+++ b/kivy/uix/recycleview/__init__.py
-@@ -262,6 +262,8 @@ TODO:
- __all__ = ('RecycleViewBehavior', 'RecycleView')
-
- from copy import deepcopy
-+from functools import cached_property, wraps
-+from threading import RLock
-
- from kivy.uix.scrollview import ScrollView
- from kivy.properties import AliasProperty
-@@ -304,6 +306,20 @@ class RecycleViewBehavior(object):
-     def restore_viewport(self):
-         pass
-
-+    @cached_property
-+    def _views_lock(self):
-+        return RLock()
-+
-+    @staticmethod
-+    def _views_locked(func):
-+        @wraps(func)
-+        def locked_views(self, *args, **kwargs):
-+            with self._views_lock:
-+                return func(self, *args, **kwargs)
-+
-+        return locked_views
-+
-+    @_views_locked
-     def refresh_views(self, *largs):
-         lm = self.layout_manager
-         flags = self._refresh_flags
 EOF
 # install release kivy where available
 RUN <<EOF
