@@ -3131,7 +3131,7 @@ class AbstractEngine(ABC):
 			)
 		elif isinstance(obj, TimeSignal):
 			return packb(tuple(obj))
-		elif isinstance(obj, list):
+		elif isinstance(obj, (list, ListWrapper)):
 			return concat_list(list(map(self._pack_with_umsgpack, obj)))
 		elif isinstance(obj, tuple):
 			return packb(
