@@ -163,10 +163,10 @@ EOP
     echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT"
     export KIVY_DEPS_ROOT
 	for minor in $(seq 12 14); do
-	    python3.$minor -m pip install --upgrade --root-user-action ignore pip
-		python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
+	    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
+		/usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
 		USE_SDL3=0 USE_X11=1 python3.$minor -m pip wheel .
-		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+		/usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
 	done
 	cd ..
 	rm -rf kivy-*
