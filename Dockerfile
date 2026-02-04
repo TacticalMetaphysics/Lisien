@@ -469,10 +469,6 @@ index 90c3a5011..115f586e9 100644
 
 EOP
 	cd kivy-$COMMIT_HASH
-    bash tools/build_linux_dependencies.sh
-    KIVY_DEPS_ROOT="$PWD/kivy-dependencies"
-    echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT"
-    export KIVY_DEPS_ROOT
 	for minor in $(seq 12 14); do
 	    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
 		/usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
