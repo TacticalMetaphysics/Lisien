@@ -27,32 +27,17 @@ RUN set -eux; \
 		libgles-dev \
 		winehq-stable \
 		openjdk-21-jdk-headless \
-		autoconf \
-		automake \
-		build-essential \
-		ccache \
-		cmake \
-		gettext \
-		git \
-		libffi-dev \
-		libltdl-dev \
-		libssl-dev \
-		libtool \
-		patch \
-		pkg-config \
-		unzip \
-		zip \
-		zlib1g-dev \
-		libalsaplayer-dev \
-		libasound2-dev \
-		libfluidsynth-dev \
 	; \
-	apt-get dist-clean; \
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
-	unzip kivy.zip; \
-	cd kivy-$COMMIT_HASH; \
-    bash tools/build_linux_dependencies.sh;
+	apt-get dist-clean
+
+# download latest butler from itch
+RUN <<EOF
+	set -eux
+	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
+	unzip butler.zip
+	mv butler /usr/local/bin/
+	mv *.so /usr/local/lib/
+EOF
 
 ENV GPG_KEY 7169605F62C751356D054A26A821E680E5FA6305
 ENV PYTHON_VERSION 3.12.12
@@ -324,16 +309,13 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
-# download latest butler from itch
-RUN <<EOF
-	set -eux
-	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
-	unzip butler.zip
-	mv butler /usr/local/bin/
-	mv *.so /usr/local/lib/
-EOF
-# patch kivy
-RUN patch -p1 -d kivy-* <<EOF
+# download and patch kivy
+ENV COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4
+# compile kivy and install lisien dependencies
+RUN <<EOF set -eux
+	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip
+	unzip kivy.zip
+	patch -p1 -d kivy-$COMMIT_HASH <<EOP
 diff --git a/kivy/uix/recycleboxlayout.py b/kivy/uix/recycleboxlayout.py
 index 12d7d387f..3e0cbb7b6 100644
 --- a/kivy/uix/recycleboxlayout.py
@@ -484,21 +466,21 @@ index 90c3a5011..115f586e9 100644
          width_none = opt.pop('width_none')
          height_none = opt.pop('height_none')
          opt.update(layout)
-EOF
-# compile kivy
-RUN <<EOF
-	set -eux;
-	cd kivy-*;
-    KIVY_DEPS_ROOT="$PWD/kivy-dependencies";
-    echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT";
-    export KIVY_DEPS_ROOT;
+
+EOP
+	cd kivy-$COMMIT_HASH
+    bash tools/build_linux_dependencies.sh
+    KIVY_DEPS_ROOT="$PWD/kivy-dependencies"
+    echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT"
+    export KIVY_DEPS_ROOT
 	for minor in $(seq 12 14); do
 	    python3.$minor -m pip install --upgrade --root-user-action ignore pip
-		python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb;
-		USE_SDL3=1 python3.$minor -m pip wheel .;
-		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
-	done;
-	cd ..;
+		python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
+		USE_SDL3=0 USE_X11=1 python3.$minor -m pip wheel .
+		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+	done
+	cd ..
+	rm -rf kivy-*
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
@@ -507,4 +489,4 @@ RUN set -eux; \
 		[ -s "/usr/local/bin/$src" ]; \
 		[ ! -e "/usr/local/bin/$dst" ]; \
 		ln -svT "$src" "/usr/local/bin/$dst"; \
-	done
+	done;
