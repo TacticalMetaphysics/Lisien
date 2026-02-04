@@ -1,7 +1,8 @@
 # download and patch kivy
 ENV COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4
 # compile kivy and install lisien dependencies
-RUN <<EOF set -eux
+RUN <<EOF
+set -eux
 wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip
 unzip kivy.zip
 patch -p1 -d kivy-$COMMIT_HASH <<EOP
