@@ -324,6 +324,14 @@ RUN set -eux; \
 	python3 --version; \
 	pip3 --version
 
+# download latest butler from itch
+RUN <<EOF
+	set -eux
+	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
+	unzip butler.zip
+	mv butler /usr/local/bin/
+	mv *.so /usr/local/lib/
+EOF
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
 diff --git a/kivy/uix/recycleboxlayout.py b/kivy/uix/recycleboxlayout.py
@@ -401,7 +409,7 @@ index 90c3a5011..8088dc68e 100644
          height_none = opt.pop('height_none')
          opt.update(layout)
 diff --git a/kivy/uix/recycleview/views.py b/kivy/uix/recycleview/views.py
-index e4a95dd62..814795498 100644
+index e4a95dd62..58f0318c8 100644
 --- a/kivy/uix/recycleview/views.py
 +++ b/kivy/uix/recycleview/views.py
 @@ -236,6 +236,7 @@ class RecycleDataAdapter(EventDispatcher):
@@ -427,7 +435,6 @@ index e4a95dd62..814795498 100644
 
          if view is None:
              view = self.create_view(index, data_item, viewclass)
-
 EOF
 # compile kivy
 RUN <<EOF
@@ -437,19 +444,11 @@ RUN <<EOF
     echo "KIVY_DEPS_ROOT=$KIVY_DEPS_ROOT";
     export KIVY_DEPS_ROOT;
 	for minor in $(seq 12 14); do
-		python3.$minor -m pip install --root-user-action ignore Cython tomli-w;
+		python3.$minor -m pip install --root-user-action ignore Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb;
 		USE_SDL3=1 python3.$minor -m pip wheel .;
 		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl;
 	done;
 	cd ..;
-EOF
-# download latest butler from itch
-RUN <<EOF
-	set -eux
-	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
-	unzip butler.zip
-	mv butler /usr/local/bin/
-	mv *.so /usr/local/lib/
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
