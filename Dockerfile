@@ -470,10 +470,11 @@ index 90c3a5011..115f586e9 100644
 EOP
 cd kivy-$COMMIT_HASH
 for minor in $(seq 12 14); do
-    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
-    USE_SDL3=0 USE_X11=1 python3.$minor -m pip wheel .
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+    export PYTHON=/usr/local/bin/python3.$minor
+    $PYTHON -m pip install --upgrade --root-user-action ignore pip
+    $PYTHON -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
+    USE_SDL3=0 USE_X11=1 $PYTHON -m pip wheel .
+    $PYTHON -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
 done
 cd ..
 rm -rf kivy-*
