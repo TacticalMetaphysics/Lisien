@@ -27,9 +27,7 @@ steps:
       - Xvfb $DISPLAY &
       - PYTHON=python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
-      - $PYTHON -m venv --system-site-packages .venv
-      - . .venv/bin/activate
-      - echo "python=$(which python)"
-      - python -m pip install --upgrade pip
-      - python -m pip install pytest lisien/ elide/
+      - PYTHONPATH="$PWD/lisien:$PWD/elide"
+      - echo "PYTHONPATH=$PYTHONPATH"
+      - export PYTHONPATH
       - python -m pytest -svvx elide/elide/tests
