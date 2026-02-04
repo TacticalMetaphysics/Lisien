@@ -335,106 +335,155 @@ EOF
 # patch kivy
 RUN patch -p1 -d kivy-* <<EOF
 diff --git a/kivy/uix/recycleboxlayout.py b/kivy/uix/recycleboxlayout.py
-index 12d7d387f..ece0092f0 100644
+index 12d7d387f..3e0cbb7b6 100644
 --- a/kivy/uix/recycleboxlayout.py
 +++ b/kivy/uix/recycleboxlayout.py
-@@ -108,7 +108,13 @@ class RecycleBoxLayout(RecycleLayout, BoxLayout):
+@@ -108,7 +108,7 @@ class RecycleBoxLayout(RecycleLayout, BoxLayout):
              self.minimum_size = l + r, t + b
              return
 
 -        view_opts = self.view_opts
-+        view_opts = [
-+            opt if opt is not None else {
-+                'size': self.default_size, 'size_hint': self.default_size_hint,
-+                'pos_hint': self.default_pos_hint,
-+                'size_hint_min': self.default_size_hint_min,
-+                'size_hint_max': self.default_size_hint_max} for opt
-+            in self.view_opts]
++        view_opts = self.converted_opts()
          n = len(view_opts)
          for i, x, y, w, h in self._iterate_layout(
                  [(opt['size'], opt['size_hint'], opt['pos_hint'],
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..8088dc68e 100644
+index 90c3a5011..115f586e9 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
-@@ -281,8 +281,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
-         iw, ih = self.initial_size
+@@ -266,6 +266,13 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+                 self.clear_layout()
 
-         sh = []
+         assert len(data) == len(opts)
++
++        for i, item in enumerate(data):
++            if len(opts) > i and opts[i] is not None:
++                continue
++            opts[i] = self._convert_opt(item)
++
++    def _convert_opt(self, item):
+         ph_key = self.key_pos_hint
+         ph_def = self.default_pos_hint
+         sh_key = self.key_size_hint
+@@ -279,50 +286,47 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+         viewcls_def = self.viewclass
+         viewcls_key = self.key_viewclass
+         iw, ih = self.initial_size
+-
+-        sh = []
 -        for i, item in enumerate(data):
 -            if opts[i] is not None:
-+        for i, (opt, item) in enumerate(zip(data, opts)):
-+            if opt is not None:
-                 continue
+-                continue
+-
+-            ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
+-            ph = item.get('pos_hint', ph)
+-
+-            sh = sh_def if sh_key is None else item.get(sh_key, sh_def)
+-            sh = item.get('size_hint', sh)
+-            sh = [item.get('size_hint_x', sh[0]),
+-                  item.get('size_hint_y', sh[1])]
+-
+-            sh_min = sh_min_def if sh_min_key is None else item.get(sh_min_key,
+-                                                                    sh_min_def)
+-            sh_min = item.get('size_hint_min', sh_min)
+-            sh_min = [item.get('size_hint_min_x', sh_min[0]),
+-                      item.get('size_hint_min_y', sh_min[1])]
+-
+-            sh_max = sh_max_def if sh_max_key is None else item.get(sh_max_key,
+-                                                                    sh_max_def)
+-            sh_max = item.get('size_hint_max', sh_max)
+-            sh_max = [item.get('size_hint_max_x', sh_max[0]),
+-                      item.get('size_hint_max_y', sh_max[1])]
+-
+-            s = s_def if s_key is None else item.get(s_key, s_def)
+-            s = item.get('size', s)
+-            w, h = s = item.get('width', s[0]), item.get('height', s[1])
+-
+-            viewcls = None
+-            if viewcls_key is not None:
+-                viewcls = item.get(viewcls_key)
+-                if viewcls is not None:
+-                    viewcls = getattr(Factory, viewcls)
+-            if viewcls is None:
+-                viewcls = viewcls_def
+-
+-            opts[i] = {
+-                'size': [(iw if w is None else w), (ih if h is None else h)],
+-                'size_hint': sh, 'size_hint_min': sh_min,
+-                'size_hint_max': sh_max, 'pos': None, 'pos_hint': ph,
+-                'viewclass': viewcls, 'width_none': w is None,
+-                'height_none': h is None}
++        ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
++        ph = item.get('pos_hint', ph)
++
++        sh = sh_def if sh_key is None else item.get(sh_key, sh_def)
++        sh = item.get('size_hint', sh)
++        sh = [item.get('size_hint_x', sh[0]),
++              item.get('size_hint_y', sh[1])]
++
++        sh_min = sh_min_def if sh_min_key is None else item.get(sh_min_key,
++                                                                sh_min_def)
++        sh_min = item.get('size_hint_min', sh_min)
++        sh_min = [item.get('size_hint_min_x', sh_min[0]),
++                  item.get('size_hint_min_y', sh_min[1])]
++
++        sh_max = sh_max_def if sh_max_key is None else item.get(sh_max_key,
++                                                                sh_max_def)
++        sh_max = item.get('size_hint_max', sh_max)
++        sh_max = [item.get('size_hint_max_x', sh_max[0]),
++                  item.get('size_hint_max_y', sh_max[1])]
++
++        s = s_def if s_key is None else item.get(s_key, s_def)
++        s = item.get('size', s)
++        w, h = s = item.get('width', s[0]), item.get('height', s[1])
++
++        viewcls = None
++        if viewcls_key is not None:
++            viewcls = item.get(viewcls_key)
++            if viewcls is not None:
++                viewcls = getattr(Factory, viewcls)
++        if viewcls is None:
++            viewcls = viewcls_def
++
++        return {
++            'size': [(iw if w is None else w), (ih if h is None else h)],
++            'size_hint': sh, 'size_hint_min': sh_min,
++            'size_hint_max': sh_max, 'pos': None, 'pos_hint': ph,
++            'viewclass': viewcls, 'width_none': w is None,
++            'height_none': h is None}
++
++    def converted_opts(self):
++        return [opt if opt is not None else self._convert_opt({}) for opt in self.view_opts]
 
-             ph = ph_def if ph_key is None else item.get(ph_key, ph_def)
-@@ -366,7 +366,17 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+     def compute_layout(self, data, flags):
+         self._size_needs_update = False
+@@ -331,6 +335,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+         changed = []
+         for widget, index in self.view_indices.items():
+             opt = opts[index]
++            if opt is None:
++                opt = self._convert_opt({})
+             s = opt['size']
+             w, h = sn = list(widget.size)
+             sh = opt['size_hint']
+@@ -366,7 +372,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
          assert False
 
      def set_visible_views(self, indices, data, viewport):
 -        view_opts = self.view_opts
-+        view_opts = [
-+            opt if opt is not None else {
-+                'size': self.default_size, 'size_hint': self.default_size_hint,
-+                'pos_hint': self.default_pos_hint,
-+                'size_hint_min': self.default_size_hint_min,
-+                'size_hint_max': self.default_size_hint_max,
-+                'viewclass': self.viewclass,
-+                'width_none': self.default_width,
-+                'height_none': self.default_height,
-+            } for opt
-+            in self.view_opts]
++        view_opts = self.converted_opts()
          new, remaining, old = self.recycleview.view_adapter.set_visible_views(
              indices, data, view_opts)
 
-@@ -414,7 +424,19 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -414,7 +420,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
              self.recycleview.refresh_from_layout(view_size=True)
 
      def refresh_view_layout(self, index, layout, view, viewport):
 -        opt = self.view_opts[index].copy()
-+        opt = self.view_opts[index]
-+        if opt is None:
-+            opt = {
-+                'size': self.default_size, 'size_hint': self.default_size_hint,
-+                'pos_hint': self.default_pos_hint,
-+                'size_hint_min': self.default_size_hint_min,
-+                'size_hint_max': self.default_size_hint_max,
-+                'viewclass': self.viewclass,
-+                'width_none': self.default_width,
-+                'height_none': self.default_height,
-+            }
-+        else:
-+            opt = opt.copy()
++        opt = self._convert_opt(self.view_opts.get(index, {}))
          width_none = opt.pop('width_none')
          height_none = opt.pop('height_none')
          opt.update(layout)
-diff --git a/kivy/uix/recycleview/views.py b/kivy/uix/recycleview/views.py
-index e4a95dd62..58f0318c8 100644
---- a/kivy/uix/recycleview/views.py
-+++ b/kivy/uix/recycleview/views.py
-@@ -236,6 +236,7 @@ class RecycleDataAdapter(EventDispatcher):
-         If found in the cache it's removed from the source
-         before returning. It doesn't check the current views.
-         '''
-+        global _cache_count
-         # is it in the dirtied views?
-         dirty_views = self.dirty_views
-         if viewclass is None:
-@@ -251,12 +252,14 @@ class RecycleDataAdapter(EventDispatcher):
-             elif _cached_views[viewclass]:
-                 # global cache has this class, update data
-                 view, stale = _cached_views[viewclass].pop(), True
-+                _cache_count -= 1
-             elif dirty_class:
-                 # random any dirty view element - update data
-                 view, stale = dirty_class.popitem()[1], True
-         elif _cached_views[viewclass]:  # otherwise go directly to cache
-             # global cache has this class, update data
-             view, stale = _cached_views[viewclass].pop(), True
-+            _cache_count -= 1
-
-         if view is None:
-             view = self.create_view(index, data_item, viewclass)
 EOF
 # compile kivy
 RUN <<EOF
