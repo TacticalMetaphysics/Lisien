@@ -313,9 +313,9 @@ RUN set -eux; \
 ENV COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4
 # compile kivy and install lisien dependencies
 RUN <<EOF set -eux
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip
-	unzip kivy.zip
-	patch -p1 -d kivy-$COMMIT_HASH <<EOP
+wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip
+unzip kivy.zip
+patch -p1 -d kivy-$COMMIT_HASH <<EOP
 diff --git a/kivy/uix/recycleboxlayout.py b/kivy/uix/recycleboxlayout.py
 index 12d7d387f..3e0cbb7b6 100644
 --- a/kivy/uix/recycleboxlayout.py
@@ -468,15 +468,15 @@ index 90c3a5011..115f586e9 100644
          opt.update(layout)
 
 EOP
-	cd kivy-$COMMIT_HASH
-	for minor in $(seq 12 14); do
-	    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
-		/usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
-		USE_SDL3=0 USE_X11=1 python3.$minor -m pip wheel .
-		/usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
-	done
-	cd ..
-	rm -rf kivy-*
+cd kivy-$COMMIT_HASH
+for minor in $(seq 12 14); do
+    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
+    USE_SDL3=0 USE_X11=1 python3.$minor -m pip wheel .
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+done
+cd ..
+rm -rf kivy-*
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
