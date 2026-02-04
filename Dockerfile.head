@@ -27,31 +27,16 @@ RUN set -eux; \
 		libgles-dev \
 		winehq-stable \
 		openjdk-21-jdk-headless \
-		autoconf \
-		automake \
-		build-essential \
-		ccache \
-		cmake \
-		gettext \
-		git \
-		libffi-dev \
-		libltdl-dev \
-		libssl-dev \
-		libtool \
-		patch \
-		pkg-config \
-		unzip \
-		zip \
-		zlib1g-dev \
-		libalsaplayer-dev \
-		libasound2-dev \
-		libfluidsynth-dev \
 	; \
-	apt-get dist-clean; \
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
-	unzip kivy.zip; \
-	cd kivy-$COMMIT_HASH; \
-    bash tools/build_linux_dependencies.sh;
+	apt-get dist-clean
+
+# download latest butler from itch
+RUN <<EOF
+	set -eux
+	wget -O butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive.zip
+	unzip butler.zip
+	mv butler /usr/local/bin/
+	mv *.so /usr/local/lib/
+EOF
 
 ENV GPG_KEY 7169605F62C751356D054A26A821E680E5FA6305
