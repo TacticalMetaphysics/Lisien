@@ -436,7 +436,7 @@ index 90c3a5011..115f586e9 100644
 +            'height_none': h is None}
 +
 +    def converted_opts(self):
-+        return [opt if opt is not None else self._convert_opt({}) for opt in self.view_opts]
++        return [self._convert_opt(opt if opt is not None else {}) for opt in self.view_opts]
 
      def compute_layout(self, data, flags):
          self._size_needs_update = False
