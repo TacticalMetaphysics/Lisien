@@ -25,9 +25,9 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
-      - PYTHON=python${PYTHON_VERSION}
+      - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
       - PYTHONPATH="$PWD/lisien:$PWD/elide"
       - echo "PYTHONPATH=$PYTHONPATH"
       - export PYTHONPATH
-      - python -m pytest -svvx elide/elide/tests
+      - $PYTHON -m pytest -svvx elide/elide/tests
