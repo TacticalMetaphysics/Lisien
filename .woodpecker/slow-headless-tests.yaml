@@ -36,4 +36,4 @@ steps:
       - fi
       - PYTEST_KEYWORDS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run -c $TOXFILE
+      - tox run-parallel -c $TOXFILE
