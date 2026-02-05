@@ -7,7 +7,7 @@ import tomllib
 import tomli_w
 
 
-lisien_version_str = sys.environ["CI_COMMIT_TAG"]
+lisien_version_str = sys.environ["LISIEN_VERSION"]
 if not re.match(r"v\d+\.\d+\.\d+", lisien_version_str):
 	sys.exit(f"Not a valid semantic version: {lisien_version_str}")
 
