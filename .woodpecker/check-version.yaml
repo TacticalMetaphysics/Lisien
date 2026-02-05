@@ -4,5 +4,5 @@ when:
 steps:
   - name: check_version
     image: python:3.12
-    steps:
+    commands:
       - python check_version.py
