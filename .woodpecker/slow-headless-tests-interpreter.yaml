@@ -10,13 +10,9 @@ matrix:
     - thread_manager
     - interpreter_manager
 
-variables:
-  - &python_image python:3.14
-  - &slow_headless_name slow_headless_3.14
-
 steps:
-  - name: *slow_headless_name
-    image: *python_image
+  - name: slow-headless-interpreter
+    image: zacharyspector/elide:latest
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
@@ -35,4 +31,4 @@ steps:
       - python -m pip install pytest lisien/
       - PYTEST_KEYWORDS="(slow or big) and interpreter_workers and $DATABASE"
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run -c $TOXFILE
+      - tox run -c $TOXFILE -e py314
