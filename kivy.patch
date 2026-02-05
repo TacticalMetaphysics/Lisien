@@ -148,3 +148,19 @@ index 90c3a5011..115f586e9 100644
          width_none = opt.pop('width_none')
          height_none = opt.pop('height_none')
          opt.update(layout)
+diff --git a/kivy/uix/recycleview/views.py b/kivy/uix/recycleview/views.py
+index e4a95dd62..59c605acf 100644
+--- a/kivy/uix/recycleview/views.py
++++ b/kivy/uix/recycleview/views.py
+@@ -105,7 +105,10 @@ class RecycleDataViewBehavior(object):
+                 self.size = w, h
+ 
+         for name, value in layout.items():
+-            setattr(self, name, value)
++            try:
++                setattr(self, name, value)
++            except ValueError as exc:
++                raise ValueError(f"Could not set {name} to {value} (type {type(value)})") from exc
+ 
+     def apply_selection(self, rv, index, is_selected):
+         pass
