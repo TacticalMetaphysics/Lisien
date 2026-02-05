@@ -30,12 +30,13 @@ steps:
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
-      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - TOXFILE=lisien/tox_prerelease_parquetdb
       - else
       - DATABASE="${DATABASE}"
       - export DATABASE
+      - TOXFILE=lisien/tox.ini
       - fi
       - python -m pip install pytest lisien/
-      - PYTEST_MARKS="(slow or big) and interpreter_workers and $DATABASE"
-      - echo "will run $PYTEST_MARKS"
-      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+      - PYTEST_KEYWORDS="(slow or big) and interpreter_workers and $DATABASE"
+      - echo "will run $PYTEST_KEYWORDS"
+      - tox run -c $TOXFILE
