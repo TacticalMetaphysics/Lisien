@@ -5,6 +5,8 @@ depends_on:
   - check-version
   - headless-tests
   - headless-tests-interpreter
+  - slow-headless-tests
+  - slow-headless-tests-interpreter
   - headed-tests
 
 steps:
