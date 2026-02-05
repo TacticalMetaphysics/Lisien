@@ -16,5 +16,5 @@ steps:
       - Xvfb $DISPLAY &
       - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
-      - $PYTHON -m wheel kivy
+      - $PYTHON -m pip wheel kivy
       - tox run-parallel -c elide/tox.ini
