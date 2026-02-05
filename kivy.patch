@@ -12,14 +12,14 @@ index 12d7d387f..3e0cbb7b6 100644
          for i, x, y, w, h in self._iterate_layout(
                  [(opt['size'], opt['size_hint'], opt['pos_hint'],
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..9e733bf81 100644
+index 90c3a5011..1ca46dbe5 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
-@@ -266,6 +266,17 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -265,7 +265,16 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+             if changed:
                  self.clear_layout()
  
-         assert len(data) == len(opts)
-+
+-        assert len(data) == len(opts)
 +        for i, item in enumerate(data):
 +            # It seems like `data` can change between the assertion above and here
 +            if len(opts) > i and opts[i] is not None:
@@ -33,7 +33,7 @@ index 90c3a5011..9e733bf81 100644
          ph_key = self.key_pos_hint
          ph_def = self.default_pos_hint
          sh_key = self.key_size_hint
-@@ -279,50 +290,47 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -279,50 +288,47 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
          viewcls_def = self.viewclass
          viewcls_key = self.key_viewclass
          iw, ih = self.initial_size
@@ -125,7 +125,7 @@ index 90c3a5011..9e733bf81 100644
  
      def compute_layout(self, data, flags):
          self._size_needs_update = False
-@@ -331,6 +339,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -331,6 +337,8 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
          changed = []
          for widget, index in self.view_indices.items():
              opt = opts[index]
@@ -134,7 +134,7 @@ index 90c3a5011..9e733bf81 100644
              s = opt['size']
              w, h = sn = list(widget.size)
              sh = opt['size_hint']
-@@ -366,7 +376,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -366,7 +374,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
          assert False
  
      def set_visible_views(self, indices, data, viewport):
@@ -143,7 +143,7 @@ index 90c3a5011..9e733bf81 100644
          new, remaining, old = self.recycleview.view_adapter.set_visible_views(
              indices, data, view_opts)
  
-@@ -414,7 +424,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
+@@ -414,7 +422,7 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
              self.recycleview.refresh_from_layout(view_size=True)
  
      def refresh_view_layout(self, index, layout, view, viewport):
