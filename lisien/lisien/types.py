@@ -12,11 +12,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Base classes and type hints for Lisien"""
+
 from __future__ import annotations
 
 import builtins
+import inspect
 import operator
 import os
+import typing
 import weakref
 from abc import ABC, abstractmethod
 from collections import OrderedDict, defaultdict
@@ -42,7 +46,7 @@ from operator import (
 	sub,
 	truediv,
 )
-from pathlib import Path
+from pathlib import Path, PosixPath, WindowsPath
 from random import Random
 from threading import RLock
 from types import (
@@ -88,6 +92,8 @@ from tblib import Traceback
 from zict import LRU
 
 from . import exc
+from . import enum
+from .enum import MsgpackExtensionType
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
 from .wrap import (
 	DictWrapper,
@@ -99,6 +105,7 @@ from .wrap import (
 	unwrap_items,
 	wrapval,
 )
+from .util import concat_d, concat_list
 
 if TYPE_CHECKING:
 	from .character import Character
@@ -107,11 +114,13 @@ if TYPE_CHECKING:
 	from .node import Thing
 	from .portal import Portal
 	from .rule import Rule, RuleBook
+	from .facade import EngineFacade
 
 
 type KeyHint = (
 	str | int | float | None | tuple[KeyHint, ...] | frozenset[KeyHint]
 )
+"""This can be serialized as a key in a mapping"""
 
 type ValueHint = (
 	str
@@ -127,6 +136,7 @@ type ValueHint = (
 	| FunctionType
 	| MethodType
 )
+"""This can be serialized, generally"""
 
 
 def is_valid_value(obj: Any) -> TypeGuard[Value]:
@@ -198,6 +208,8 @@ class _ValueMeta(type):
 
 
 class Value(metaclass=_ValueMeta):
+	"""Serializable object. Used for dynamic typing."""
+
 	def __new__(cls, obj: ValueHint) -> Value:
 		if not is_valid_value(obj):
 			raise TypeError("Invalid value")
@@ -231,6 +243,8 @@ class _KeyMeta(_ValueMeta):
 
 
 class Key(Value, metaclass=_KeyMeta):
+	"""Serializable key for mappings. Used in dynamic typing."""
+
 	def __new__(cls, obj: KeyHint) -> Key:
 		if not is_valid_key(obj):
 			raise TypeError("Invalid key")
@@ -238,17 +252,25 @@ class Key(Value, metaclass=_KeyMeta):
 
 
 def keyval(pair: tuple[KeyHint, ValueHint]) -> tuple[Key, Value]:
+	"""Convenience function to serialize both items of a pair"""
 	k, v = pair
 	return Key(k), Value(v)
 
 
 Stat = NewType("Stat", Key)
+"""Key of a Lisien entity's variable"""
 EternalKey = NewType("EternalKey", Key)
+"""Key in the ``eternal`` mapping, not subject to time travel"""
 UniversalKey = NewType("UniversalKey", Key)
+"""Key in the ``universal`` mapping, subject to time travel"""
 Branch = NewType("Branch", str)
+"""Name of a branch of time"""
 Turn = NewType("Turn", Annotated[int, Ge(0)])
+"""Turn number. Starts at zero and increases monotonically."""
 Tick = NewType("Tick", Annotated[int, Ge(0)])
+"""Tick number. Starts at zero and increases one by one, but resets every turn."""
 type Time = tuple[Branch, Turn, Tick]
+"""A point in time in a Lisien timestream."""
 
 
 class ValidateTimeProtocol(Protocol):
@@ -311,6 +333,8 @@ validate_time: ValidateTimeProtocol = _validate_time
 
 
 class LinearTime(tuple[Turn, Tick]):
+	"""A point in time within some branch"""
+
 	def __new__(
 		cls, tup: tuple[Turn, Tick] | Turn, tick: Tick | None = None
 	) -> LinearTime:
@@ -330,10 +354,19 @@ class LinearTime(tuple[Turn, Tick]):
 
 
 type TimeWindow = tuple[Branch, Turn, Tick, Turn, Tick]
+"""The span of time between two points in the same branch, inclusive"""
 Plan = NewType("Plan", Annotated[int, Ge(0)])
+"""Identifier for a plan, corresponding to some state changes that may be canceled"""
 type PlanTicksRowType = tuple[Plan, Branch, Turn, Tick]
+"""Row in the ``plan_ticks`` table
+
+Indicates that the given point in time is planned, and hasn't 'really happened'.
+
+"""
 CharName = NewType("CharName", Key)
+"""Name of a :class:`lisien.character.Character`"""
 NodeName = NewType("NodeName", Key)
+"""Name of a :class:`lisien.node.Place` or :class:`lisien.node.Thing`"""
 
 
 type EntityKey = (
@@ -341,55 +374,99 @@ type EntityKey = (
 	| tuple[CharName, NodeName]
 	| tuple[CharName, NodeName, NodeName]
 )
+"""Key identifying a Lisien entity
+
+Possible entity types are :class:`lisien.character.Character`, identified by
+its name; :class:`lisien.node.Place` and :class:`lisien.node.Thing`,
+identified by the name of the character they're in and their own name;
+and :class:`lisien.portal.Portal`, identified by the name of the character
+it's in, and the names of its two endpoints (origin and destination).
+
+"""
 RulebookName = NewType("RulebookName", Key)
+"""Key identifying a rulebook
+
+Every Lisien entity gets its own rulebook by default, named the same as its
+:type:`EntityKey`, but the user may assign it another rulebook if they like.
+
+"""
 
 
 RulebookPriority = NewType("RulebookPriority", float)
+"""Priority of a rulebook, used to sort rulebooks before evaluation
+
+Infinite values are permitted, though not recommended. Defaults to ``0.0``.
+
+"""
 RuleName = NewType("RuleName", str)
+"""Name of a rule
 
+Rules are made of three function lists: triggers, prereqs, and actions.
+They can be assigned to arbitrarily many rulebooks, which in turn can be
+assigned to as many Lisien entities as the user wants.
 
-def rulename(s: str) -> RuleName:
-	if not isinstance(s, str):
-		raise TypeError("Invalid rule name", s)
-	return RuleName(s)
+"""
 
 
 type RuleNeighborhood = Annotated[int, Ge(0)] | None
+"""Size of a rule's neighborhood
+
+:type:`RuleNeighborhood` is an integer specifying how far away the rules engine
+will look to determine whether to evaluate the trigger functions for a rule.
+It only has effects on rules applied to nodes. If not ``None``, it
+is how many edges (:class:`lisien.portal.Portal` objects) the rules engine
+will traverse to build a collection of nodes, and only evaluate the rule's
+triggers if something changed in that collection since the previous turn.
+If ``None`` (the default), triggers will be evaluated each and every turn.
+
+"""
 RuleBig = NewType("RuleBig", bool)
+"""Whether a rule makes a lot of changes to the world
+
+Big rules won't be run on regular Lisien entities; instead, they will be run
+on their facades. The changes to those facades will then be applied to the
+real entities in a batch, which is faster when the number of changes is big,
+but slower when it's small.
+
+"""
 RuleFunc = NewType("RuleFunc", FunctionType)
+"""A function that's in one of the lists that make up a rule
+
+A trigger, prereq, or action.
+
+"""
 FuncName = NewType("FuncName", str)
+"""The name of a function in one of Lisien's function stores"""
 type FuncStoreName = Literal[
 	"trigger", "prereq", "action", "function", "method"
 ]
+"""Name of one of Lisien's function stores"""
 TriggerFuncName = NewType("TriggerFuncName", FuncName)
+"""Name of a Boolean function to trigger a rule"""
 TriggerFunc = NewType("TriggerFunc", RuleFunc)
-
-
-def trigfuncn(s: str) -> TriggerFuncName:
-	return TriggerFuncName(FuncName(s))
+"""Boolean function to trigger a rule"""
 
 
 PrereqFuncName = NewType("PrereqFuncName", FuncName)
+"""Name of a Boolean function required to return ``True`` before a rule runs"""
 PrereqFunc = NewType("PrereqFunc", RuleFunc)
-
-
-def preqfuncn(s: str) -> PrereqFuncName:
-	return PrereqFuncName(FuncName(s))
-
+"""Boolean function required to return ``True`` before a rule runs"""
 
 ActionFuncName = NewType("ActionFuncName", FuncName)
+"""Name of a function that alters the world state for a rule"""
 ActionFunc = NewType("ActionFunc", RuleFunc)
-
-
-def actfuncn(s: str) -> ActionFuncName:
-	return ActionFuncName(FuncName(s))
+"""Function that alters the world state as a result of a rule"""
 
 
 type RuleFuncName = TriggerFuncName | PrereqFuncName | ActionFuncName
+"""Name of a function that can be used in a rule somehow"""
 type UniversalKeyframe = dict[UniversalKey, Value]
+"""The state of the ``universal`` mapping at a point in the timestream"""
 
 
 class RuleKeyframe(TypedDict):
+	"""The state of all rules at a point in the timestream"""
+
 	triggers: dict[RuleName, list[TriggerFuncName]]
 	prereqs: dict[RuleName, list[PrereqFuncName]]
 	actions: dict[RuleName, list[ActionFuncName]]
@@ -400,7 +477,9 @@ class RuleKeyframe(TypedDict):
 type RulebooksKeyframe = dict[
 	RulebookName, tuple[list[RuleName], RulebookPriority]
 ]
+"""The state of all rulebooks at a point in the timestream"""
 type UniversalRowType = tuple[Branch, Turn, Tick, UniversalKey, Value]
+"""A row from the ``universals`` table, declaring a key's value at a point in the timestream"""
 type RulebookRowType = tuple[
 	Branch,
 	Turn,
@@ -409,6 +488,7 @@ type RulebookRowType = tuple[
 	list[RuleName],
 	RulebookPriority,
 ]
+"""A row from the ``rulebooks`` table, declaring a rulebook's rules and priority at a point in the timestream"""
 type RuleRowType = tuple[
 	Branch,
 	Turn,
@@ -420,41 +500,199 @@ type RuleRowType = tuple[
 	| RuleNeighborhood
 	| RuleBig,
 ]
+"""A row from one of the rule tables"""
 type TriggerRowType = tuple[
 	Branch, Turn, Tick, RuleName, list[TriggerFuncName]
 ]
+"""A row from the ``rule_triggers`` table
+
+Gives the names of a rule's trigger functions at a point in the timestream.
+
+"""
 type PrereqRowType = tuple[Branch, Turn, Tick, RuleName, list[PrereqFuncName]]
+"""A row from the ``rule_prereqs`` table
+
+Gives the names of a rule's prereq functions at a point in the timestream.
+
+"""
 type ActionRowType = tuple[Branch, Turn, Tick, RuleName, list[ActionFuncName]]
+"""A row from the ``rule_actions`` table
+
+Gives the names of a rule's action functions at a point in the timestream.
+
+"""
 type RuleNeighborhoodRowType = tuple[
 	Branch, Turn, Tick, RuleName, RuleNeighborhood
 ]
+"""A row from the ``rule_neighborhood`` table
+
+Gives the number of edges to traverse to build the neighborhood of nodes to
+consider in deciding whether to evaluate the rule's triggers. If it's ``None``,
+the triggers will be evaluated every turn.
+
+"""
 type RuleBigRowType = tuple[Branch, Turn, Tick, RuleName, RuleBig]
+"""A row from the ``rule_big`` table
+
+Has a Boolean value that determines whether all of a rule's changes to the
+world should be batched.
+
+"""
 type BranchRowType = tuple[Branch, Branch | None, Turn, Tick, Turn, Tick]
+"""A row from the ``branches`` table
+
+Has the parent branch, if any, and the linear span of time contained in the
+branch.
+
+"""
 type TurnRowType = tuple[Branch, Turn, Tick, Tick]
+"""A row from the ``turns`` table
+
+Has the 'real' last tick of each turn that's been simulated, as well as the
+'planned' last tick, which may be higher, if there are planned changes left.
+
+"""
 type GraphTypeStr = Literal["DiGraph", "Deleted"]
+"""Permissible graph types
+
+Currently, Lisien only supports the 'DiGraph' type, and the type 'Deleted' for
+graphs that don't exist anymore.
+
+Graphs are most often called 'characters' in Lisien.
+
+"""
 type GraphRowType = tuple[Branch, Turn, Tick, CharName, GraphTypeStr]
+"""A row from the ``graphs`` table
+
+Marks the point in the timestream when a character is created or deleted.
+
+The last element is a string identifying the type of graph, but only 'DiGraph'
+and 'Deleted' are accepted at the moment.
+
+"""
 type NodeRowType = tuple[Branch, Turn, Tick, CharName, NodeName, bool]
+"""A row from the ``nodes`` table
+
+Marks the point in the timestream when a node is created or deleted.
+
+The last element is ``True`` when the node is created, and ``False`` when
+it is deleted.
+
+In Lisien, nodes are categorized as places or things, but that distinction
+doesn't matter in the ``nodes`` table.
+
+"""
 type EdgeRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, bool
 ]
+"""A row from the ``edges`` table
+
+Marks the point in the timestream when an edge is created or deleted.
+
+The last element is ``True`` when the edge is created, and ``False`` when it
+is deleted.
+
+In Lisien, edges are usually called portals.
+
+"""
 type GraphValRowType = tuple[Branch, Turn, Tick, CharName, Stat, Value]
+"""A row from the ``graph_val`` table
+
+The last element is the value that the given stat of the given character takes
+at this point in the timestream.
+
+"""
 type NodeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, Stat, Value
 ]
+"""A row from the ``node_val`` table
+
+The last element is the value that the given stat of a node takes at this
+point in the timestream.
+
+In Lisien, nodes are either places or things, but that distinction doesn't
+matter in the ``node_val`` table.
+
+The stat cannot be ``'location'``. Things' locations are stored in the
+``things`` table--see :type:`ThingRowType`, below.
+
+"""
 type EdgeValRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, Stat, Value
 ]
-type ThingRowType = tuple[Branch, Turn, Tick, CharName, NodeName, NodeName]
+"""A row from the ``edge_val`` table
+
+The last element is the value that the given stat of an edge takes at this
+point in the timestream.
+
+Edges are usually called portals in Lisien.
+
+"""
+type ThingRowType = tuple[
+	Branch, Turn, Tick, CharName, NodeName, NodeName | EllipsisType
+]
+"""A row from the ``things`` table
+
+The last element is the location that the given thing is in at this point in
+the timestream. It must be the name of a node in the same character, or the
+ellipsis object, if the thing becomes a place.
+
+It doesn't matter whether the location is a thing or a place.
+
+"""
 type UnitRowType = tuple[
 	Branch, Turn, Tick, CharName, CharName, NodeName, bool
 ]
+"""A row from the ``units`` table
+
+Indicates whether a node in the latter character should be considered a unit
+of the former character. If the last element is ``True``, then the former
+character is the leader of the node.
+
+The latter character is most commonly one representing the physical world,
+and the former is usually a fictional person.
+
+"""
 type CharRulebookRowType = tuple[Branch, Turn, Tick, CharName, RulebookName]
+"""A row from one of the character-rulebook tables
+
+Has a rulebook for a character to follow, starting at this point in the
+timestream.
+
+Depending on which table it's in, the rule might act on the
+:class:`lisien.character.Character` object itself, or on a set of entities
+in the character.
+
+The tables in question are:
+* ``character_rulebook``
+* ``unit_rulebook``
+* ``character_thing_rulebook``
+* ``character_place_rulebook``
+* ``character_portal_rulebook``
+
+"""
 type NodeRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, RulebookName
 ]
+"""A row from the ``node_rulebook`` table
+
+Has a rulebook for a node in a character to follow, starting at this point in
+the timestream.
+
+The node may be a place or a thing.
+
+"""
 type PortalRulebookRowType = tuple[
 	Branch, Turn, Tick, CharName, NodeName, NodeName, RulebookName
 ]
+"""A row from the ``portal_rulebook`` table
+
+Has a rulebook for a portal in a character to follow, starting at this point
+in the timestream.
+
+Portals are edges in graphs, which are also called characters.
+
+"""
 type AssignmentRowType = (
 	NodeRowType
 	| NodeValRowType
@@ -467,6 +705,12 @@ type AssignmentRowType = (
 	| NodeRulebookRowType
 	| PortalRulebookRowType
 )
+"""A row from one of the tables that stores entity state
+
+Includes rows in tables that don't exactly reflect 'stats' but are stored
+similarly.
+
+"""
 type AssignmentRowListType = (
 	list[NodeRowType]
 	| list[NodeValRowType]
@@ -479,6 +723,7 @@ type AssignmentRowListType = (
 	| list[NodeRulebookRowType]
 	| list[PortalRulebookRowType]
 )
+"""A list of rows reflecting entity state, which might be loaded in bulk"""
 type CharacterRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -487,6 +732,12 @@ type CharacterRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``character_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given character this turn.
+
+"""
 type PortalRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -497,6 +748,12 @@ type PortalRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``portal_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given portal this turn.
+
+"""
 type NodeRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -506,6 +763,12 @@ type NodeRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``node_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given node this turn.
+
+"""
 type UnitRulesHandledRowType = tuple[
 	Branch,
 	Turn,
@@ -516,6 +779,12 @@ type UnitRulesHandledRowType = tuple[
 	RuleName,
 	Tick,
 ]
+"""A row from the ``unit_rules_handled`` table
+
+Has the point in the timestream at which a particular rule in the rulebook
+finished running on a given unit this turn.
+
+"""
 type StatDict = dict[Stat | Literal["rulebook"], Value | RulebookName]
 type ThingDict = dict[
 	Stat | Literal["rulebook", "location"], Value | RulebookName
@@ -2242,26 +2511,6 @@ type LoadedDict = dict[
 ]
 
 
-class MsgpackExtensionType(Enum):
-	"""Type codes for packing special lisien types into msgpack"""
-
-	tuple = 0x00
-	frozenset = 0x01
-	set = 0x02
-	exception = 0x03
-	graph = 0x04
-	character = 0x7F
-	place = 0x7E
-	thing = 0x7D
-	portal = 0x7C
-	ellipsis = 0x7B
-	function = 0x7A
-	method = 0x79
-	trigger = 0x78
-	prereq = 0x77
-	action = 0x76
-
-
 class get_rando:
 	"""Attribute getter for randomization functions
 
@@ -2663,6 +2912,10 @@ class TimeSignalDescriptor:
 		)
 
 
+_EXT = TypeVar("_EXT")
+_TYP = TypeVar("_TYP")
+
+
 @define
 class AbstractEngine(ABC):
 	"""Parent class to the real Engine as well as EngineProxy.
@@ -2677,13 +2930,10 @@ class AbstractEngine(ABC):
 	char_cls: ClassVar[type[AbstractCharacter]]
 	time: ClassVar[GetSetDescriptorType] = TimeSignalDescriptor()
 
-	@staticmethod
-	def _make_time_signal(self):
+	@cached_property
+	def _time_signal(self):
 		return TimeSignal((self,))
 
-	_time_signal: TimeSignal = field(
-		init=False, default=Factory(_make_time_signal, takes_self=True)
-	)
 	illegal_node_names: ClassVar = {
 		"nodes",
 		"node_val",
@@ -2712,6 +2962,11 @@ class AbstractEngine(ABC):
 		finally:
 			if exc_val:
 				raise exc_val
+
+	def facade(self) -> EngineFacade:
+		from .facade import EngineFacade
+
+		return EngineFacade(self)
 
 	@abstractmethod
 	def close(self) -> None: ...
@@ -2790,6 +3045,17 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def logger(self) -> Logger: ...
 
+	@abstractmethod
+	def _char_exists(self, character: CharName) -> bool: ...
+
+	@abstractmethod
+	def _node_exists(self, character: CharName, node: NodeName) -> bool: ...
+
+	@abstractmethod
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool: ...
+
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
 
@@ -2833,105 +3099,91 @@ class AbstractEngine(ABC):
 			from msgpack import Packer
 
 			if Packer.__module__.endswith("cmsgpack"):
-				import msgpack
+				return self._msgpack_packer()
 			else:
-				import umsgpack
-
-				return partial(
-					umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
-				)
+				return self._pack_with_umsgpack
 		except ImportError:
-			import umsgpack
+			return self._pack_with_umsgpack
 
-			return partial(
-				umsgpack.packb, ext_handlers=self._umsgpack_pack_handlers
+	def _pack_with_umsgpack(self, obj: ValueHint | Value) -> bytes:
+		from umsgpack import Ext, packb
+		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
+
+		if inspect.isclass(obj) and issubclass(obj, AbstractDatabaseConnector):
+			return packb(
+				Ext(
+					MsgpackExtensionType.database.value,
+					self._pack_with_umsgpack({"class": obj.__name__}),
+				)
 			)
-
-		def pack_set(s):
-			return msgpack.ExtType(
-				MsgpackExtensionType.set.value, packer(list(s))
+		elif (
+			isinstance(obj, partial)
+			and inspect.isclass(obj.func)
+			and issubclass(obj.func, AbstractDatabaseConnector)
+		):
+			return packb(
+				Ext(
+					MsgpackExtensionType.database.value,
+					self._pack_with_umsgpack(
+						{"class": obj.func.__name__, **obj.keywords}
+					),
+				)
 			)
+		elif isinstance(obj, TimeSignal):
+			return packb(tuple(obj))
+		elif isinstance(obj, (list, ListWrapper)):
+			return concat_list(list(map(self._pack_with_umsgpack, obj)))
+		elif isinstance(obj, tuple):
+			return packb(
+				Ext(
+					MsgpackExtensionType.tuple.value,
+					concat_list(list(map(self._pack_with_umsgpack, obj))),
+				)
+			)
+		elif (
+			isinstance(obj, Mapping)
+			and type(obj) not in self._umsgpack_pack_handlers
+		):
+			return concat_d(
+				{
+					self._pack_with_umsgpack(k): self._pack_with_umsgpack(v)
+					for (k, v) in obj.items()
+				}
+			)
+		return packb(obj, ext_handlers=self._umsgpack_pack_handlers)
 
-		from .wrap import (
-			DictWrapper,
-			ListWrapper,
-			SetWrapper,
-			SubDictWrapper,
-			SubListWrapper,
-			SubSetWrapper,
+	def _msgpack_packer(self) -> Callable[[ValueHint | value], bytes]:
+		from .db import AbstractDatabaseConnector
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
 		)
+		import msgpack
 
-		handlers = {
-			ListWrapper: lambda obj: obj.unwrap(),
-			DictWrapper: lambda obj: obj.unwrap(),
-			SetWrapper: lambda obj: obj.unwrap(),
-			SubListWrapper: lambda obj: obj.unwrap(),
-			SubDictWrapper: lambda obj: obj.unwrap(),
-			SubSetWrapper: lambda obj: obj.unwrap(),
-			type(...): lambda _: msgpack.ExtType(
-				MsgpackExtensionType.ellipsis.value, b""
-			),
-			nx.Graph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(
-					[
-						"Graph",
-						graf._node,
-						graf._adj,
-						graf.graph,
-					]
-				),
-			),
-			nx.DiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["DiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["MultiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiDiGraph: lambda graf: msgpack.ExtType(
-				MsgpackExtensionType.graph.value,
-				packer(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			tuple: lambda tup: msgpack.ExtType(
-				MsgpackExtensionType.tuple.value, packer(list(tup))
-			),
-			frozenset: lambda frozs: msgpack.ExtType(
-				MsgpackExtensionType.frozenset.value, packer(list(frozs))
-			),
-			set: pack_set,
-			FunctionType: lambda func: msgpack.ExtType(
-				getattr(MsgpackExtensionType, func.__module__).value,
-				packer(func.__name__),
-			),
-			MethodType: lambda meth: msgpack.ExtType(
-				MsgpackExtensionType.method.value, packer(meth.__name__)
-			),
-			Exception: lambda exc: msgpack.ExtType(
-				MsgpackExtensionType.exception.value,
-				packer(
-					[
-						exc.__class__.__name__,
-						exc.args,
-						Traceback(exc.__traceback__).to_dict()
-						if hasattr(exc, "__traceback__")
-						else None,
-					]
-				),
-			),
-		}
+		handlers = self._msgpack_pack_handlers
 
 		def pack_handler(obj):
 			if isinstance(obj, Exception):
 				typ = Exception
+			elif isinstance(obj, Enum):
+				typ = Enum
+			elif isinstance(obj, type) and issubclass(
+				obj, AbstractDatabaseConnector
+			):
+				typ = obj
+			elif isinstance(obj, partial) and issubclass(
+				obj.func, AbstractDatabaseConnector
+			):
+				typ = obj.func
 			else:
 				typ = type(obj)
 			if typ in handlers:
 				return handlers[typ](obj)
 			elif isinstance(obj, DiGraph):
 				return msgpack.ExtType(
-					MsgpackExtensionType.character.value, packer(obj.name)
+					MsgpackExtensionType.graph.value, packer(obj.name)
 				)
 			elif isinstance(obj, AbstractThing):
 				return msgpack.ExtType(
@@ -2955,13 +3207,13 @@ class AbstractEngine(ABC):
 					),
 				)
 			elif isinstance(obj, Set):
-				return pack_set(obj)
+				return self._pack_set(msgpack.ExtType, obj)
 			elif isinstance(obj, Mapping):
 				return dict(obj)
-			elif isinstance(obj, list):
+			elif isinstance(obj, (list, ListWrapper)):
 				return list(obj)
 			elif isinstance(obj, TimeSignal):
-				return handlers[tuple](tuple(obj))
+				return obj()
 			raise TypeError("Can't pack {}".format(typ))
 
 		packer = partial(
@@ -2974,74 +3226,23 @@ class AbstractEngine(ABC):
 
 	@cached_property
 	def _unpack_handlers(self):
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
+			FacadePortalSuccessors,
+		)
+
 		char_cls = self.char_cls
 		place_cls = self.place_cls
 		portal_cls = self.portal_cls
 		thing_cls = self.thing_cls
-		excs = {
-			# builtin exceptions
-			"AssertionError": AssertionError,
-			"AttributeError": AttributeError,
-			"EOFError": EOFError,
-			"FloatingPointError": FloatingPointError,
-			"GeneratorExit": GeneratorExit,
-			"ImportError": ImportError,
-			"IndexError": IndexError,
-			"KeyError": KeyError,
-			"KeyboardInterrupt": KeyboardInterrupt,
-			"MemoryError": MemoryError,
-			"NameError": NameError,
-			"NotImplementedError": NotImplementedError,
-			"OSError": OSError,
-			"OverflowError": OverflowError,
-			"RecursionError": RecursionError,
-			"ReferenceError": ReferenceError,
-			"RuntimeError": RuntimeError,
-			"StopIteration": StopIteration,
-			"IndentationError": IndentationError,
-			"TabError": TabError,
-			"SystemError": SystemError,
-			"SystemExit": SystemExit,
-			"TypeError": TypeError,
-			"UnboundLocalError": UnboundLocalError,
-			"UnicodeError": UnicodeError,
-			"UnicodeEncodeError": UnicodeEncodeError,
-			"UnicodeDecodeError": UnicodeDecodeError,
-			"UnicodeTranslateError": UnicodeTranslateError,
-			"ValueError": ValueError,
-			"ZeroDivisionError": ZeroDivisionError,
-			# networkx exceptions
-			"HasACycle": nx.exception.HasACycle,
-			"NodeNotFound": nx.exception.NodeNotFound,
-			"PowerIterationFailedConvergence": nx.exception.PowerIterationFailedConvergence,
-			"ExceededMaxIterations": nx.exception.ExceededMaxIterations,
-			"AmbiguousSolution": nx.exception.AmbiguousSolution,
-			"NetworkXAlgorithmError": nx.exception.NetworkXAlgorithmError,
-			"NetworkXException": nx.exception.NetworkXException,
-			"NetworkXError": nx.exception.NetworkXError,
-			"NetworkXNoCycle": nx.exception.NetworkXNoCycle,
-			"NetworkXNoPath": nx.exception.NetworkXNoPath,
-			"NetworkXNotImplemented": nx.exception.NetworkXNotImplemented,
-			"NetworkXPointlessConcept": nx.exception.NetworkXPointlessConcept,
-			"NetworkXUnbounded": nx.exception.NetworkXUnbounded,
-			"NetworkXUnfeasible": nx.exception.NetworkXUnfeasible,
-			# lisien exceptions
-			"NonUniqueError": exc.NonUniqueError,
-			"AmbiguousUserError": exc.AmbiguousLeaderError,
-			"AmbiguousLeaderError": exc.AmbiguousLeaderError,
-			"BadTimeException": exc.BadTimeException,
-			"RulesEngineError": exc.RulesEngineError,
-			"RuleError": exc.RuleError,
-			"RedundantRuleError": exc.RedundantRuleError,
-			"UserFunctionError": exc.UserFunctionError,
-			"WorldIntegrityError": exc.WorldIntegrityError,
-			"CacheError": exc.CacheError,
-			"TravelException": exc.TravelException,
-			"OutOfTimelineError": exc.OutOfTimelineError,
-			"HistoricKeyError": exc.HistoricKeyError,
-			"NotInKeyframeError": exc.NotInKeyframeError,
-			"WorkerProcessReadOnlyError": exc.WorkerProcessReadOnlyError,
-		}
+		excs = {}
+		for module in (builtins, nx.exception, exc):
+			for name, cls in inspect.getmembers(module):
+				if inspect.isclass(cls) and issubclass(cls, Exception):
+					excs[name] = cls
 
 		def unpack_graph(ext: bytes) -> nx.Graph:
 			if hasattr(ext, "data"):  # umsgpack.Ext
@@ -3067,12 +3268,39 @@ class AbstractEngine(ABC):
 				ret.__traceback__ = Traceback.from_dict(tb).to_traceback()
 			return ret
 
+		def unpack_database_connector(ext: bytes) -> AbstractDatabaseConnector:
+			data = self.unpack(getattr(ext, "data", ext))
+			if not isinstance(data, dict):
+				raise TypeError("Invalid database connector data", data)
+			clsn = data.pop("class")
+			if clsn == "PythonDatabaseConnector":
+				from .db import PythonDatabaseConnector
+
+				connector = PythonDatabaseConnector()
+				if "load_me" in data:
+					connector.load_everything(data["load_me"])
+				return connector
+			elif clsn == "SQLAlchemyDatabaseConnector":
+				from .sql import SQLAlchemyDatabaseConnector
+
+				return partial(SQLAlchemyDatabaseConnector, **data)
+			elif clsn == "ParquetDatabaseConnector":
+				from .pqdb import ParquetDatabaseConnector
+
+				return partial(ParquetDatabaseConnector, **data)
+			else:
+				raise ValueError("Unsupported database", clsn)
+
 		def unpack_char(ext: bytes) -> char_cls:
 			charn = self.unpack(getattr(ext, "data", ext))
+			if self._char_exists(charn):
+				return self.character[charn]
 			return char_cls(self, CharName(Key(charn)), init_rulebooks=False)
 
 		def unpack_place(ext: bytes) -> place_cls:
 			charn, placen = self.unpack(getattr(ext, "data", ext))
+			if self._node_exists(charn, placen):
+				return self.character[charn].place[placen]
 			return place_cls(
 				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
 				NodeName(Key(placen)),
@@ -3080,13 +3308,17 @@ class AbstractEngine(ABC):
 
 		def unpack_thing(ext: bytes) -> thing_cls:
 			charn, thingn = self.unpack(getattr(ext, "data", ext))
-			# Breaks if the thing hasn't been instantiated yet, not great
-			return self.character[CharName(Key(charn))].thing[
-				NodeName(Key(thingn))
-			]
+			if self._node_exists(charn, thingn):
+				return self.character[charn].thing[thingn]
+			return thing_cls(
+				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
+				NodeName(Key(thingn)),
+			)
 
 		def unpack_portal(ext: bytes) -> portal_cls:
 			charn, orign, destn = self.unpack(getattr(ext, "data", ext))
+			if self._edge_exists(charn, orign, destn):
+				return self.character[charn].portal[orign][destn]
 			return portal_cls(
 				char_cls(self, CharName(Key(charn)), init_rulebooks=False),
 				NodeName(Key(orign)),
@@ -3105,7 +3337,18 @@ class AbstractEngine(ABC):
 				raise TypeError("Tried to unpack as func", type(unpacked))
 			return getattr(store, unpacked)
 
+		def unpack_path(ext: bytes):
+			unpacked = self.unpack(getattr(ext, "data", ext))
+			return Path(unpacked)
+
+		def unpack_enum(ext: bytes) -> Enum:
+			enum_typ_str, enum_name = self.unpack(getattr(ext, "data", ext))
+			return getattr(getattr(enum, enum_typ_str), enum_name)
+
 		return {
+			MsgpackExtensionType.enum.value: unpack_enum,
+			MsgpackExtensionType.path.value: unpack_path,
+			MsgpackExtensionType.database.value: unpack_database_connector,
 			MsgpackExtensionType.ellipsis.value: lambda _: ...,
 			MsgpackExtensionType.graph.value: unpack_graph,
 			MsgpackExtensionType.character.value: unpack_char,
@@ -3171,87 +3414,182 @@ class AbstractEngine(ABC):
 
 		return unpacker
 
-	@cached_property
-	def _umsgpack_pack_handlers(self):
-		import umsgpack
+	def _pack_facade_thing(self, cls, thing: FacadeThing):
+		patch = dict(thing._patch)
+		if "location" in thing._patch:
+			locn = patch.pop("location")
+		else:
+			locn = thing["location"]
+		return cls(
+			MsgpackExtensionType.facade_thing.value,
+			self.pack([thing.character.name, thing.name, locn, patch]),
+		)
 
-		return {
-			type(...): lambda _: umsgpack.Ext(
-				MsgpackExtensionType.ellipsis.value, b""
-			),
-			nx.Graph: lambda graf: umsgpack.Ext(
+	def _pack_set(self, ext: type[_EXT], s: Set) -> _EXT:
+		return ext(MsgpackExtensionType.set.value, self.pack(list(s)))
+
+	def _generate_pack_handlers(
+		self, ext: type[_EXT]
+	) -> dict[type[_TYP], Callable[[_TYP], _EXT]]:
+		from .collections import CompositeDict
+		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
+		from .facade import (
+			CharacterFacade,
+			FacadeThing,
+			FacadePlace,
+			FacadePortal,
+		)
+		from .wrap import (
+			DictWrapper,
+			ListWrapper,
+			SetWrapper,
+			SubDictWrapper,
+			SubListWrapper,
+			SubSetWrapper,
+		)
+
+		pack_set = self._pack_set
+
+		def pack_path(p: Path) -> ext:
+			return ext(MsgpackExtensionType.path.value, self.pack(str(p)))
+
+		def pack_char(obj: self.char_cls) -> ext:
+			return ext(
+				MsgpackExtensionType.character.value, self.pack(obj.name)
+			)
+
+		def pack_node(
+			code: MsgpackExtensionType, obj: self.thing_cls | self.place_cls
+		) -> ext:
+			return ext(code.value, self.pack([obj.character.name, obj.name]))
+
+		pack_thing = partial(pack_node, MsgpackExtensionType.thing)
+		pack_place = partial(pack_node, MsgpackExtensionType.place)
+
+		def pack_portal(obj: self.portal_cls) -> ext:
+			return ext(
+				MsgpackExtensionType.portal.value,
+				self.pack(
+					[obj.character.name, obj.origin.name, obj.destination.name]
+				),
+			)
+
+		def pack_graph(typstr: str, obj: nx.Graph) -> ext:
+			return ext(
 				MsgpackExtensionType.graph.value,
 				self.pack(
 					[
-						"Graph",
-						graf._node,
-						graf._adj,
-						graf.graph,
+						typstr,
+						{k: dict(v) for (k, v) in obj.nodes.items()},
+						{uv: dict(w) for (uv, w) in obj.adj.items()},
+						{k: v for (k, v) in obj.graph.items()},
 					]
 				),
-			),
-			nx.DiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["DiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["MultiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			nx.MultiDiGraph: lambda graf: umsgpack.Ext(
-				MsgpackExtensionType.graph.value,
-				self.pack(["MultiDiGraph", graf._node, graf._adj, graf.graph]),
-			),
-			tuple: lambda tup: umsgpack.Ext(
-				MsgpackExtensionType.tuple.value, self.pack(list(tup))
-			),
-			frozenset: lambda frozs: umsgpack.Ext(
-				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
-			),
-			set: lambda s: umsgpack.Ext(
-				MsgpackExtensionType.set.value, self.pack(list(s))
-			),
-			FunctionType: lambda func: umsgpack.Ext(
-				getattr(MsgpackExtensionType, func.__module__).value,
-				self.pack(func.__name__),
-			),
-			MethodType: lambda meth: umsgpack.Ext(
-				MsgpackExtensionType.method.value, self.pack(meth.__name__)
-			),
-			Exception: lambda exc: umsgpack.Ext(
+			)
+
+		def pack_database_connector(
+			db: AbstractDatabaseConnector | partial[AbstractDatabaseConnector],
+		) -> ext:
+			if isinstance(db, partial):
+				data = {
+					"class": db.func.__name__,
+				}
+				data.update(db.keywords)
+			elif isinstance(db, PythonDatabaseConnector):
+				data = {
+					"class": "PythonDatabaseConnector",
+					"load_me": db.dump_everything(),
+				}
+			else:
+				data = {"class": db.__name__}
+			return ext(
+				MsgpackExtensionType.database.value,
+				self.pack(data),
+			)
+
+		def pack_exception(exc: Exception) -> ext:
+			return ext(
 				MsgpackExtensionType.exception.value,
 				self.pack(
 					[
 						exc.__class__.__name__,
+						exc.args,
 						Traceback(exc.__traceback__).to_dict()
-						if hasattr(exc, "__traceback__")
+						if getattr(exc, "__traceback__", None)
 						else None,
 					]
-					+ list(exc.args)
 				),
+			)
+
+		def pack_enum(en: Enum) -> ext:
+			return ext(
+				MsgpackExtensionType.enum.value,
+				self.pack([en.__class__.__name__, en.name]),
+			)
+
+		ret = {
+			Enum: pack_enum,
+			PythonDatabaseConnector: pack_database_connector,
+			Path: pack_path,
+			WindowsPath: pack_path,
+			PosixPath: pack_path,
+			type(...): lambda _: ext(MsgpackExtensionType.ellipsis.value, b""),
+			self.char_cls: pack_char,
+			CharacterFacade: pack_char,
+			self.place_cls: pack_place,
+			FacadePlace: pack_place,
+			self.thing_cls: pack_thing,
+			FacadeThing: pack_thing,
+			self.portal_cls: pack_portal,
+			FacadePortal: pack_portal,
+			nx.Graph: partial(pack_graph, "Graph"),
+			nx.DiGraph: partial(pack_graph, "DiGraph"),
+			nx.MultiGraph: partial(pack_graph, "MultiGraph"),
+			nx.MultiDiGraph: partial(pack_graph, "MultiDiGraph"),
+			tuple: lambda tup: ext(
+				MsgpackExtensionType.tuple.value, self.pack(list(tup))
 			),
-			self.char_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.character.value, self.pack(obj.name)
+			frozenset: lambda frozs: ext(
+				MsgpackExtensionType.frozenset.value, self.pack(list(frozs))
 			),
-			self.thing_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.thing.value,
-				self.pack([obj.character.name, obj.name]),
+			set: partial(self._pack_set, ext),
+			FunctionType: lambda func: ext(
+				getattr(MsgpackExtensionType, func.__module__).value,
+				self.pack(func.__name__),
 			),
-			self.place_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.place.value,
-				self.pack([obj.character.name, obj.name]),
-			),
-			self.portal_cls: lambda obj: umsgpack.Ext(
-				MsgpackExtensionType.portal.value,
-				self.pack(
-					[
-						obj.character.name,
-						obj.orig,
-						obj.dest,
-					]
-				),
+			MethodType: lambda meth: ext(
+				MsgpackExtensionType.method.value, self.pack(meth.__name__)
 			),
 		}
+		for module in (builtins, nx.exception, exc):
+			for name, cls in inspect.getmembers(module):
+				if inspect.isclass(cls) and issubclass(cls, Exception):
+					ret[cls] = pack_exception
+		try:
+			from .sql import SQLAlchemyDatabaseConnector
+
+			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
+		except ImportError:
+			pass
+		try:
+			from .pqdb import ParquetDatabaseConnector
+
+			ret[ParquetDatabaseConnector] = pack_database_connector
+		except ImportError:
+			pass
+		return ret
+
+	@cached_property
+	def _msgpack_pack_handlers(self):
+		from msgpack import ExtType
+
+		return self._generate_pack_handlers(ExtType)
+
+	@cached_property
+	def _umsgpack_pack_handlers(self):
+		from umsgpack import Ext
+
+		return self._generate_pack_handlers(Ext)
 
 	@abstractmethod
 	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
@@ -4966,14 +5304,57 @@ class AbstractPickyDefaultDict[_K, _V](dict[_K, _V]):
 		with self._lock:
 			if k in self:
 				return super().__getitem__(k)
-			ret = self[k] = self.value_type(
+			if isinstance(self.value_type, GenericAlias):
+				value_type = get_origin(self.value_type)
+				if hasattr(value_type, "key_type"):
+					value_type = partial(
+						value_type, *get_args(self.value_type)
+					)
+				else:
+					value_type = partial(
+						value_type, get_args(self.value_type)[-1]
+					)
+			else:
+				value_type = self.value_type
+			ret = value_type(
 				*self.args_munger(self, k), **self.kwargs_munger(self, k)
 			)
+			super().__setitem__(k, ret)
 			return ret
+
+	@classmethod
+	def _validate(cls, d: dict) -> bool:
+		"""Does ``d`` have the right types in it to be one of me?"""
+		keytyp, valtyp = inspect.getargs(cls)
+		if issubclass(valtyp, AbstractPickyDefaultDict):
+			for v in d.values():
+				if not valtyp._validate(v):
+					return False
+		else:
+			for v in d.values():
+				if not isinstance(v, valtyp):
+					return False
+		return True
+
+	@staticmethod
+	def _validate_generic_alias(key_type, value_type, key, value):
+		if isinstance(value_type, GenericAlias):
+			if not isinstance(value, dict):
+				raise TypeError("Dictionary required", value, type(value))
+			for k, v in value.items():
+				self._validate_generic_alias(*value_type.__args__, k, v)
+		else:
+			if not isinstance(value, value_type):
+				raise TypeError("Incorrect value type", value, value_type)
 
 	def __setitem__(self, k, v):
 		with self._lock:
-			if not isinstance(v, root_type(self.value_type)):
+			if isinstance(self.value_type, GenericAlias):
+				if not isinstance(v, dict):
+					raise TypeError("Must store dictionary", v)
+				self._validate_generic_alias(*self.value_type.__args__, k, v)
+				super().__setitem__(k, v)
+			elif not isinstance(v, root_type(self.value_type)):
 				v = self.value_type(v)
 			super().__setitem__(k, v)
 
@@ -4993,13 +5374,18 @@ class PickyDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	Default values are constructed with no arguments by default;
 	supply ``args_munger`` and/or ``kwargs_munger`` to override this.
 	They take arguments ``self`` and the unused key being looked up.
+	If they're set to ``None``, we can't construct default arguments.
 
 	"""
 
 	__slots__ = ()
 	value_type: type[_V] = field(converter=convert_subtype)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	parent: dict | None = None
 	key: _K | None = None
 
@@ -5011,15 +5397,30 @@ class PickierDefaultDict[_K, _V](AbstractPickyDefaultDict[_K, _V]):
 	__slots__ = ()
 	key_type: type[_K] = field(converter=convert_subtype)
 	value_type: type[_V] = field(converter=convert_subtype)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	parent: dict | None = None
 	key: _K | None = None
+
+	def __getitem__(self, item):
+		if not isinstance(item, self.key_type):
+			raise TypeError("Illegal key type", item, self.key_type)
+		return super().__getitem__(item)
 
 	def __setitem__(self, key: _K, value: _V):
 		if not isinstance(key, self.key_type):
 			raise TypeError("Wrong type of key", key, self.key_type)
 		super().__setitem__(key, value)
+
+	@staticmethod
+	def _validate_generic_alias(key_type, value_type, key, value):
+		if not isinstance(key, key_type):
+			raise TypeError("Wrong key type", key, key_type)
+		super()._validate_generic_alias(key_type, value_type, key, value)
 
 
 @define
@@ -5037,8 +5438,12 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 
 	layer: int = field(validator=validators.ge(1))
 	type: type = type(None)
-	args_munger: Callable[[Self, _K], tuple[_K, ...]] = _default_args_munger
-	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] = _default_kwargs_munger
+	args_munger: Callable[[Self, _K], tuple[_K, ...]] | None = (
+		_default_args_munger
+	)
+	kwargs_munger: Callable[[Self, _K], dict[_K, _V]] | None = (
+		_default_kwargs_munger
+	)
 	gettest: Callable[[_K], None] = lambda k: None
 	settest: Callable[[_K, _V], None] = lambda k, v: None
 	parent: StructuredDefaultDict | None = None

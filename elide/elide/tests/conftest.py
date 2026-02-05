@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
+import resource
 import shutil
 
 import networkx as nx
@@ -27,6 +28,12 @@ from elide.app import ElideApp
 from elide.tests.util import idle_until
 from lisien import Engine
 from lisien.examples import kobold, polygons, sickle
+
+
+@pytest.fixture(scope="session", autouse=True)
+def lots_of_open_files():
+	"""Allow ParquetDB to make all the files it wants"""
+	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 69105))
 
 
 @pytest.fixture

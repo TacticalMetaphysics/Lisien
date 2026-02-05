@@ -51,9 +51,9 @@ def test_serialize_function(tmp_path):
 		def foo(bar: str, bas: str) -> str:
 			return bar + bas + " is correct"
 
-	procm = EngineProxyManager(workers=0)
+	procm = EngineProxyManager()
 	try:
-		engprox = procm.start(tmp_path)
+		engprox = procm.start(tmp_path, workers=0)
 		funcprox = engprox.function.foo
 		assert funcprox("foo", "bar") == "foobar is correct"
 	finally:

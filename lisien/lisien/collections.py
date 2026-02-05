@@ -1113,9 +1113,11 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	__slots__ = ()
 
 	@staticmethod
-	def _convert_filename(fn: Path | None):
+	def _convert_filename(fn: Path | os.PathLike[str] | None):
 		if fn is None:
 			return None
+		if isinstance(fn, Path):
+			return fn
 		return Path(fn)
 
 	_filename: Path | None = field(default=None, converter=_convert_filename)
@@ -1141,6 +1143,7 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			except (FileNotFoundError, ModuleNotFoundError):
 				self._ast = ast.Module(body=[], type_ignores=[])
 				self._ast_idx = {}
+				self._filename.parent.mkdir(parents=True, exist_ok=True)
 				self.save()
 
 	_module: str | None = None
@@ -1157,6 +1160,12 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			self._set_source(k, v, func=func)
 
 	_need_save: bool = field(init=False, default=False)
+
+	def _clear_caches(self):
+		self._ast_idx.clear()
+		self._ast.body.clear()
+		self._ast.type_ignores.clear()
+		self._need_save = False
 
 	def __dir__(self):
 		yield from self._locl
@@ -1243,16 +1252,20 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 	def reimport(self, signal: bool = True):
 		if self._filename is None:
 			return
-		path, filename = os.path.split(self._filename)
-		modname = filename[:-3]
+		prefix = self._filename.parent
+		file = self._filename.relative_to(prefix)
+		modname = file.stem
 		if modname in sys.modules:
 			del sys.modules[modname]
-		modname = filename[:-3]
-		spec = importlib.util.spec_from_file_location(modname, self._filename)
+		spec = importlib.util.spec_from_file_location(
+			modname, self._filename.absolute()
+		)
 		self._module = importlib.util.module_from_spec(spec)
 		sys.modules[modname] = self._module
 		spec.loader.exec_module(self._module)
-		self._ast = ast.parse(self._module.__loader__.get_data(self._filename))
+		self._ast = ast.parse(
+			self._module.__loader__.get_data(self._filename.absolute())
+		)
 		self._ast_idx = {}
 		for i, node in enumerate(self._ast.body):
 			if hasattr(node, "name"):
@@ -1284,6 +1297,10 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 			self._ast.body.append(expr)
 		locl = {}
 		exec(compile(mod, self._filename or "", "exec"), {}, locl)
+		if isinstance(self._module, str):
+			locl[name].__module__ = self._module
+		else:
+			locl[name].__module__ = self._module.__name__
 		self._locl.update(locl)
 		self.send(self, attr=name, val=locl[name])
 

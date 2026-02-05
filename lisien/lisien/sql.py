@@ -19,7 +19,7 @@ import sys
 from collections import OrderedDict
 from functools import cached_property, partial, partialmethod
 from queue import Queue
-from typing import Iterator, Union, get_args
+from typing import Iterator, Union, get_args, ClassVar
 
 from attrs import define, field
 from sqlalchemy import (
@@ -172,6 +172,7 @@ for table, serializer in Batch.serializers.items():
 
 @define
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
+	db_type: ClassVar = "sql"
 	_pack: PackSignature
 	_unpack: UnpackSignature
 	connect_string: str = field(default="sqlite:///:memory:")

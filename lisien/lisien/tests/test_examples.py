@@ -26,9 +26,9 @@ from lisien.examples import (
 	polygons,
 )
 from lisien.proxy.handle import EngineHandle
-from lisien.proxy.manager import Sub
 from lisien.tests.data import DATA_DIR
 from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
+from lisien.enum import Sub
 
 pytestmark = [pytest.mark.big]
 
@@ -54,20 +54,23 @@ def test_college_premade(college10):
 		college10.next_turn()
 
 
-def test_kobold(engy):
-	kobold.inittest(engy, shrubberies=20, kobold_sprint_chance=0.9)
+def test_kobold(engine):
+	kobold.inittest(engine, shrubberies=20, kobold_sprint_chance=0.9)
 	for i in range(10):
-		engy.next_turn()
+		print(f"turn {i}")
+		engine.next_turn()
 
 
-def test_polygons(engy):
-	polygons.install(engy)
+def test_polygons(engine):
+	polygons.install(engine)
 	for i in range(10):
-		engy.next_turn()
+		engine.next_turn()
 
 
-def test_char_stat_startup(tmp_path, database_connector_part):
-	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
+def test_char_stat_startup(tmp_path, persistent_database_connector_part):
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part
+	) as eng:
 		eng.new_character("physical", nx.hexagonal_lattice_graph(20, 20))
 		tri = eng.new_character("triangle")
 		sq = eng.new_character("square")
@@ -81,7 +84,9 @@ def test_char_stat_startup(tmp_path, database_connector_part):
 		tri.stat["max_sameness"] = 0.8
 		assert "max_sameness" in tri.stat
 
-	with Engine(tmp_path, workers=0, database=database_connector_part) as eng:
+	with Engine(
+		tmp_path, workers=0, database=persistent_database_connector_part
+	) as eng:
 		assert "min_sameness" in eng.character["square"].stat
 		assert "max_sameness" in eng.character["square"].stat
 		assert "min_sameness" in eng.character["triangle"].stat
@@ -97,7 +102,7 @@ def test_sickle(sickle):
 def test_wolfsheep(
 	tmp_path,
 	serial_or_parallel,
-	database_connector_part,
+	persistent_database_connector_part,
 ):
 	workers = 0 if serial_or_parallel == "serial" else 2
 	sub_mode = None if serial_or_parallel == "serial" else serial_or_parallel
@@ -105,7 +110,7 @@ def test_wolfsheep(
 		DATA_DIR.joinpath("wolfsheep.lisien"),
 		tmp_path,
 		workers=workers,
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 		sub_mode=sub_mode,
 	) as engine:
 		sheep = engine.character["sheep"]
@@ -134,7 +139,7 @@ def test_wolfsheep(
 		tmp_path,
 		workers=workers,
 		sub_mode=sub_mode,
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 	)
 	try:
 		hand.next_turn()
@@ -160,6 +165,7 @@ def test_pathfind(pathfind):
 		)
 	]
 	for i in range(10):
+		print(i)
 		pathfind.next_turn()
 	assert locs != [
 		thing.location.name

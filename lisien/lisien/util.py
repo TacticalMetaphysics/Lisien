@@ -12,8 +12,6 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Common utility functions and data structures."""
-
 from __future__ import annotations
 
 import gc
@@ -24,7 +22,7 @@ from pprint import pformat
 from queue import SimpleQueue
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, Protocol, TypeVar
+from typing import Callable, Iterable, Protocol, TypeVar, Any
 
 try:
 	import msgpack
@@ -152,6 +150,21 @@ def print_call_sig(
 	func: Callable | str, *args, file=sys.stdout, end="\n", **kwargs
 ):
 	print(format_call_sig(func, *args, **kwargs), file=file, end=end)
+
+
+def unpack_expected(
+	unpack: Callable[[bytes], Any], received: bytes, expected: bytes
+):
+	if received == expected:
+		return
+	gotten = unpack(received)
+	if isinstance(gotten, Exception):
+		raise gotten
+	if not isinstance(gotten, tuple) or gotten == ():
+		raise TypeError(f"Invalid output (expected: {expected})", gotten)
+	if isinstance(gotten[-1], Exception):
+		raise gotten[-1]
+	raise RuntimeError(f"Invalid output (expected: {expected})", gotten)
 
 
 @contextmanager
@@ -284,3 +297,16 @@ def getatt(attribute_name: str) -> property:
 	ret = property(attrgetter(attribute_name))
 	ret.__doc__ = "Alias to `{}`".format(attribute_name)
 	return ret
+
+
+def concat_d(r: dict[bytes, bytes]) -> bytes:
+	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
+	resp = msgpack_map_header(len(r))
+	for k, v in r.items():
+		resp += k + v
+	return resp
+
+
+def concat_list(r: list[bytes]) -> bytes:
+	"""Pack a dictionary of msgpack-encoded values into msgpack array"""
+	return msgpack_array_header(len(r)) + b"".join(r)

@@ -967,7 +967,7 @@ class CharSuccessorsMappingProxy(CachingProxy, RuleFollowerProxy):
 
 	def _apply_delta(self, delta: EdgeValDict) -> None:
 		for o, ds in delta.items():
-			cache = self._cache[o]
+			cache = self._cache.setdefault(o, {})
 			for d, stats in ds.items():
 				if d not in cache:
 					cache[d] = PortalProxy(self.character, o, d)
@@ -1448,7 +1448,9 @@ class CharacterProxy(AbstractCharacter, RuleFollowerProxy):
 				rulebook = nodedelta.pop("rulebook", None)
 				node_stat_cache[name][node] = nodedelta
 				if rulebook:
-					nodemap[node]._set_rulebook_name(rulebook)
+					self.engine._char_node_rulebooks_cache[self.name][node] = (
+						rulebook
+					)
 			else:
 				nodemap[node]._apply_delta(nodedelta)
 		portmap = self.portal

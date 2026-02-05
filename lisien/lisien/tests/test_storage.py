@@ -191,8 +191,11 @@ def test_branch_lineage(engine):
 	engine.turn = 0
 	with pytest.raises(ValueError):
 		engine.branch = "physical_no_edge"
-	engine.turn = engine.branch_start_turn("physical_no_edge")
-	engine.branch = "physical_no_edge"
+	engine.time = (
+		"physical_no_edge",
+		engine.branch_end_turn("physical_no_edge"),
+		engine.turn_end("physical_no_edge"),
+	)
 	engine.next_turn()
 	assert 0 in g
 	assert 0 in list(g.node.keys())
@@ -200,6 +203,8 @@ def test_branch_lineage(engine):
 	assert 0 not in g.edge[1]
 	with pytest.raises(KeyError):
 		g.edge[0][1]
+	engine.turn = engine.branch_end_turn("physical_triangle")
+	engine.tick = engine.turn_end("physical_triangle")
 	engine.branch = "physical_triangle"
 	assert 2 in g.node
 	for orig in (0, 1, 2):
@@ -209,6 +214,8 @@ def test_branch_lineage(engine):
 			assert orig in g.edge
 			assert dest in g.edge[orig]
 	engine.branch = "physical_square"
+	engine.turn = engine.branch_end_turn()
+	engine.tick = engine.turn_end()
 	assert 0 not in g.edge[2]
 	with pytest.raises(KeyError):
 		g.edge[2][0]
@@ -221,8 +228,8 @@ def test_branch_lineage(engine):
 	for node in (0, 1, 2):
 		assert node not in g.node
 		assert node not in g.edge
-	engine.branch = "trunk"
-	engine.turn = 0
+	tick_end_trunk = engine.turn_end("trunk", 0)
+	engine.time = ("trunk", 0, tick_end_trunk)
 	assert 0 in g.node
 	assert 1 in g.node
 	assert 0 in g.edge

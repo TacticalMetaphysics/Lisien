@@ -25,7 +25,7 @@ from lisien.db import (
 from lisien.facade import EngineFacade
 from lisien.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
-from lisien.proxy.manager import Sub
+from lisien.proxy.manager import EngineProxyManager
 from lisien.sql import SQLAlchemyDatabaseConnector
 from lisien.tests.data import DATA_DIR
 from lisien.types import (
@@ -34,9 +34,10 @@ from lisien.types import (
 	GraphNodeValKeyframe,
 	GraphValKeyframe,
 )
+from ..enum import Sub
 
 if TYPE_CHECKING:
-	from ..futures import LisienExecutor
+	from ..futures import Executor
 
 _RETURNS = TypeVar("_RETURNS")
 
@@ -145,7 +146,7 @@ def make_test_engine(
 		kwargs["workers"] = 2
 		kwargs["sub_mode"] = Sub(execution)
 	match database:
-		case "python":
+		case "python" | "pythondb":
 			kwargs["database"] = PythonDatabaseConnector()
 		case "sqlite":
 			kwargs["database"] = partial(
@@ -153,8 +154,10 @@ def make_test_engine(
 				connect_string=f"sqlite:///{path}/world.sqlite3",
 			)
 		case "parquetdb":
+			worldpath = Path(path).joinpath("world")
+			worldpath.mkdir(parents=True, exist_ok=True)
 			kwargs["database"] = partial(
-				ParquetDatabaseConnector, path=os.path.join(path, "world")
+				ParquetDatabaseConnector, path=worldpath
 			)
 		case "nodb":
 			kwargs["database"] = NullDatabaseConnector()
@@ -196,119 +199,3 @@ def hash_loaded_dict(data: LoadedDict) -> dict[str, dict[str, int] | int]:
 		else:
 			raise TypeError("Invalid loaded dictionary")
 	return hashes
-
-
-@contextmanager
-def college_engine(
-	archive_fn: str,
-	tmp_path: str | PathLike,
-	serial_or_parallel: str,
-	database_connector: AbstractDatabaseConnector,
-	**kwargs,
-):
-	def validate_final_keyframe(kf: Keyframe):
-		node_val: GraphNodeValKeyframe = kf["node_val"]
-		phys_node_val = node_val["physical"]
-		graph_val: GraphValKeyframe = kf["graph_val"]
-		assert "student_body" in graph_val
-		assert "units" in graph_val["student_body"]
-		assert "physical" in graph_val["student_body"]["units"]
-		for unit in graph_val["student_body"]["units"]["physical"]:
-			assert unit in phys_node_val
-			assert "location" in phys_node_val[unit]
-		for key, dorm, room, student in product(
-			["graph_val", "node_val", "edge_val"],
-			[0, 1],
-			[0, 1],
-			[0, 1],
-		):
-			assert f"dorm{dorm}room{room}student{student}" in kf[key]
-
-	with (
-		patch(
-			"lisien.Engine._validate_initial_keyframe_load",
-			staticmethod(validate_final_keyframe),
-			create=True,
-		),
-		Engine.from_archive(
-			os.path.join(DATA_DIR, archive_fn),
-			tmp_path,
-			workers=0 if serial_or_parallel == "serial" else 2,
-			sub_mode=None
-			if serial_or_parallel == "serial"
-			else Sub(serial_or_parallel),
-			database=database_connector,
-			**kwargs,
-		) as eng,
-	):
-		yield eng
-
-
-@contextmanager
-def tar_cache(
-	name: str,
-	non_null_database: Literal["python", "sqlite", "parquetdb"],
-	make_engine: Callable | None = None,
-) -> Iterator[str]:
-	with tempfile.TemporaryDirectory() as tmpdir:
-		gamedir = os.path.join(tmpdir, name)
-		os.makedirs(gamedir, exist_ok=True)
-		match non_null_database:
-			case "python":
-				db = PythonDatabaseConnector()
-
-				def part(*_):
-					return db
-			case "sqlite":
-				part = partial(
-					SQLAlchemyDatabaseConnector,
-					connect_string=f"sqlite:///{gamedir}/world.sqlite3",
-				)
-			case "parquetdb":
-				part = partial(
-					ParquetDatabaseConnector,
-					path=os.path.join(gamedir, "world"),
-				)
-			case _:
-				raise RuntimeError("Unknown database", non_null_database)
-		if make_engine:
-			with make_engine(f"{name}.lisien", gamedir, "serial", part):
-				pass
-		else:
-			Engine.from_archive(
-				os.path.join(DATA_DIR, f"{name}.lisien"),
-				gamedir,
-				workers=0,
-				database=part,
-			).close()
-		if non_null_database == "python":
-			with open(os.path.join(gamedir, "database.pkl"), "wb") as f:
-				pickle.dump(db, f)
-		archive_name = shutil.make_archive(
-			f"{name}_{non_null_database}", "tar", gamedir
-		)
-		yield archive_name
-		os.remove(archive_name)
-
-
-@contextmanager
-def untar_cache(
-	tar_path: str,
-	tmp_path: str | os.PathLike,
-	database_connector_part: Callable[[], AbstractDatabaseConnector],
-	serial_or_parallel: str,
-) -> Iterator[Engine]:
-	shutil.unpack_archive(tar_path, tmp_path, "tar")
-	if hasattr(database_connector_part, "is_python"):
-		with open(os.path.join(tmp_path, "database.pkl"), "rb") as f:
-			database_connector = pickle.load(f)
-	else:
-		database_connector = database_connector_part
-	kwargs = {"database": database_connector}
-	if serial_or_parallel == "serial":
-		kwargs["workers"] = 0
-	else:
-		kwargs["workers"] = 2
-		kwargs["sub_mode"] = serial_or_parallel
-	with Engine(tmp_path, **kwargs) as eng:
-		yield eng

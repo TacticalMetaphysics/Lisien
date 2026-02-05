@@ -29,6 +29,7 @@ import networkx as nx
 import tblib
 
 from ..exc import BadTimeException, HistoricKeyError, OutOfTimelineError
+from ..facade import EngineFacade
 from ..node import Node
 from ..portal import Portal
 from ..types import (
@@ -78,8 +79,8 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	msgpack_map_header,
 	timer,
+	concat_d,
 )
 
 SlightlyPackedDeltaType = dict[
@@ -90,14 +91,6 @@ SlightlyPackedDeltaType = dict[
 	],
 ]
 FormerAndCurrentType = tuple[dict[bytes, bytes], dict[bytes, bytes]]
-
-
-def concat_d(r: dict[bytes, bytes]) -> bytes:
-	"""Pack a dictionary of msgpack-encoded keys and values into msgpack bytes"""
-	resp = msgpack_map_header(len(r))
-	for k, v in r.items():
-		resp += k + v
-	return resp
 
 
 def prepacked(fun: Callable) -> Callable:
@@ -143,18 +136,25 @@ class EngineHandle:
 	"""
 
 	_after_ret: Callable
+	reuse_executor: bool
 
-	def __init__(self, *args, log_queue=None, **kwargs):
+	def __init__(
+		self, *args, log_queue=None, reuse_executor: bool = False, **kwargs
+	):
 		"""Instantiate an engine with the given arguments"""
 		from ..engine import Engine
 
 		do_game_start = kwargs.pop("do_game_start", False)
 		if log_queue:
-			logger = kwargs["logger"] = Logger("lisien")
+			logger = self._logger = kwargs["logger"] = Logger("lisien")
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
 		self._real = Engine(*args, **kwargs)
+		if reuse_executor:
+			self._real._shutdown_executor = False
+		self._reuse_executor = reuse_executor
 		self.debug("started engine in a handle")
+		self._executor = self._real.executor
 		self.pack = pack = self._real.pack
 
 		def pack_pair(pair):
@@ -169,36 +169,76 @@ class EngineHandle:
 			self.do_game_start()
 			self.debug("game started")
 
+	def shutdown(self):
+		self._real._shutdown_executor = True
+		self._real.shutdown()
+		if getattr(self, "_executor", None):
+			self._executor.shutdown()
+			del self._executor
+
+	def restart(self, *args, do_game_start=False, **kwargs):
+		from ..engine import Engine
+
+		if "logger" not in kwargs and hasattr(self, "_logger"):
+			self.debug("reusing logger")
+			kwargs["logger"] = self._logger
+		if "executor" not in kwargs and hasattr(self, "_executor"):
+			self.debug("reusing executor")
+			kwargs["executor"] = self._executor
+		self._real = Engine(*args, **kwargs)
+		self.debug("restarted in a handle")
+		self._logger = self._real.logger
+		self._executor = self._real.executor
+		self.pack = pack = self._real.pack
+
+		def pack_pair(pair):
+			k, v = pair
+			return pack(k), pack(v)
+
+		self.pack_pair = pack_pair
+		self.unpack = self._real.unpack
+		if do_game_start:
+			self.debug("starting game from restart...")
+			self.do_game_start()
+			self.debug("game started from restart")
+		return "restarted"
+
 	@classmethod
-	def from_archive(cls, b: bytes | dict, *, log_queue=None) -> EngineHandle:
-		try:
-			from msgpack import unpackb
-
-			if not unpackb.__module__.endswith("cmsgpack"):
-				from umsgpack import unpackb
-		except ImportError:
-			from umsgpack import unpackb
-
+	def from_archive(
+		cls, b: bytes | dict, *, log_queue=None, reuse_executor=False
+	) -> EngineHandle:
 		from ..engine import Engine
 
 		if isinstance(b, bytes):
-			kwargs: dict = unpackb(b)
+			from ..facade import EngineFacade
+
+			eng = EngineFacade(None)
+			kwargs = eng.unpack(b)
+			if not isinstance(kwargs, dict):
+				raise TypeError("Invalid kwargs for from_archive", kwargs)
 		else:
 			kwargs = b
 		if "archive_path" not in kwargs:
 			raise TypeError("No archive path")
 		if "prefix" not in kwargs:
 			raise TypeError("No prefix")
+		do_game_start = kwargs.pop("do_game_start", False)
+
+		new = cls.__new__(cls)
+		new.reuse_executor = reuse_executor
 		if log_queue:
 			logger = kwargs["logger"] = Logger("lisien")
 			handler = EngineHandleLogHandler(0, log_queue)
 			logger.addHandler(handler)
-		do_game_start = kwargs.pop("do_game_start", False)
-
-		new = cls.__new__(cls)
+			new._logger = logger
+		elif "logger" in kwargs:
+			new._logger = kwargs["logger"]
 		new._real = Engine.from_archive(
 			kwargs.pop("archive_path"), kwargs.pop("prefix"), **kwargs
 		)
+		if reuse_executor:
+			new._real._shutdown_executor = False
+			new._executor = new._real.executor
 		new.pack = pack = new._real.pack
 
 		def pack_pair(pair):
@@ -210,6 +250,67 @@ class EngineHandle:
 		if do_game_start:
 			new.do_game_start()
 		return new
+
+	def load_archive(
+		self,
+		b: bytes | dict,
+		*,
+		log_queue=None,
+		reuse_executor=False,
+	):
+		from ..engine import Engine
+
+		if not hasattr(self, "_real") or not self._real._closed:
+			raise RuntimeError(
+				"Only use `load_archive` when you already made "
+				"an engine, and you closed it"
+			)
+		if isinstance(b, bytes):
+			kwargs = self._real.unpack(b)
+		elif not isinstance(b, dict):
+			raise TypeError("Invalid input", b)
+		else:
+			kwargs = b
+		if "archive_path" not in kwargs:
+			raise TypeError("No archive path")
+		if "prefix" not in kwargs:
+			raise TypeError("No prefix")
+
+		if log_queue:
+			logger = kwargs["logger"] = Logger("lisien")
+			handler = EngineHandleLogHandler(0, log_queue)
+			logger.addHandler(handler)
+			self._logger = logger
+		elif "logger" in kwargs:
+			self._logger = kwargs["logger"]
+		if reuse_executor:
+			if getattr(self, "_executor", None) is not None:
+				kwargs["executor"] = self._executor
+		elif self._executor:
+			self.warning(
+				"Previous executor wasn't shut down, "
+				"but isn't going to be reused. I'll shut it down now..."
+			)
+			self._executor.shutdown()
+			self._executor = None
+		do_game_start = kwargs.pop("do_game_start", False)
+
+		self._real = Engine.from_archive(
+			kwargs.pop("archive_path"), kwargs.pop("prefix"), **kwargs
+		)
+		if reuse_executor and getattr(self, "_executor", None) is None:
+			self._executor = self._real.executor
+
+		pack = self.pack = self._real.pack
+		self.unpack = self._real.unpack
+
+		def pack_pair(pair):
+			k, v = pair
+			return pack(k), pack(v)
+
+		self.pack_pair = pack_pair
+		if do_game_start:
+			self.do_game_start()
 
 	def get_time(self) -> Time:
 		branch, turn, tick = self._real.time
@@ -368,7 +469,10 @@ class EngineHandle:
 			packd[NODE_VAL] = concat_d(packnodevd)
 		if EDGES in delta:
 			es = delta.pop(EDGES)
-			packd[EDGES] = concat_d(es)
+			ed = {}
+			for orig, dests in es.items():
+				ed[orig] = concat_d(dests)
+			packd[EDGES] = concat_d(ed)
 		if EDGE_VAL in delta:
 			packorigd = {}
 			for orig, dests in delta.pop(EDGE_VAL).items():
@@ -439,8 +543,8 @@ class EngineHandle:
 	) -> Tick:
 		return self._real.turn_end_plan(branch, turn)
 
-	def branch_end(self, branch: Optional[Branch] = None) -> Turn:
-		return self._real.branch_end(branch)
+	def branch_end_turn(self, branch: Optional[Branch] = None) -> Turn:
+		return self._real.branch_end_turn(branch)
 
 	def branch_end_turn_and_tick(self, branch: Branch) -> LinearTime:
 		branch = Branch(branch)
@@ -476,7 +580,9 @@ class EngineHandle:
 
 		"""
 		if branch in self._real.branches():
-			if self._real.enforce_end_of_time and not self._real._planning:
+			if self._real.enforce_end_of_time and not (
+				self._real._planning or self._real._forward
+			):
 				turn_end, tick_end = self._real._branch_end(branch)
 				if (tick is None and turn > turn_end) or (
 					tick is not None and (turn, tick) > (turn_end, tick_end)
@@ -590,6 +696,9 @@ class EngineHandle:
 		self._real.commit()
 
 	def close(self):
+		fac = EngineFacade(None)
+		self.pack = fac.pack
+		self.unpack = fac.unpack
 		self._real.close()
 
 	def get_btt(self) -> Time:
@@ -864,6 +973,12 @@ class EngineHandle:
 
 	def del_rule(self, rule: RuleName) -> None:
 		del self._real.rule[rule]
+
+	def start_advancing(self):
+		self._real._forward = True
+
+	def stop_advancing(self):
+		self._real._forward = False
 
 	def set_rule_triggers(
 		self, rule: RuleName, triggers: list[TriggerFuncName]

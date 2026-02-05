@@ -21,7 +21,7 @@ import os
 import pickle
 from collections import UserDict
 from contextlib import contextmanager
-from functools import cached_property, partial
+from functools import cached_property, partial, wraps
 from inspect import getsource
 from os import PathLike
 from pathlib import Path
@@ -89,7 +89,6 @@ from ..types import (
 	Keyframe,
 	KeyHint,
 	LinearTime,
-	MsgpackExtensionType,
 	Node,
 	NodeName,
 	NodesDict,
@@ -115,6 +114,7 @@ from ..types import (
 	CharacterRulebookTypeStr,
 	AttrSignal,
 )
+from ..enum import MsgpackExtensionType
 from ..util import (
 	dedent_source,
 	format_call_sig,
@@ -132,6 +132,10 @@ class FuncStoreProxy(AbstractFunctionStore, AttrSignal):
 	engine: EngineProxy
 	_cache: dict[str, str] = field(alias="initial", factory=dict)
 	_proxy_cache: dict[FuncName, FuncProxy] = field(init=False, factory=dict)
+
+	def _clear_caches(self):
+		self._cache.clear()
+		self._proxy_cache.clear()
 
 	def save(self, reimport: bool = True) -> None:
 		self.engine.handle("save_code", reimport=reimport)
@@ -304,13 +308,34 @@ class EngineProxy(AbstractEngine):
 	_get_input_bytes: Callable[[], bytes] | None
 	_send_output_bytes: Callable[[bytes], None] | None
 	logger: logging.Logger
-	prefix: os.PathLike[str] | None = None
+	_pipe_out_lock: Lock
+	_pipe_in_lock: Lock
+	_round_trip_lock: Lock
+
+	@staticmethod
+	def _convert_prefix(prefix: os.PathLike[str] | Path | None):
+		if prefix is None or isinstance(prefix, Path):
+			return prefix
+		return Path(prefix)
+
+	prefix: Path | None = field(default=None, converter=_convert_prefix)
+
+	@prefix.validator
+	def validate_prefix(self, _, prefix):
+		if prefix is None:
+			return
+		if not isinstance(prefix, Path):
+			raise TypeError("Prefix is not a path", prefix)
+		if prefix == Path("None"):
+			raise ValueError("Invalid prefix", prefix)
+
 	_install_modules: list[str] | tuple[str] = ()
 	_eternal: dict[EternalKey, Value] = field(
 		factory=lambda: {"language": "eng"}
 	)
 	_random_seed: int | None = None
 	enforce_end_of_time: bool = True
+	_forward: bool = field(init=False, default=False)
 	_universal: dict[UniversalKey, Value] = field(factory=lambda: {})
 	_branches_d: dict[Branch, tuple[Branch | None, Turn, Tick, Turn, Tick]] = (
 		field(
@@ -324,6 +349,14 @@ class EngineProxy(AbstractEngine):
 	@property
 	def _worker(self) -> bool:
 		return self.i is not None
+
+	@contextmanager
+	def advancing(self):
+		self.handle("start_advancing")
+		self._forward = True
+		yield
+		self._forward = False
+		self.handle("stop_advancing")
 
 	@staticmethod
 	def _convert_function_store_proxy(cls, proxy_cls, src_d, self):
@@ -406,7 +439,6 @@ class EngineProxy(AbstractEngine):
 
 	_planning: bool = field(alias="_planning", init=False, default=False)
 	_initialized: bool = field(alias="_initialized", init=False, default=False)
-	_forward: bool = field(alias="_forward", init=False, default=False)
 	closed: bool = field(init=False, default=False)
 
 	@staticmethod
@@ -460,18 +492,6 @@ class EngineProxy(AbstractEngine):
 
 			return no_next_turn
 		return NextTurnProxy(self)
-
-	@cached_property
-	def _pipe_out_lock(self):
-		return Lock()
-
-	@cached_property
-	def _pipe_in_lock(self):
-		return Lock()
-
-	@cached_property
-	def _round_trip_lock(self):
-		return Lock()
 
 	@cached_property
 	def _commit_lock(self):
@@ -661,8 +681,10 @@ class EngineProxy(AbstractEngine):
 	) -> None:
 		self.handle("load_at", branch=branch, turn=turn, tick=tick)
 
-	def branch_end(self, branch: str | Branch | None = None):
-		return self.handle("branch_end", branch=branch)
+	def branch_end_turn(self, branch: str | Branch | None = None) -> Turn:
+		if branch is None:
+			branch = self._branch
+		return Turn(self._branches_d[branch][3])
 
 	def turn_end(
 		self,
@@ -733,8 +755,28 @@ class EngineProxy(AbstractEngine):
 		self._worker_check()
 		self.handle("game_init", cb=self._upd_from_game_start)
 
-	def _node_exists(self, char: CharName, node: NodeName) -> bool:
-		return self.handle("node_exists", char=char, node=node)
+	def _place_exists(self, character: CharName, node: NodeName) -> bool:
+		places = self._character_places_cache
+		cha = places.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError("Invalid places cache", places, cha)
+		return node in cha
+
+	def _thing_exists(self, character: CharName, node: NodeName) -> bool:
+		things = self._things_cache
+		cha = things.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError("Invalid things cache", things, cha)
+		return node in cha
+
+	def _node_exists(self, character: CharName, node: NodeName) -> bool:
+		return self._place_exists(character, node) or self._thing_exists(
+			character, node
+		)
 
 	def _upd_from_game_start(
 		self,
@@ -1177,10 +1219,6 @@ class EngineProxy(AbstractEngine):
 	def rule(self):
 		return AllRulesProxy(self)
 
-	@property
-	def logger(self):
-		return self._logger
-
 	@cached_property
 	def _rando(self):
 		if self._worker:
@@ -1220,18 +1258,19 @@ class EngineProxy(AbstractEngine):
 		rando: int | tuple | None,
 	):
 		if prefix is not None:
-			prefix = Path(prefix)
+			prefix = self.prefix = Path(prefix)
 		if self._worker:
-			filez = os.listdir(prefix)
-			for fs in ["function", "method", "trigger", "prereq", "action"]:
-				py = fs + ".py"
-				if py in filez:
-					store = getattr(self, fs)
-					if prefix:
-						store._filename = prefix.joinpath(py)
-						store.reimport()
-					else:
-						store._cache = {}
+			for fn in prefix.iterdir():
+				if fn.stem in {
+					"function",
+					"method",
+					"trigger",
+					"prereq",
+					"action",
+				}:
+					store = getattr(self, fn.stem)
+					store._filename = fn.absolute()
+					store.reimport()
 		for cache in self._caches:
 			cache.clear()
 		self._eternal = dict(eternal)
@@ -1302,6 +1341,33 @@ class EngineProxy(AbstractEngine):
 		meth = method.__getattr__(item)
 		return MethodType(meth, self)
 
+	def _char_exists(self, character: CharName) -> bool:
+		return character in self._char_cache
+
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool:
+		cha = self._character_portals_cache.successors.get(character, ...)
+		if cha is ...:
+			return False
+		if not isinstance(cha, dict):
+			raise TypeError(
+				"Invalid portals cache",
+				self._character_portals_cache.successors,
+				cha,
+			)
+		dests = cha.get(orig, ...)
+		if dests is ...:
+			return False
+		if not isinstance(dests, dict):
+			raise TypeError(
+				"Invalid portals cache",
+				self._character_portals_cache.successors,
+				cha,
+				dests,
+			)
+		return dest in dests
+
 	def _reimport_triggers(self) -> None:
 		if hasattr(self.trigger, "reimport"):
 			self.trigger.reimport()
@@ -1311,7 +1377,18 @@ class EngineProxy(AbstractEngine):
 			stores = ["function", "method", "trigger", "prereq", "action"]
 		for store_name in stores:
 			store = getattr(self, store_name)
-			store.reimport()
+			if self.prefix is None:
+				store._clear_caches()
+			elif (
+				store._filename is not None
+				and store._filename.parent == self.prefix
+				and store._filename.is_file()
+			):
+				store.reimport()
+			else:
+				store._filename = self.prefix.joinpath(store_name).with_suffix(
+					".py"
+				)
 
 	def _replace_triggers_pkl(self, replacement: bytes) -> None:
 		assert self._worker, "Loaded replacement triggers outside a worker"
@@ -1376,6 +1453,20 @@ class EngineProxy(AbstractEngine):
 	def critical(self, msg: str) -> None:
 		self.logger.critical(msg)
 
+	@staticmethod
+	def _round_trip_locked(func):
+		@wraps(func)
+		def _lockedy(self, *args, **kwargs):
+			if self._worker or getattr(
+				super(EngineProxy, self), "_mutable_worker", False
+			):
+				return
+			with self._round_trip_lock:
+				return func(self, *args, **kwargs)
+
+		return _lockedy
+
+	@_round_trip_locked
 	def handle(
 		self,
 		cmd: str | None = None,
@@ -1383,7 +1474,7 @@ class EngineProxy(AbstractEngine):
 		cb: EngineProxyCallback | None = None,
 		**kwargs,
 	):
-		"""Send a command to the lisien core.
+		"""Send a command to the Lisien core and process the return value.
 
 		The only positional argument should be the name of a
 		method in :class:``EngineHandle``. All keyword arguments
@@ -1398,10 +1489,6 @@ class EngineProxy(AbstractEngine):
 
 		"""
 		then = self._btt()
-		if self._worker or getattr(
-			super(EngineProxy, self), "_mutable_worker", False
-		):
-			return
 		if self.closed:
 			raise RuntimeError(f"Already closed: {id(self)}")
 		if "command" in kwargs:
@@ -1413,10 +1500,9 @@ class EngineProxy(AbstractEngine):
 		if hasattr(super(EngineProxy, self), "_replay_file"):
 			self._replay_file.write(format_call_sig(cmd, **kwargs) + "\n")
 		start_ts = monotonic()
-		with self._round_trip_lock:
-			self.send(Value(kwargs))
-			received = self.recv()
-			command, branch, turn, tick, r = received
+		self.send(Value(kwargs))
+		received = self.recv()
+		command, branch, turn, tick, r = received
 		self.debug(
 			"EngineProxy: received {} in {:,.2f} seconds".format(
 				(command, branch, turn, tick), monotonic() - start_ts
@@ -1611,8 +1697,6 @@ class EngineProxy(AbstractEngine):
 				self._replace_funcs_plain(**to_replace_plain)
 		elif self._worker:
 			self._reimport_code()
-		else:
-			self._save_and_reimport_all_code()
 		self._upd_caches(*args, **kwargs)
 		self._upd_time(*args, **kwargs)
 
@@ -1898,11 +1982,9 @@ class RandoProxy(Random):
 		)
 
 	def _randbelow(
-		self, n, int=int, maxsize=1, type=type, Method=None, BuiltinMethod=None
+		self, n, int=int, type=type, Method=None, BuiltinMethod=None
 	):
-		return self._handle(
-			cmd="call_randomizer", method="_randbelow", n=n, maxsize=maxsize
-		)
+		return self._handle(cmd="call_randomizer", method="_randbelow", n=n)
 
 	def random(self):
 		return self._handle(cmd="call_randomizer", method="random")
