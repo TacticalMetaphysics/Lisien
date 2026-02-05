@@ -7,7 +7,6 @@ when:
 matrix:
   DATABASE:
     - not parquetdb and not sqlite
-    - sqlite
     - parquetdb
     - prerelease-parquetdb
   MANAGER:
