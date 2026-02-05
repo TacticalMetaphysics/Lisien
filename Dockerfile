@@ -463,7 +463,7 @@ index 90c3a5011..115f586e9 100644
 
      def refresh_view_layout(self, index, layout, view, viewport):
 -        opt = self.view_opts[index].copy()
-+        opt = self._convert_opt(self.view_opts.get(index, {}))
++        opt = self._convert_opt(self.view_opts[index] or {})
          width_none = opt.pop('width_none')
          height_none = opt.pop('height_none')
          opt.update(layout)
