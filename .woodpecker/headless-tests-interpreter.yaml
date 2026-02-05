@@ -19,7 +19,6 @@ matrix:
 variables:
   - &python_image python:3.14
   - &headless_name headless_3.14
-  - &slow_headless_name slow_headless_3.14
 
 steps:
   - name: *headless_name
@@ -33,33 +32,13 @@ steps:
       - . .venv/bin/activate
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
+      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
       - export DATABASE
-      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
       - else
       - DATABASE="${DATABASE}"
+      - TOXFILE=lisien/tox.ini
       - export DATABASE
       - fi
-      - python -m pip install pytest lisien/
-      - PYTEST_MARKS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
-      - echo "will run $PYTEST_MARKS"
-      - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
-  - name: *slow_headless_name
-    image: *python_image
-    commands:
-      - TMPDIR=$(python find_ramdisk.py)
-      - echo "TMPDIR=$TMPDIR"
-      - export TMPDIR
-      - python -m venv .venv${PYTHON_VERSION}
-      - . .venv${PYTHON_VERSION}/bin/activate
-      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
-      - DATABASE=parquetdb
-      - export DATABASE
-      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
-      - else
-      - DATABASE="${DATABASE}"
-      - export DATABASE
-      - fi
-      - python -m pip install pytest lisien/
-      - PYTEST_MARKS="(slow or big) and interpreter_workers and $DATABASE"
-      - echo "will run $PYTEST_MARKS"
-      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+      - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
+      - echo "will run $PYTEST_KEYWORDS"
+      - tox run -c $TOXFILE

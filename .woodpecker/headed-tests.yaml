@@ -2,17 +2,8 @@ when:
   - event: push
     branch: main
 
-matrix:
-  PYTHON_VERSION:
-    - 3.12
-    - 3.13
-    - 3.14
-
-variables:
-  - &stepname headed_${PYTHON_VERSION}
-
 steps:
-  - name: *stepname
+  - name: headed
     image: zacharyspector/elide:latest
     pull: true
     commands:
@@ -28,4 +19,4 @@ steps:
       - PYTHONPATH="$PWD/lisien:$PWD/elide"
       - echo "PYTHONPATH=$PYTHONPATH"
       - export PYTHONPATH
-      - $PYTHON -m pytest -svvx elide/elide/tests
+      - tox run -c elide/tox.ini

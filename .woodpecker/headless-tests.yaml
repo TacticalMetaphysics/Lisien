@@ -5,10 +5,6 @@ when:
     repo: clayote/Lisien
 
 matrix:
-  PYTHON_VERSION:
-    - 3.12
-    - 3.13
-    - 3.14
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
@@ -23,13 +19,9 @@ matrix:
     - thread_manager
     - process_manager
 
-variables:
-  - &python_image python:${PYTHON_VERSION}
-  - &headless_name headless_${PYTHON_VERSION}
-
 steps:
-  - name: *headless_name
-    image: *python_image
+  - name: headless
+    image: zacharyspector/elide:latest
     pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
@@ -38,12 +30,13 @@ steps:
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
-      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
       - else
       - DATABASE="${DATABASE}"
       - export DATABASE
+      - TOXFILE=lisien/tox.ini
       - fi
-      - python -m pip install pytest lisien/
-      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
-      - echo "will run $PYTEST_MARKS"
-      - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+      - python -m pip install --root-user-action ignore pytest tox lisien/
+      - PYTEST_KEYWORDS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
+      - echo "will run $PYTEST_KEYWORDS"
+      - tox run -c $TOXFILE

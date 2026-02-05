@@ -2,10 +2,6 @@ when:
   - event: push
     branch: main
 matrix:
-  PYTHON_VERSION:
-    - 3.12
-    - 3.13
-    - 3.14
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
@@ -20,13 +16,9 @@ matrix:
     - thread_manager
     - process_manager
 
-variables:
-  - &python_image python:${PYTHON_VERSION}
-  - &slow_headless_name slow_headless_${PYTHON_VERSION}
-
 steps:
-  - name: *slow_headless_name
-    image: *python_image
+  - name: slow_headless_tests
+    image: zacharyspector/elide:latest
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
@@ -36,12 +28,12 @@ steps:
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
-      - python -m pip install git+https://github.com/lllangWV/ParquetDB.git@bcc6613d2d552ece646c4628a514b43c381d2bc6
+      - TOXFILE=lisien/tox_prerelease_parquetdb
       - else
       - DATABASE="${DATABASE}"
       - export DATABASE
+      - TOXFILE=lisien/tox.ini
       - fi
-      - python -m pip install pytest lisien/
-      - PYTEST_MARKS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
-      - echo "will run $PYTEST_MARKS"
-      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+      - PYTEST_KEYWORDS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
+      - echo "will run $PYTEST_KEYWORDS"
+      - tox run -c $TOXFILE
