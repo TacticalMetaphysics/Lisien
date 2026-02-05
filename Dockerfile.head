@@ -26,7 +26,23 @@ RUN set -eux; \
 		libwayland-dev \
 		libgles-dev \
 		winehq-stable \
-		openjdk-21-jdk-headless \
+		openjdk-25-jdk-headless \
+		zip \
+		unzip \
+		python3-pip \
+        python3-virtualenv \
+        autoconf \
+        libtool \
+        pkg-config \
+        zlib1g-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        libtinfo6 \
+        libffi-dev \
+        libssl-dev \
+        automake \
+        autopoint \
+        gettext \
 	; \
 	apt-get dist-clean
 
@@ -37,6 +53,12 @@ RUN <<EOF
 	unzip butler.zip
 	mv butler /usr/local/bin/
 	mv *.so /usr/local/lib/
+EOF
+
+# download and install Rust
+RUN <<EOF
+curl https://sh.rustup.rs >rustup.sh
+sh rustup.sh -y
 EOF
 
 ENV GPG_KEY 7169605F62C751356D054A26A821E680E5FA6305

@@ -26,7 +26,23 @@ RUN set -eux; \
 		libwayland-dev \
 		libgles-dev \
 		winehq-stable \
-		openjdk-21-jdk-headless \
+		openjdk-25-jdk-headless \
+		zip \
+		unzip \
+		python3-pip \
+        python3-virtualenv \
+        autoconf \
+        libtool \
+        pkg-config \
+        zlib1g-dev \
+        libncurses5-dev \
+        libncursesw5-dev \
+        libtinfo6 \
+        libffi-dev \
+        libssl-dev \
+        automake \
+        autopoint \
+        gettext \
 	; \
 	apt-get dist-clean
 
@@ -37,6 +53,12 @@ RUN <<EOF
 	unzip butler.zip
 	mv butler /usr/local/bin/
 	mv *.so /usr/local/lib/
+EOF
+
+# download and install Rust
+RUN <<EOF
+curl https://sh.rustup.rs >rustup.sh
+sh rustup.sh -y
 EOF
 
 ENV GPG_KEY 7169605F62C751356D054A26A821E680E5FA6305
@@ -320,7 +342,7 @@ patch -p1 -d kivy-$COMMIT_HASH <kivy.patch
 cd kivy-$COMMIT_HASH
 for minor in $(seq 12 14); do
     /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython==0.29.34 tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb legacy-cgi  setuptools git+https://github.com/kivy/buildozer
     USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel .
     /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
 done
