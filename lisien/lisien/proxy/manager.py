@@ -19,27 +19,30 @@ import json
 import logging
 import os
 import pickle
+from queue import Empty
 import sys
 import time
 import zlib
-from enum import Enum
+from functools import partial
 from pathlib import Path
-from threading import Thread
+from threading import Thread, Lock
 from zipfile import ZipFile
 
+from attrs import define, field
 import tblib
 
+from ..facade import EngineFacade
 from ..types import Branch, EternalKey, Key, Tick, Turn, Value
+from ..enum import Sub
+from ..util import unpack_expected
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
 
 
-class Sub(Enum):
-	process = "process"
-	interpreter = "interpreter"
-	thread = "thread"
+TIMEOUT = 60
 
 
+@define(slots=False)
 class EngineProxyManager:
 	"""Container for a Lisien proxy and a logger for it
 
@@ -49,35 +52,45 @@ class EngineProxyManager:
 	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
-	:param sub_mode: What form the subprocess should take. ``Sub.thread``
+	"""
+
+	sub_mode: Sub = field(converter=Sub, default=Sub.thread)
+	"""What form the subprocess should take. ``Sub.thread``
 	is the most widely available, and is therefore the default, but doesn't
 	allow true parallelism unless you're running a GIL-less build of Python.
 	``Sub.process`` does allow true parallelism, but isn't available on Android.
 	``Sub.interpreter`` is, and allows true parallelism as well, but is only
-	available on Python 3.14 or later.
+	available on Python 3.14 or later."""
 
+	@sub_mode.validator
+	def _validate_sub_mode(self, _, sub_mode):
+		if sub_mode is None or sub_mode is Sub.serial:
+			raise NotImplementedError(
+				"Can't presently run proxies without some subroutine"
+			)
+
+	loglevel: int = logging.DEBUG
+	"""What level to log at"""
+	android: bool = False
+	"""Are we running on Android?"""
+	reuse: bool = field(default=False)
+	"""Whether to keep the subprocess running after closing the engine proxy.
+	
+	Or the subthread, or the subinterpreter. Whatever you're using.
+	
+	Starting a new engine in the same subprocess is often faster.
+	
 	"""
-
-	loglevel = logging.DEBUG
-	android = False
-
-	def __init__(
-		self,
-		*args,
-		sub_mode: Sub = Sub.thread,
-		**kwargs,
-	):
-		self.sub_mode = Sub(sub_mode)
-		self._args = args
-		self._kwargs = kwargs
-		self._top_uid = 0
+	_top_uid: int = field(init=False, default=0)
+	_proxman_send_lock: Lock = field(init=False, factory=Lock)
+	_proxman_recv_lock: Lock = field(init=False, factory=Lock)
+	_round_trip_lock: Lock = field(init=False, factory=Lock)
+	logger: logging.Logger = field(init=False)
 
 	def start(self, *args, **kwargs):
-		"""Start lisien in a subprocess, and return a proxy to it"""
-		if hasattr(self, "engine_proxy"):
-			raise RuntimeError("Already started")
-
 		self._config_logger(kwargs)
+		if "sub_mode" in kwargs:
+			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
 		if self.android:
 			self._start_osc(*args, **kwargs)
@@ -89,8 +102,8 @@ class EngineProxyManager:
 					self._start_subthread(*args, **kwargs)
 				case Sub.interpreter:
 					self._start_subinterpreter(*args, **kwargs)
-		args = args or self._args
-		kwargs |= self._kwargs
+				case Sub.none:
+					raise NotImplementedError("Just use Engine")
 		if args and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", args[0], kwargs["prefix"]
@@ -108,10 +121,7 @@ class EngineProxyManager:
 		return self.engine_proxy
 
 	def _sync_log_forever(self):
-		while True:
-			logrec = self._logq.get()
-			if logrec == b"shutdown":
-				return
+		while (logrec := self._logq.get()) != b"shutdown":
 			self.logger.handle(self._undictify_logrec_traceback(logrec))
 
 	def _undictify_logrec_traceback(
@@ -156,17 +166,49 @@ class EngineProxyManager:
 			EternalKey(Key("tick")): Value(0),
 			EternalKey(Key("_lisien_schema_version")): Value(0),
 		}
+		if "database" in kwargs:
+			if isinstance(kwargs["database"], partial):
+				which_db = kwargs["database"].func.db_type
+			else:
+				which_db = kwargs["database"].db_type
+		elif "connect_string" in kwargs:
+			which_db = "sql"
+		elif prefix is None:
+			which_db = "python"
+		else:
+			try:
+				import ParquetDB
 
-		if "connect_string" in kwargs:
+				which_db = "parquetdb"
+			except ImportError:
+				kwargs["connect_string"] = f"sqlite:///{prefix}/world.sqlite3"
+				which_db = "sql"
+
+		if which_db == "sql":
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
 			from ..sql import meta
 
+			connect_args = {}
+			if "connect_string" in kwargs:
+				connect_string = kwargs["connect_string"]
+				if "connect_args" in kwargs:
+					connect_args = kwargs["connect_args"]
+			elif "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				connect_string = kwargs["database"].keywords["connect_string"]
+				if "connect_args" in kwargs["database"].keywords:
+					connect_args = kwargs["database"].keywords["connect_args"]
+			elif prefix is not None:
+				connect_string = f"sqlite:///{prefix}/world.sqlite3"
+			else:
+				raise ValueError("Don't have a connect_string for SQL")
 			eng = create_engine(
-				kwargs["connect_string"],
+				connect_string,
 				poolclass=NullPool,
-				**kwargs.get("connect_args", {}),
+				**connect_args,
 			)
 			conn = eng.connect()
 			branches_t = meta.tables["branches"]
@@ -203,14 +245,19 @@ class EngineProxyManager:
 					eternal_d[key] = value
 			except OperationalError:
 				pass
-		elif prefix is None:
+		elif which_db == "python":
 			self.logger.warning(
 				"Running without a database. Lisien will be empty at start."
 			)
-		else:
+		elif which_db == "parquetdb":
 			from parquetdb import ParquetDB
 
-			pqdb_prefix = prefix.joinpath("world")
+			if "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				pqdb_prefix = kwargs["database"].keywords["path"]
+			else:
+				pqdb_prefix = prefix.joinpath("world")
 
 			for d in (
 				ParquetDB(pqdb_prefix.joinpath("branches"))
@@ -239,6 +286,8 @@ class EngineProxyManager:
 				.to_pylist()
 			):
 				eternal_d[d["key"]] = d["value"]
+		else:
+			raise ValueError("Couldn't determine database type", which_db)
 		return branches_d, eternal_d
 
 	def log(self, level: str | int, msg: str):
@@ -255,32 +304,68 @@ class EngineProxyManager:
 	def shutdown(self):
 		"""Close the engine in the subprocess, then join the subprocess"""
 		if hasattr(self, "engine_proxy"):
-			self.engine_proxy.close()
-			self.engine_proxy.send_bytes(b"shutdown")
-			if (
-				got := self.engine_proxy.recv_bytes(timeout=5.0)
-			) != b"shutdown":
-				raise RuntimeError(
-					"Subprocess didn't respond to shutdown signal", got
-				)
-			if hasattr(self, "_p"):
-				self._p.join(timeout=5.0)
-				if self._p.exitcode is None:
-					raise TimeoutError("Couldn't join core process")
+			if not self.engine_proxy.closed:
+				self.engine_proxy.close()
+			unpack = self.engine_proxy.unpack
+		else:
+			eng = EngineFacade(None)
+			unpack = eng.unpack
+		if hasattr(self, "_logq"):
+			self._logq.put(b"shutdown")
+			del self._logq
+		if hasattr(self, "_p"):
+			if self._p.is_alive():
+				with self._round_trip_lock:
+					with self._proxman_send_lock:
+						self._proxman_send_pipe.send_bytes(b"shutdown")
+					with self._proxman_recv_lock:
+						if not self._proxman_recv_pipe.poll(TIMEOUT):
+							raise TimeoutError(
+								"No response to shutdown signal"
+							)
+						got = self._proxman_recv_pipe.recv_bytes()
+						unpack_expected(unpack, got, b"shutdown")
+				self._p.join(timeout=TIMEOUT)
+				if self._p.is_alive():
+					self._p.kill()
+					self._p.join(timeout=TIMEOUT)
+					if self._p.is_alive():
+						self._p.terminate()
 				self._p.close()
-			if hasattr(self, "_t"):
-				self._t.join(timeout=5.0)
+			del self._p
+		if hasattr(self, "_t"):
+			if self._t.is_alive():
+				with self._round_trip_lock:
+					with self._proxman_send_lock:
+						self._proxman_put_queue.put(b"shutdown")
+					with self._proxman_recv_lock:
+						try:
+							got: bytes = self._proxman_get_queue.get(
+								timeout=TIMEOUT
+							)
+						except Empty:
+							raise TimeoutError(
+								"Didn't get a timely response from the core thread"
+							)
+					unpack_expected(unpack, got, b"shutdown")
+				self._t.join(timeout=TIMEOUT)
 				if self._t.is_alive():
 					raise TimeoutError("Couldn't join thread")
-			del self.engine_proxy
+			del self._t
+		if hasattr(self, "_log_thread"):
+			self._log_thread.join()
+			del self._log_thread
+		if hasattr(self, "_terp"):
+			if self._terp.is_running():
+				self._terp.close()
+			del self._terp
 		if hasattr(self, "_client"):
-			while not self._output_queue.empty():
+			while not self._proxman_get_queue.empty():
 				time.sleep(0.01)
 		if hasattr(self, "_server"):
 			self._server.shutdown()
-		if hasattr(self, "_logq"):
-			self._logq.put(b"shutdown")
-			self._log_thread.join()
+		if hasattr(self, "engine_proxy"):
+			del self.engine_proxy
 		if hasattr(self, "logger"):
 			self.logger.debug("EngineProxyManager: shutdown")
 
@@ -322,27 +407,60 @@ class EngineProxyManager:
 			handler.setFormatter(formatter)
 			self.logger.addHandler(handler)
 
-	def _start_subprocess(self, *args, **kwargs):
+	def _start_subprocess(self, prefix: Path | None = None, **kwargs):
+		if hasattr(self, "_p"):
+			if not self.reuse:
+				raise RuntimeError("Already started")
+			if not self._p.is_alive():
+				raise RuntimeError("Tried to reuse a dead process")
+			self.logger.info("EngineProxyManager: already have a subprocess")
+			if hasattr(self, "engine_proxy"):
+				if not self.engine_proxy.closed:
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
+			else:
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
+			with self._round_trip_lock:
+				with self._proxman_send_lock:
+					self._proxman_send_pipe.send_bytes(
+						pack(
+							{"command": "restart", "prefix": prefix, **kwargs}
+						)
+					)
+				with self._proxman_recv_lock:
+					if not self._proxman_recv_pipe.poll(TIMEOUT):
+						raise TimeoutError(
+							"Subprocess didn't respond to restart command"
+						)
+					if not (
+						got := self._proxman_recv_pipe.recv_bytes()
+					).endswith(b"\xa9restarted"):
+						unpack_expected(unpack, got, b"\xa9restarted")
+			return
 		from multiprocessing import Pipe, Process, SimpleQueue
 
-		(self._handle_in_pipe, self._proxy_out_pipe) = Pipe(duplex=False)
-		(self._proxy_in_pipe, self._handle_out_pipe) = Pipe(duplex=False)
+		(self._handle_recv_pipe, self._proxman_send_pipe) = Pipe(duplex=False)
+		(self._proxman_recv_pipe, self._handle_send_pipe) = Pipe(duplex=False)
 		self._logq = SimpleQueue()
 
 		self._p = Process(
 			name="Lisien Life Simulator Engine (core)",
 			target=engine_subprocess,
 			args=(
-				args or self._args,
-				self._kwargs | kwargs,
-				self._handle_in_pipe,
-				self._handle_out_pipe,
+				(prefix,),
+				kwargs,
+				self._handle_recv_pipe,
+				self._handle_send_pipe,
+				self.reuse,
 				self._logq,
 			),
 		)
 		self._p.start()
 
-		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
+		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
 	def _start_osc(self, *args, **kwargs):
@@ -363,8 +481,8 @@ class EngineProxyManager:
 		low_port = 32000
 		high_port = 65535
 		core_port_queue = SimpleQueue()
-		self._input_queue = SimpleQueue()
-		self._output_queue = SimpleQueue()
+		self._proxman_put_queue = SimpleQueue()
+		self._proxman_get_queue = SimpleQueue()
 		disp = Dispatcher()
 		disp.map(
 			"/core-report-port", lambda _, port: core_port_queue.put(port)
@@ -484,47 +602,118 @@ class EngineProxyManager:
 				"EngineProxyManager: received a complete message, "
 				f"decompressed to {len(recvd)} bytes"
 			)
-			self._input_queue.put(recvd)
+			self._proxman_put_queue.put(recvd)
 			self._top_uid += 1
 			self._input_received = []
 
-	def _start_subthread(self, *args, **kwargs):
+	def _start_subthread(self, prefix: Path | None = None, **kwargs):
+		if hasattr(self, "_t"):
+			if not self.reuse:
+				raise RuntimeError("Already started")
+			self.logger.info(
+				"EngineProxyManager: already have a subthread, will reuse"
+			)
+			if hasattr(self, "engine_proxy"):
+				if not self.engine_proxy.closed:
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
+			else:
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
+			restart_bytes = pack(
+				{"command": "restart", "prefix": prefix, **kwargs}
+			)
+			with self._round_trip_lock:
+				self._proxman_put_queue.put(restart_bytes)
+				if not (got := self._proxman_get_queue.get()).endswith(
+					b"\xa9restarted"
+				):
+					try:
+						gotten = unpack(got)
+						if isinstance(gotten, Exception):
+							raise gotten
+						if not isinstance(gotten, tuple) or len(gotten) == 0:
+							raise TypeError(
+								"Strange output from subthread", gotten
+							)
+						if isinstance(gotten[-1], Exception):
+							raise gotten[-1]
+						else:
+							raise RuntimeError(
+								"Failed to restart subthread", gotten
+							)
+					except ValueError:
+						raise RuntimeError("Failed to restart subthread", got)
+			return
 		self.logger.debug("EngineProxyManager: starting subthread!")
 		from queue import SimpleQueue
 
-		self._input_queue = SimpleQueue()
-		self._output_queue = SimpleQueue()
+		self._proxman_put_queue = SimpleQueue()
+		self._proxman_get_queue = SimpleQueue()
 
 		self._t = Thread(
 			target=engine_subthread,
 			args=(
-				args or self._args,
-				self._kwargs | kwargs,
-				self._output_queue,
-				self._input_queue,
+				(prefix,),
+				kwargs,
+				self._proxman_put_queue,
+				self._proxman_get_queue,
+				self.reuse,
 				None,
 			),
 		)
 		self._t.start()
 
-	def _start_subinterpreter(self, *args, **kwargs):
+	def _start_subinterpreter(self, prefix: Path | None = None, **kwargs):
+		if hasattr(self, "_terp"):
+			if not self.reuse:
+				raise RuntimeError("Already started")
+			self.logger.info(
+				"EngineProxyManager: already have a subinterpreter"
+			)
+			if hasattr(self, "engine_proxy"):
+				if not self.engine_proxy.closed:
+					raise RuntimeError("Previous engine proxy was not closed")
+				pack = self.engine_proxy.pack
+				unpack = self.engine_proxy.unpack
+			else:
+				eng = EngineFacade(None)
+				pack = eng.pack
+				unpack = eng.unpack
+			self._proxman_put_queue.put(
+				pack({"command": "restart", "prefix": prefix, **kwargs})
+			)
+			if not (got := self._proxman_get_queue.get()).endswith(
+				b"\xa9restarted"
+			):
+				gotten = unpack(got)
+				if not isinstance(gotten, tuple) or len(gotten) == 0:
+					raise TypeError(
+						"Strange output from subinterpreter", gotten
+					)
+				if isinstance(gotten[-1], Exception):
+					raise gotten[-1]
+				raise RuntimeError("Failed to restart subinterpreter", got)
+			return
 		from concurrent.interpreters import create, create_queue
 		from queue import Queue
 
-		self._input_queue: Queue = create_queue()
-		self._output_queue: Queue = create_queue()
+		self._proxman_put_queue: Queue = create_queue()
+		self._proxman_get_queue: Queue = create_queue()
 		self._logq: Queue = create_queue()
 
 		self._terp = create()
 		self._t = self._terp.call_in_thread(
 			engine_subthread,
-			args or self._args,
-			self._kwargs | kwargs,
-			self._output_queue,
-			self._input_queue,
+			(prefix,),
+			kwargs,
+			self._proxman_put_queue,
+			self._proxman_get_queue,
 			self._logq,
 		)
-		self._log_thread = Thread(target=self._sync_log_forever, daemon=True)
+		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
 	def _make_proxy(
@@ -536,16 +725,34 @@ class EngineProxyManager:
 		game_strings: dict[str, str] | None = None,
 		**kwargs,
 	):
-		if hasattr(self, "_input_queue"):
-			self._output_queue.put(b"echoReadyToMakeProxy")
-			if (got := self._input_queue.get()) != b"ReadyToMakeProxy":
-				raise RuntimeError("Subthread isn't ready", got)
+		if hasattr(self, "engine_proxy"):
+			if not self.engine_proxy.closed:
+				raise RuntimeError(
+					"Tried to make a second proxy in EngineProxyManager"
+				)
+			unpack = self.engine_proxy.unpack
 		else:
-			self._proxy_out_pipe.send_bytes(b"echoReadyToMakeProxy")
-			if (
-				got := self._proxy_in_pipe.recv_bytes()
-			) != b"ReadyToMakeProxy":
-				raise RuntimeError("Subprocess isn't ready", got)
+			unpack = EngineFacade(None).unpack
+		with self._round_trip_lock:
+			if hasattr(self, "_proxman_put_queue"):
+				with self._proxman_send_lock:
+					self._proxman_put_queue.put(b"echo\xb0ReadyToMakeProxy")
+				with self._proxman_recv_lock:
+					try:
+						got = self._proxman_get_queue.get(timeout=TIMEOUT)
+					except Empty:
+						raise TimeoutError("Core didn't respond")
+				unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
+			else:
+				with self._proxman_send_lock:
+					self._proxman_send_pipe.send_bytes(
+						b"echo\xb0ReadyToMakeProxy"
+					)
+				if not self._proxman_recv_pipe.poll(TIMEOUT):
+					raise TimeoutError("Subprocess isn't ready")
+				with self._proxman_recv_lock:
+					got = self._proxman_recv_pipe.recv_bytes()
+			unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
@@ -574,13 +781,17 @@ class EngineProxyManager:
 					with open(jsonpath) as inf:
 						game_strings = json.load(inf)
 
-		if hasattr(self, "_proxy_in_pipe") and hasattr(
-			self, "_proxy_out_pipe"
+		if hasattr(self, "_proxman_recv_pipe") and hasattr(
+			self, "_proxman_send_pipe"
 		):
 			self.engine_proxy = EngineProxy(
-				self._proxy_in_pipe.recv_bytes,
-				self._proxy_out_pipe.send_bytes,
+				self._proxman_recv_pipe.recv_bytes,
+				self._proxman_send_pipe.send_bytes,
 				self.logger,
+				self._proxman_recv_lock,
+				self._proxman_send_lock,
+				self._round_trip_lock,
+				prefix,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,
@@ -590,9 +801,13 @@ class EngineProxyManager:
 			)
 		else:
 			self.engine_proxy = EngineProxy(
-				self._input_queue.get,
-				self._output_queue.put,
+				self._proxman_get_queue.get,
+				self._proxman_put_queue.put,
 				self.logger,
+				self._proxman_recv_lock,
+				self._proxman_send_lock,
+				self._round_trip_lock,
+				prefix,
 				install_modules,
 				enforce_end_of_time=enforce_end_of_time,
 				branches_d=branches_d,
@@ -603,8 +818,7 @@ class EngineProxyManager:
 			if self.android:
 				self._output_sender_thread = Thread(
 					target=self._send_output_forever,
-					args=[self._output_queue],
-					daemon=True,
+					args=[self._proxman_get_queue],
 				)
 				self._output_sender_thread.start()
 
@@ -642,44 +856,29 @@ class EngineProxyManager:
 
 			self._start_osc(prefix, **kwargs)
 		except ModuleNotFoundError:
-			match self.sub_mode:
-				case Sub.interpreter:
-					self._start_subinterpreter(prefix, **kwargs)
-				case Sub.process:
-					self._start_subprocess(prefix, **kwargs)
-				case Sub.thread:
-					self._start_subthread(prefix, **kwargs)
-		try:
-			from msgpack import Packer
-
-			if Packer.__module__.endswith("cmsgpack"):
-				from msgpack import packb
-			else:
-				from umsgpack import packb
-		except ImportError:
-			from umsgpack import packb
-		if hasattr(self, "_proxy_out_pipe"):
-			self._proxy_out_pipe.send_bytes(
-				b"from_archive"
-				+ packb(
-					{
-						"archive_path": str(archive_path),
-						"prefix": str(prefix),
-						**kwargs,
-					}
-				)
-			)
+			pass
+		match self.sub_mode:
+			case Sub.interpreter:
+				self._start_subinterpreter(prefix, **kwargs)
+			case Sub.process:
+				self._start_subprocess(prefix, **kwargs)
+			case Sub.thread:
+				self._start_subthread(prefix, **kwargs)
+		worker_sub = kwargs.pop("sub_mode", None)
+		if worker_sub is not None:
+			worker_sub = Sub(worker_sub).value
+		payload = b"from_archive" + EngineFacade(None).pack(
+			{
+				"archive_path": str(archive_path),
+				"prefix": str(prefix),
+				"sub_mode": worker_sub,
+				**kwargs,
+			}
+		)
+		if hasattr(self, "_proxman_send_pipe"):
+			self._proxman_send_pipe.send_bytes(payload)
 		else:
-			self._output_queue.put(
-				b"from_archive"
-				+ packb(
-					{
-						"archive_path": str(archive_path),
-						"prefix": str(prefix),
-						**kwargs,
-					}
-				),
-			)
+			self._proxman_put_queue.put(payload)
 		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
@@ -696,7 +895,8 @@ class EngineProxyManager:
 			self.logger.debug("EngineProxyManager: stopping core service")
 			self._core_service.stop()
 			self.logger.debug("EngineProxyManager: stopped core service")
-		self.logger.debug("EngineProxyManager: closed")
+		if hasattr(self, "logger"):
+			self.logger.debug("EngineProxyManager: closed")
 
 	def __enter__(self):
 		return self

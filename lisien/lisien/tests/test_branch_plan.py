@@ -106,15 +106,16 @@ def test_multi_plan(serial_engine):
 		g2.add_edge(1, 2)
 	eng.turn = 0
 	# contradict the plan
-	eng.tick = eng.turn_end_plan()
-	del g1.node[2]
-	assert 1 in g2.node
-	assert 2 in g2.node
-	eng.turn = 1
-	eng.tick = eng.turn_end_plan()
-	assert 2 not in g1.node
-	assert 2 not in g1.edge[1]
-	assert 2 in g2.edge[1]
+	with eng.advancing():
+		eng.tick = eng.turn_end_plan()
+		del g1.node[2]
+		assert 1 in g2.node
+		assert 2 in g2.node
+		eng.turn = 1
+		eng.tick = eng.turn_end_plan()
+		assert 2 not in g1.node
+		assert 2 not in g1.edge[1]
+		assert 2 in g2.edge[1]
 
 
 def test_plan_vs_plan(serial_engine):
@@ -145,18 +146,20 @@ def test_plan_vs_plan(serial_engine):
 		assert 1 in g1.edge[0]
 		assert 2 in g1.edge[1]
 	eng.turn = 0
-	eng.tick = eng.turn_end_plan()
+	with eng.advancing():
+		eng.tick = eng.turn_end_plan()
 	with eng.plan():
 		del g1.node[2]  # A contradiction. Should only cancel the earlier plan.
-	eng.turn = 2
-	eng.tick = eng.turn_end_plan()
+	with eng.advancing():
+		eng.turn = 2
+		eng.tick = eng.turn_end_plan()
 	assert 3 not in g1.node
 	assert 3 not in g1.adj
 	assert 0 in g1.node
 	assert 1 in g1.adj[0]
 
 
-def test_save_load_plan(tmp_path, database_connector_part):
+def test_save_load_plan(tmp_path, persistent_database_connector_part):
 	with Engine(
 		tmp_path,
 		function=FunctionStore(None),
@@ -166,7 +169,7 @@ def test_save_load_plan(tmp_path, database_connector_part):
 		action=FunctionStore(None),
 		string={},
 		workers=0,
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 	) as orm:
 		g1 = orm.new_character(1)
 		g2 = orm.new_character(2)
@@ -193,19 +196,20 @@ def test_save_load_plan(tmp_path, database_connector_part):
 		prereq=FunctionStore(None),
 		action=FunctionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 	) as orm:
 		g1 = orm.character[1]
 		g2 = orm.character[2]
 		assert 2 not in g1.node  # because we're before the plan
 		# but if we go to after the plan...
-		orm.tick = orm.turn_end_plan()
-		assert 1 in g1.node
-		assert 2 in g1.node
-		# contradict the plan
-		del g1.node[2]
-		assert 1 in g2.node
-		assert 2 in g2.node
+		with orm.advancing():
+			orm.tick = orm.turn_end_plan()
+			assert 1 in g1.node
+			assert 2 in g1.node
+			# contradict the plan
+			del g1.node[2]
+			assert 1 in g2.node
+			assert 2 in g2.node
 		orm.next_turn()
 		assert orm.turn == 1
 		assert 2 not in g1.node
@@ -225,7 +229,7 @@ def test_save_load_plan(tmp_path, database_connector_part):
 		prereq=PrereqStore(None),
 		action=ActionStore(None),
 		string=StringStore({"language": "eng"}, None),
-		database=database_connector_part,
+		database=persistent_database_connector_part,
 	) as orm:
 		orm.turn = 0
 		g1 = orm.character[1]

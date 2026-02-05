@@ -10,11 +10,11 @@ matrix:
     - sqlite
     - parquetdb
     - prerelease-parquetdb
-  EXECUTION:
-    - thread
-    - process
-    - interpreter
-    - not thread and not process and not interpreter
+  MANAGER:
+    - not process_manager and not thread_manager and not interpreter_manager
+    - process_manager
+    - thread_manager
+    - interpreter_manager
 
 variables:
   - &python_image python:3.14
@@ -31,8 +31,6 @@ steps:
       - export TMPDIR
       - python -m venv .venv
       - . .venv/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install pytest
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
@@ -41,8 +39,8 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - python -m pip install lisien/
-      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION}"
+      - python -m pip install pytest lisien/
+      - PYTEST_MARKS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
   - name: *slow_headless_name
@@ -53,8 +51,6 @@ steps:
       - export TMPDIR
       - python -m venv .venv${PYTHON_VERSION}
       - . .venv${PYTHON_VERSION}/bin/activate
-      - python -m pip install --upgrade pip
-      - python -m pip install pytest
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
@@ -63,7 +59,7 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - python -m pip install lisien/
-      - PYTEST_MARKS="slow or big and $DATABASE and ${EXECUTION}"
+      - python -m pip install pytest lisien/
+      - PYTEST_MARKS="(slow or big) and interpreter_workers and $DATABASE"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests

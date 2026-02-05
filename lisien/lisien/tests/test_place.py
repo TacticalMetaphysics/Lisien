@@ -19,8 +19,8 @@ from lisien.exc import AmbiguousLeaderError
 
 
 @pytest.fixture(scope="function")
-def someplace(engy):
-	yield engy.new_character("physical").new_place("someplace")
+def someplace(engine):
+	yield engine.new_character("physical").new_place("someplace")
 
 
 def test_contents(someplace):
@@ -94,8 +94,8 @@ def test_deletion_after_keyframe(engine):
 	assert (5, 5) not in list(phys.place)
 
 
-def test_clear(engy):
-	phys = engy.new_character("physical")
+def test_clear(engine):
+	phys = engine.new_character("physical")
 	place = phys.new_place("here")
 	place["a"] = 1
 	place["b"] = 2

@@ -1,21 +1,26 @@
-# compile kivy
-RUN set -eux; \
-	COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4; \
-	wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip; \
-	unzip kivy.zip; \
-	cd kivy-$COMMIT_HASH; \
-	for minor in $(seq 12 14); do \
-		python3.$minor -m pip install Cython; \
-		USE_X11=1 python3.$minor -m pip wheel .; \
-		python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl; \
-	done; \
-	cd ..
-
+# compile kivy and install lisien dependencies
+ENV COMMIT_HASH=b0084151dee976c74891c459fd6fc0f27bb249d4
+COPY kivy.patch ./kivy.patch
+RUN <<EOF
+set -eux
+wget -O kivy.zip https://github.com/kivy/kivy/archive/$COMMIT_HASH.zip
+unzip kivy.zip
+patch -p1 -d kivy-$COMMIT_HASH <kivy.patch
+cd kivy-$COMMIT_HASH
+for minor in $(seq 12 14); do
+    /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython==0.29.34 tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb legacy-cgi  setuptools git+https://github.com/kivy/buildozer
+    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel .
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+done
+cd ..
+rm -rf kivy*
+EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
-	for src in idle3 pip3 pydoc3 python3 python3-config; do \
+	for src in idle3 pydoc3 python3 python3-config; do \
 		dst="$(echo "$src" | tr -d 3)"; \
 		[ -s "/usr/local/bin/$src" ]; \
 		[ ! -e "/usr/local/bin/$dst" ]; \
 		ln -svT "$src" "/usr/local/bin/$dst"; \
-	done
+	done;

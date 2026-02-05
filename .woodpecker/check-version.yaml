@@ -1,0 +1,8 @@
+when:
+  - event: deployment
+
+steps:
+  - name: check_version
+    image: python:3.12
+    commands:
+      - python check_version.py

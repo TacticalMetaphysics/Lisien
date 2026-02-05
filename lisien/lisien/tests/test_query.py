@@ -18,7 +18,7 @@ from functools import reduce, partial
 
 import pytest
 
-from .util import college_engine, untar_cache
+from .data import DATA_DIR
 from .. import Engine
 from ..query import windows_intersection
 from ..sql import SQLAlchemyDatabaseConnector
@@ -27,15 +27,14 @@ pytestmark = [pytest.mark.slow, pytest.mark.big]
 
 
 @pytest.fixture
-def college24_sql(tmp_path, college24_sql_tar):
-	with untar_cache(
-		college24_sql_tar,
+def college24_sql(tmp_path):
+	with Engine.from_archive(
+		DATA_DIR.joinpath("college24.lisien"),
 		tmp_path,
-		partial(
+		database=partial(
 			SQLAlchemyDatabaseConnector,
 			connect_string=f"sqlite:///{tmp_path}/world.sqlite3",
 		),
-		None,
 	) as eng:
 		yield eng
 

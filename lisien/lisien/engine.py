@@ -28,7 +28,11 @@ import shutil
 import sys
 from abc import ABC, abstractmethod
 from collections import UserDict, defaultdict
-from concurrent.futures import Executor, Future, ThreadPoolExecutor
+from concurrent.futures import (
+	Executor as BaseExecutor,
+	Future,
+	ThreadPoolExecutor,
+)
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
@@ -136,14 +140,13 @@ from .exc import (
 )
 from .facade import CharacterFacade, EngineFacade
 from .futures import (
-	LisienExecutor,
-	LisienThreadExecutor,
-	LisienProcessExecutor,
-	LisienInterpreterExecutor,
+	Executor,
+	ThreadExecutor,
+	ProcessExecutor,
+	InterpreterExecutor,
 )
 from .node import Place, Thing
 from .portal import Portal
-from .proxy.manager import Sub
 from .query import _make_side_sel
 from .rule import AllRuleBooks, AllRules, Rule
 from .types import (
@@ -180,6 +183,7 @@ from .types import (
 	NodeName,
 	NodesDict,
 	NodeValDict,
+	PickierDefaultDict,
 	Plan,
 	PrereqFuncName,
 	Query,
@@ -207,6 +211,7 @@ from .types import (
 	PickyDefaultDict,
 	StructuredDefaultDict,
 )
+from .enum import Sub
 from .util import (
 	ACTIONS,
 	BIG,
@@ -246,65 +251,6 @@ class InnerStopIteration(StopIteration):
 	pass
 
 
-class PlanningContext(ContextDecorator):
-	"""A context manager for 'hypothetical' edits.
-
-	Start a block of code like::
-
-		with orm.plan():
-			...
-
-
-	and any changes you make to the world state within that block will be
-	'plans,' meaning that they are used as defaults. The world will
-	obey your plan unless you make changes to the same entities outside
-	the plan, in which case the world will obey those, and cancel any
-	future plan.
-
-	Plans are *not* canceled when concerned entities are deleted, although
-	they are unlikely to be followed.
-
-	New branches cannot be started within plans. The ``with orm.forward():``
-	optimization is disabled within a ``with orm.plan():`` block, so
-	consider another approach instead of making a very large plan.
-
-	With ``reset=True`` (the default), when the plan block closes,
-	the time will reset to when it began.
-
-	"""
-
-	__slots__ = ["orm", "id", "forward", "reset"]
-
-	def __init__(self, orm: "Engine", reset=True):
-		self.orm = orm
-		if reset:
-			self.reset = tuple(orm.time)
-		else:
-			self.reset = None
-
-	def __enter__(self):
-		orm = self.orm
-		if orm._planning:
-			raise ValueError("Already planning")
-		orm._planning = True
-		branch, turn, tick = orm.time
-		self.id = myid = orm._last_plan = orm._last_plan + 1
-		self.forward = orm._forward
-		if orm._forward:
-			orm._forward = False
-		orm._plans[myid] = branch, turn, tick
-		orm.database.plans_insert(myid, branch, turn, tick)
-		orm._branches_plans[branch].add(myid)
-		return myid
-
-	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.orm._planning = False
-		if self.reset is not None:
-			self.orm.time = self.reset
-		if self.forward:
-			self.orm._forward = True
-
-
 class NextTurn(Signal):
 	"""Make time move forward in the simulation.
 
@@ -338,11 +284,13 @@ class NextTurn(Signal):
 			# so that lisien does not try to load an empty turn before every
 			# loop of the rules engine
 			engine._extend_branch(start_branch, Turn(start_turn + 1), Tick(0))
-			engine.turn += 1
-			engine.tick = engine.turn_end_plan()
+			with engine.advancing():
+				engine.turn += 1
+				engine.tick = engine.turn_end_plan()
 		elif start_turn < latest_turn:
-			engine.turn += 1
-			engine.tick = engine.turn_end_plan()
+			with engine.advancing():
+				engine.turn += 1
+				engine.tick = engine.turn_end_plan()
 			self.send(
 				engine,
 				branch=engine.branch,
@@ -501,7 +449,7 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 
 @define
-class Engine(AbstractEngine, Executor):
+class Engine(AbstractEngine, BaseExecutor):
 	"""Lisien, the Life Simulator Engine."""
 
 	is_proxy: ClassVar = False
@@ -665,10 +613,13 @@ class Engine(AbstractEngine, Executor):
 			if self.connect_string is None:
 				from .pqdb import ParquetDatabaseConnector
 
+				path = self._prefix.joinpath("world")
+				path.mkdir(parents=True, exist_ok=True)
+
 				return ParquetDatabaseConnector(
 					self.pack,
 					self.unpack,
-					self._prefix.joinpath("world"),
+					path,
 					clear=self.clear,
 				)
 			else:
@@ -683,11 +634,17 @@ class Engine(AbstractEngine, Executor):
 				)
 
 	@staticmethod
-	def _convert_database(database, self):
+	def _convert_database(
+		database: AbstractDatabaseConnector
+		| type[AbstractDatabaseConnector]
+		| partial[AbstractDatabaseConnector]
+		| None,
+		self,
+	):
 		if callable(database):
 			return database(self.pack, self.unpack)
 		elif database is None:
-			return self._database_factory()
+			return PythonDatabaseConnector(self.pack, self.unpack)
 		else:
 			return database  # hope you know what you're doing
 
@@ -696,12 +653,12 @@ class Engine(AbstractEngine, Executor):
 		default=Factory(_database_factory, takes_self=True),
 		converter=Converter(_convert_database, takes_self=True),
 	)
-	"""The database connector to use. If left ``None``, Lisien will construct 
+	"""The database connector to use. By default, Lisien will construct 
 	a database connector based on the other arguments: SQLAlchemy if a 
 	``connect_string`` is provided; if not, but a ``prefix`` is provided, 
 	then ParquetDB; or, if ``prefix`` is ``None``, then an in-memory 
 	database. You may use the class of the connector, rather than an
-	instance."""
+	instance. If set to ``None``, an in-memory database will be used."""
 
 	@database.validator
 	@garbage
@@ -1085,41 +1042,35 @@ class Engine(AbstractEngine, Executor):
 
 	_shutdown_executor: bool = field(init=False, default=False)
 
-	@staticmethod
-	def _convert_executor(
-		executor: LisienExecutor | None, self
-	) -> LisienExecutor | None:
-		if executor:
-			self._shutdown_executor = False
-			return executor
-		elif self.workers > 0:
+	def _executor_factory(self):
+		if self.workers is not None and self.workers <= 0:
+			return None
+		if self._prefix is not None:
 			for store in self.stores:
 				if hasattr(store, "save"):
 					store.save(reimport=False)
-			self._shutdown_executor = True
-			match self.sub_mode:
-				case Sub.interpreter if sys.version_info[1] >= 14:
-					return LisienInterpreterExecutor(self)
-				case Sub.process:
-					return LisienProcessExecutor(self)
-				case Sub.thread:
-					return LisienThreadExecutor(self)
-				case None:
-					if sys.version_info[1] >= 14:
-						try:
-							return LisienInterpreterExecutor(self)
-						except ModuleNotFoundError:
-							pass
-					if get_all_start_methods():
-						return LisienProcessExecutor(self)
-					else:
-						return LisienThreadExecutor(self)
-		return None
+		self._shutdown_executor = True
+		match self.sub_mode:
+			case Sub.interpreter if sys.version_info[1] >= 14:
+				return InterpreterExecutor(self)
+			case Sub.process:
+				return ProcessExecutor(self)
+			case Sub.thread:
+				return ThreadExecutor(self)
+			case _:
+				if sys.version_info[1] >= 14:
+					try:
+						return InterpreterExecutor(self)
+					except ModuleNotFoundError:
+						pass
+				if get_all_start_methods():
+					return ProcessExecutor(self)
+				else:
+					return ThreadExecutor(self)
 
-	executor: LisienExecutor | None = field(
+	executor: Executor | None = field(
 		kw_only=True,
-		default=None,
-		converter=Converter(_convert_executor, takes_self=True),
+		default=Factory(_executor_factory, takes_self=True),
 	)
 	"""A :class:`LisienExecutor` instance we'll use to do
 		work in parallel. We'll make our own if one isn't supplied. Note that
@@ -1127,16 +1078,22 @@ class Engine(AbstractEngine, Executor):
 		:class:`Engine` instances at once."""
 
 	@executor.validator
-	def _validate_executor(self, attribute, executor: LisienExecutor | None):
+	def _validate_executor(self, attribute, executor: Executor | None):
 		if executor:
+			# make sure the executor has code to run
+			if self._prefix is not None:
+				for store in (
+					self.function,
+					self.method,
+					self.trigger,
+					self.prereq,
+					self.action,
+				):
+					store.save()
 			if executor.engine is not self:
 				executor.engine = self
 			executor.lock.acquire()
 			executor.restart(self._get_worker_kf_payload)
-		elif self.workers > 0:
-			raise RuntimeError(
-				f"Didn't start an executor, though {self.workers} workers were requested"
-			)
 
 	cache_neighbors: int = field(default=1000)
 	"""Number of nodes to cache the neighbors of"""
@@ -1287,7 +1244,11 @@ class Engine(AbstractEngine, Executor):
 		if v == self.turn:
 			return
 		turn_end, tick_end = self._branch_end()
-		if self.enforce_end_of_time and not self._planning and v > turn_end:
+		if (
+			self.enforce_end_of_time
+			and not (self._planning or self._forward)
+			and v > turn_end
+		):
 			raise OutOfTimelineError(
 				f"The turn {v} is after the end of the branch {self.branch}. "
 				f"Go to turn {turn_end} and simulate with `next_turn`.",
@@ -1342,8 +1303,13 @@ class Engine(AbstractEngine, Executor):
 		if v == self.tick:
 			return
 		if self.turn == self.branch_end_turn():
-			tick_end = self._turn_end_plan[self.branch, self.turn]
-			if v > tick_end + 1:
+			tick_end = self._turn_end[self.branch, self.turn]
+			tick_end_plan = self._turn_end_plan[self.branch, self.turn]
+			if (
+				not self._planning
+				and v > tick_end
+				and not (self._forward and v <= tick_end_plan + 1)
+			):
 				raise OutOfTimelineError(
 					f"The tick {v} is after the end of the turn {self.turn}. "
 					f"Go to tick {tick_end + 1} and simulate with `next_turn`.",
@@ -1930,9 +1896,54 @@ class Engine(AbstractEngine, Executor):
 		edge_objs[key] = ret
 		return ret
 
-	def plan(self, reset: bool = True) -> PlanningContext:
-		__doc__ = PlanningContext.__doc__
-		return PlanningContext(self, reset)
+	@contextmanager
+	def plan(self, reset: bool = True) -> Iterator[Plan]:
+		"""A context manager for 'hypothetical' edits.
+
+		Start a block of code like::
+
+			with orm.plan():
+				...
+
+
+		and any changes you make to the world state within that block will be
+		'plans,' meaning that they are used as defaults. The world will
+		obey your plan unless you make changes to the same entities outside
+		the plan, in which case the world will obey those, and cancel any
+		future plan.
+
+		Plans are *not* canceled when concerned entities are deleted, although
+		they are unlikely to be followed.
+
+		New branches cannot be started within plans. The ``with orm.forward():``
+		optimization is disabled within a ``with orm.plan():`` block, so
+		consider another approach instead of making a very large plan.
+
+		With ``reset=True`` (the default), when the plan block closes,
+		the time will reset to when it began.
+
+		"""
+		if self._planning:
+			raise ValueError("Already planning")
+		self._planning = True
+		reset_to = None
+		if reset:
+			reset_to = tuple(self.time)
+		branch, turn, tick = self.time
+		myid = self._last_plan = self._last_plan + 1
+		forward = self._forward
+		if forward:
+			self._forward = False
+		self._plans[myid] = branch, turn, tick
+		self.database.plans_insert(myid, branch, turn, tick)
+		self._branches_plans[branch].add(myid)
+		yield myid
+		if reset:
+			assert isinstance(reset_to, tuple) and len(reset_to) == 3
+			self.time = reset_to
+		if forward:
+			self._forward = True
+		self._planning = False
 
 	@world_locked
 	def _copy_plans(
@@ -2054,8 +2065,9 @@ class Engine(AbstractEngine, Executor):
 	def advancing(self):
 		"""A context manager for when time is moving forward one turn at a time.
 
-		When used in lisien, this means that the game is being simulated.
-		It changes how the caching works, making it more efficient.
+		Generally, this means that the game is being simulated. The window
+		of time that's "really happened" isn't allowed to grow outside of
+		this context.
 
 		"""
 		if self._forward:
@@ -4080,10 +4092,20 @@ class Engine(AbstractEngine, Executor):
 				)
 		return time_from[0], branched_turn_from, branched_tick_from
 
+	@cached_property
+	def _char_exists_stuff(self):
+		return self._graph_cache._base_retrieve, self.time
+
+	def _char_exists(self, character: CharName) -> bool:
+		retrieve, btt = self._char_exists_stuff
+		args = (character, *btt)
+		retrieved = retrieve(args, store_hint=False)
+		return retrieved and not isinstance(retrieved, Exception)
+
 	def _node_exists(self, character: CharName, node: NodeName) -> bool:
 		retrieve, btt = self._node_exists_stuff
 		args = (character, node, *btt)
-		retrieved = retrieve(args)
+		retrieved = retrieve(args, store_hint=False)
 		return retrieved and not isinstance(retrieved, Exception)
 
 	@world_locked
@@ -4115,7 +4137,7 @@ class Engine(AbstractEngine, Executor):
 	) -> bool:
 		retrieve, btt = self._edge_exists_stuff
 		args = (character, orig, dest, *btt)
-		retrieved = retrieve(args)
+		retrieved = retrieve(args, store_hint=False)
 		return retrieved is not None and not isinstance(retrieved, Exception)
 
 	@world_locked
@@ -4640,7 +4662,7 @@ class Engine(AbstractEngine, Executor):
 		if silent:
 			return None
 		ret = self._get_kf(branch, turn, tick)
-		if hasattr(self, "_worker_processes") and update_worker_processes:
+		if update_worker_processes and self.executor is not None:
 			self._update_all_worker_process_states(clobber=True)
 		return ret
 
@@ -4974,15 +4996,19 @@ class Engine(AbstractEngine, Executor):
 	def turn_end(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
-		if turn is None:
-			turn = self._oturn
+			if turn is None:
+				turn = self._oturn
+		elif turn is None:
+			turn = self.branch_end_turn(branch)
 		return self._turn_end[branch, turn]
 
 	def turn_end_plan(self, branch: Branch = None, turn: Turn = None) -> Tick:
 		if branch is None:
 			branch = self._obranch
-		if turn is None:
-			turn = self._oturn
+			if turn is None:
+				turn = self._oturn
+		elif turn is None:
+			turn = self.branch_end_turn(branch)
 		return self._turn_end_plan[branch, turn]
 
 	def submit(
@@ -4997,7 +5023,9 @@ class Engine(AbstractEngine, Executor):
 		}:
 			raise ValueError(
 				"Function is not stored in this lisien engine. "
-				"Use, eg., the engine's attribute `function` to store it."
+				"Use, eg., the engine's attribute `function` to store it.",
+				fn.__name__,
+				fn.__module__,
 			)
 		if self.executor is not None:
 			return self.executor.submit(fn, *args, **kwargs)
@@ -5376,11 +5404,12 @@ class Engine(AbstractEngine, Executor):
 				}
 			if EDGES in chardeltpacked:
 				edges = chardelt["edges"] = {}
-				for ab, ex in chardeltpacked.pop(EDGES).items():
-					a, b = unpack(ab)
+				for a, bs in chardeltpacked.pop(EDGES).items():
+					a = unpack(a)
 					if a not in edges:
 						edges[a] = {}
-					edges[a][b] = ex == TRUE
+					for b, ex in bs.items():
+						edges[a][b] = ex == TRUE
 			if NODE_VAL in chardeltpacked:
 				node_val = chardelt["node_val"] = {}
 				for node, stats in chardeltpacked.pop(NODE_VAL).items():
@@ -5410,29 +5439,32 @@ class Engine(AbstractEngine, Executor):
 		btt_to = validate_time(btt_to)
 		if len(btt_to) != 3:
 			raise TypeError("Not a full time with a branch", btt_to)
-		import numpy as np
+		try:
+			import numpy as np
+		except ImportError:
+			np = None
 
 		def newgraph():
 			return {
-				# null mungers mean KeyError, which is correct
-				NODES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
+				NODES: PickierDefaultDict(bytes, bytes),
+				EDGES: PickierDefaultDict(
+					bytes, PickierDefaultDict[bytes, bytes]
 				),
-				EDGES: PickyDefaultDict(
-					bytes, args_munger=None, kwargs_munger=None
+				NODE_VAL: PickierDefaultDict(
+					bytes, PickierDefaultDict[bytes, bytes]
 				),
-				NODE_VAL: StructuredDefaultDict(
-					1, bytes, args_munger=None, kwargs_munger=None
-				),
-				EDGE_VAL: StructuredDefaultDict(
-					2, bytes, args_munger=None, kwargs_munger=None
+				EDGE_VAL: PickierDefaultDict(
+					bytes,
+					PickierDefaultDict[
+						bytes, PickierDefaultDict[bytes, bytes]
+					],
 				),
 			}
 
 		delta: dict[bytes, Any] = {
-			UNIVERSAL: PickyDefaultDict(bytes),
-			RULES: StructuredDefaultDict(1, bytes),
-			RULEBOOK: PickyDefaultDict(bytes),
+			UNIVERSAL: PickierDefaultDict(bytes, bytes),
+			RULES: PickierDefaultDict(bytes, PickierDefaultDict[bytes, bytes]),
+			RULEBOOK: PickierDefaultDict(bytes, bytes),
 		}
 		pack = self.pack
 		now = tuple(self.time)
@@ -5602,13 +5634,21 @@ class Engine(AbstractEngine, Executor):
 			grap, node = map(pack, (graph, node))
 			if grap not in delta:
 				delta[grap] = newgraph()
+			elif delta[grap] is ELLIPSIS:
+				return
 			delta[grap][NODES][node] = existence
 
 		def pack_edge(graph, orig, dest, existence):
-			graph, origdest = map(pack, (graph, (orig, dest)))
+			graph, orig, dest = map(pack, (graph, orig, dest))
 			if graph not in delta:
 				delta[graph] = newgraph()
-			delta[graph][EDGES][origdest] = existence
+			elif delta[graph] is ELLIPSIS:
+				return
+			delta[graph][EDGES][orig][dest] = existence
+			assert graph in delta
+			assert EDGES in delta[graph]
+			assert orig in delta[graph][EDGES]
+			assert delta[graph][EDGES][orig][dest] == existence
 
 		futs = []
 		with ThreadPoolExecutor() as pool:
@@ -5632,9 +5672,13 @@ class Engine(AbstractEngine, Executor):
 				for orig in kf_to["edges"][graph]:
 					for dest, ex in kf_to["edges"][graph][orig].items():
 						deleted_edges.discard((graph, orig, dest))
-			values_changed: np.array[bool] = np.array(ids_from) != np.array(
-				ids_to
-			)
+			if np is None:
+				values_changed: list[bool] = [
+					a != b for (a, b) in zip(ids_from, ids_to)
+				]
+			else:
+				values_changed: np.typing.NDArray[np.bool[bool]]
+				values_changed = np.array(ids_from) != np.array(ids_to)
 			for k, va, vb, _ in filter(
 				itemgetter(3),
 				zip(keys, values_from, values_to, values_changed),
@@ -5655,7 +5699,7 @@ class Engine(AbstractEngine, Executor):
 				):
 					futs.append(pool.submit(pack_node, graph, node, TRUE))
 			for graph, orig, dest in deleted_edges:
-				futs.append(pool.submit(pack_edge, graph, orig, dest, FALSE))
+				pack_edge(graph, orig, dest, FALSE)
 			edges_to = {
 				(graph, orig, dest)
 				for graph in kf_to["edges"]
@@ -5746,7 +5790,11 @@ class Engine(AbstractEngine, Executor):
 			else:
 				self.snap_keyframe(silent=True, update_worker_processes=False)
 		for store in self.stores:
-			if hasattr(store, "save"):
+			if (
+				self._prefix
+				and self._prefix.exists()
+				and hasattr(store, "save")
+			):
 				store.save(reimport=False)
 			if not hasattr(store, "_filename") or store._filename is None:
 				continue
@@ -5761,8 +5809,6 @@ class Engine(AbstractEngine, Executor):
 				cache.clear()
 		gc.collect()
 		self.database.close()
-		if getattr(self, "executor", None):
-			self.executor.lock.release()
 		self._closed = True
 
 	def _handled_char(
@@ -5886,45 +5932,38 @@ class Engine(AbstractEngine, Executor):
 			character, orig, dest, rulebook, rule, branch, turn, tick
 		)
 
+	@staticmethod
+	def _all_worker_locks_dec(fn):
+		@wraps(fn)
+		def call_with_all_worker_locks(self, *args, **kwargs):
+			with self.executor.all_worker_locks_ctx():
+				return fn(self, *args, **kwargs)
+
+		return call_with_all_worker_locks
+
 	@world_locked
+	@_all_worker_locks_dec
 	def _update_all_worker_process_states(
 		self, clobber: bool = False, stores_to_reimport: set[str] | None = None
 	):
 		if self.executor is None:
 			raise RuntimeError("Not parallel")
-		assert len(self.executor._worker_inputs) == self.workers
-		stores_to_reimport = stores_to_reimport or set()
-		for store in self.stores:
-			if getattr(store, "_need_save", None):
-				if hasattr(store, "reimport"):
-					store.save(reimport=False)
-					stores_to_reimport.add(store._store)
-				else:
-					store.save()
+		assert len(self.executor._workers) == self.workers
 		kf_payload = None
 		deltas = {}
 		n = self.executor.workers
 		for i in range(n):
-			branch_from, turn_from, tick_from = (
-				self.executor._worker_updated_btts[i]
-			)
+			worker = self.executor._workers[i]
+			branch_from, turn_from, tick_from = worker.last_update
 			if (
 				not clobber
 				and (branch_from, turn_from, tick_from) == self.time
 			):
 				continue
-			input = self.executor._worker_inputs[i]
-			if hasattr(input, "send_bytes"):
-				put = input.send_bytes
+			if hasattr(worker, "input_connection"):
+				put = worker.input_connection.send_bytes
 			else:
-				put = input.put
-			if stores_to_reimport:
-				put(
-					sys.maxsize.to_bytes(8, "little")
-					+ self.pack(
-						("_reimport_code", (list(stores_to_reimport),), {})
-					)
-				)
+				put = worker.input_queue.put
 			if clobber or branch_from != self.branch:
 				if kf_payload is None:
 					kf_payload = self._get_worker_kf_payload()
@@ -5954,23 +5993,22 @@ class Engine(AbstractEngine, Executor):
 				if eternal_delta:
 					delt["eternal"] = eternal_delta
 				kwargs = {}
-				if self._prefix is None:
-					kwargs["_replace_funcs_plain"] = plain = {}
-					kwargs["_replace_funcs_pkl"] = pkl = {}
-					for name, store in [
-						("function", self.function),
-						("method", self.method),
-						("trigger", self.trigger),
-						("prereq", self.prereq),
-						("action", self.action),
-					]:
-						if hasattr(store, "iterplain") and callable(
-							store.iterplain
-						):
-							plain[name] = dict(store.iterplain())
-							continue
-						else:
-							pkl[name] = pickle.dumps(store)
+				kwargs["_replace_funcs_plain"] = plain = {}
+				kwargs["_replace_funcs_pkl"] = pkl = {}
+				for name, store in [
+					("function", self.function),
+					("method", self.method),
+					("trigger", self.trigger),
+					("prereq", self.prereq),
+					("action", self.action),
+				]:
+					if hasattr(store, "iterplain") and callable(
+						store.iterplain
+					):
+						plain[name] = dict(store.iterplain())
+						continue
+					else:
+						pkl[name] = pickle.dumps(store)
 				argbytes = sys.maxsize.to_bytes(8, "little") + self.pack(
 					(
 						"_upd",
@@ -5986,19 +6024,21 @@ class Engine(AbstractEngine, Executor):
 				)
 
 				put(argbytes)
-			self.executor._worker_updated_btts[i] = tuple(self.time)
-			self.debug(
-				"Updated all worker process states at "
-				+ repr(self.executor._worker_updated_btts[i])
-				+ f" ({len(deltas)} distinct deltas)"
-			)
+			worker.last_update = tuple(self.time)
+		self.debug(
+			"Updated all worker process states at "
+			+ repr(tuple(self.time))
+			+ f" ({len(deltas)} distinct deltas)"
+		)
 
 	def shutdown(
 		self, wait: bool = True, *, cancel_futures: bool = False
 	) -> None:
-		if self.executor and self._shutdown_executor:
-			self.executor.shutdown(wait, cancel_futures=cancel_futures)
-			del self.executor
+		if getattr(self, "executor", None):
+			self.executor.lock.release()
+			if self._shutdown_executor:
+				self.executor.shutdown(wait, cancel_futures=cancel_futures)
+			self.executor = None
 
 	def _changed(self, charn: CharName, entity: tuple) -> bool:
 		if len(entity) == 1:
@@ -7597,8 +7637,11 @@ class Engine(AbstractEngine, Executor):
 		logger: Optional[Logger] = None,
 		workers: Optional[int] = None,
 		sub_mode: Sub | None = None,
-		database: AbstractDatabaseConnector | None = None,
-		executor: LisienExecutor | None = None,
+		database: AbstractDatabaseConnector
+		| type[AbstractDatabaseConnector]
+		| partial[AbstractDatabaseConnector]
+		| None = None,
+		executor: Executor | None = None,
 	) -> Engine:
 		"""Make a new Lisien engine out of an archive exported from another engine"""
 		if database is None:
@@ -7610,6 +7653,10 @@ class Engine(AbstractEngine, Executor):
 
 					pq_path = prefix.joinpath("world")
 					pq_path.mkdir(parents=True, exist_ok=True)
+					if not pq_path.exists():
+						raise FileNotFoundError(
+							"Couldn't make directory for ParquetDB", pq_path
+						)
 					import_database = database = ParquetDatabaseConnector(
 						fake.pack, fake.unpack, pq_path
 					)
@@ -7628,8 +7675,10 @@ class Engine(AbstractEngine, Executor):
 			import_database = database(fake.pack, fake.unpack)
 			if not isinstance(import_database, AbstractDatabaseConnector):
 				raise TypeError("Not a database", import_database)
-		else:
+		elif not isinstance(database, AbstractDatabaseConnector):
 			raise TypeError("Not a database", database)
+		else:
+			import_database = database
 		if not isinstance(archive_path, Path):
 			archive_path = Path(archive_path)
 		if not archive_path.suffix:
@@ -7649,32 +7698,47 @@ class Engine(AbstractEngine, Executor):
 				import_database.close()
 		if logger is None:
 			logger = getLogger("lisien")
-		return cls(
-			prefix=prefix,
-			string=string,
-			trigger=trigger,
-			prereq=prereq,
-			action=action,
-			function=function,
-			method=method,
-			trunk=trunk,
-			connect_string=connect_string,
-			connect_args=connect_args,
-			schema=schema,
-			flush_interval=flush_interval,
-			keyframe_interval=keyframe_interval,
-			commit_interval=commit_interval,
-			random_seed=random_seed,
-			clear=clear,
-			keep_rules_journal=keep_rules_journal,
-			keyframe_on_close=keyframe_on_close,
-			enforce_end_of_time=enforce_end_of_time,
-			logger=logger,
-			workers=workers,
-			sub_mode=sub_mode,
-			database=database,
-			executor=executor,
-		)
+		kwargs = {
+			"logger": logger,
+			"keyframe_interval": keyframe_interval,
+			"schema": schema,
+			"keep_rules_journal": keep_rules_journal,
+			"keyframe_on_close": keyframe_on_close,
+			"enforce_end_of_time": enforce_end_of_time,
+		}
+		if database is not None:
+			kwargs["database"] = database
+		if executor is not None:
+			kwargs["executor"] = executor
+		if string is not None:
+			kwargs["string"] = string
+		if trigger is not None:
+			kwargs["trigger"] = trigger
+		if prereq is not None:
+			kwargs["prereq"] = prereq
+		if action is not None:
+			kwargs["action"] = action
+		if function is not None:
+			kwargs["function"] = function
+		if method is not None:
+			kwargs["method"] = method
+		if trunk is not None:
+			kwargs["trunk"] = trunk
+		if connect_string is not None:
+			kwargs["connect_string"] = connect_string
+		if connect_args is not None:
+			kwargs["connect_args"] = connect_args
+		if flush_interval is not None:
+			kwargs["flush_interval"] = flush_interval
+		if commit_interval is not None:
+			kwargs["commit_interval"] = commit_interval
+		if random_seed is not None:
+			kwargs["random_seed"] = random_seed
+		if workers is not None:
+			kwargs["workers"] = workers
+		if sub_mode is not None:
+			kwargs["sub_mode"] = sub_mode
+		return cls(prefix, **kwargs)
 
 	def to_etree(self, name: str | None = None) -> ElementTree:
 		import json

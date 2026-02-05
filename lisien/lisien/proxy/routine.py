@@ -18,7 +18,10 @@ import logging
 import sys
 import threading
 from os import PathLike
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
+
+from lisien.facade import EngineFacade
 
 if TYPE_CHECKING:
 	from multiprocessing.connection import Connection
@@ -31,7 +34,7 @@ from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 def worker_subroutine(
 	i: int,
-	prefix: PathLike[str],
+	prefix: Path | None,
 	branches: dict,
 	eternal: dict,
 	random_seed: int | None,
@@ -45,6 +48,8 @@ def worker_subroutine(
 	prereq: dict | None = None,
 	action: dict | None = None,
 ):
+	if not isinstance(prefix, Path) and prefix is not None:
+		raise TypeError("Invalid prefix", prefix)
 	logger = logging.getLogger(f"lisien worker {i}")
 	handler = WorkerLogHandler(logq, logging.DEBUG, i)
 	logger.addHandler(handler)
@@ -52,6 +57,9 @@ def worker_subroutine(
 		None,
 		None,
 		logger,
+		threading.Lock(),
+		threading.Lock(),
+		threading.Lock(),
 		prefix=prefix,
 		worker_index=i,
 		eternal=eternal,
@@ -66,13 +74,7 @@ def worker_subroutine(
 	pack = eng.pack
 	unpack = eng.unpack
 
-	while True:
-		inst = get_input_bytes()
-		if inst == b"shutdown":
-			if logq and hasattr(logq, "close"):
-				logq.close()
-			send_output_bytes(b"done")
-			return 0
+	while (inst := get_input_bytes()) != b"shutdown":
 		if inst.startswith(b"echo"):
 			send_output_bytes(inst.removeprefix(b"echo"))
 			continue
@@ -86,7 +88,17 @@ def worker_subroutine(
 			ret = ex
 			if uid == sys.maxsize:
 				msg = repr(ex)
-				logq.put((50, msg))
+				logq.put(
+					logging.LogRecord(
+						"lisien",
+						50,
+						__file__,
+						89,
+						msg,
+						(),
+						(type(ex), ex, ex.__traceback__),
+					)
+				)
 				import traceback
 
 				traceback.print_exc(file=sys.stderr)
@@ -94,6 +106,10 @@ def worker_subroutine(
 		if uid != sys.maxsize:
 			send_output_bytes(inst[:8] + pack(ret))
 		eng._initialized = True
+	if logq and hasattr(logq, "close"):
+		logq.close()
+	send_output_bytes(b"done")
+	return 0
 
 
 def worker_subprocess(
@@ -200,6 +216,7 @@ def engine_subroutine(
 	kwargs,
 	get_input_bytes: Callable[[], bytes],
 	send_output_bytes: Callable[[bytes], None],
+	reuse_executor=False,
 	log_queue=None,
 ):
 	engine_handle = None
@@ -216,43 +233,89 @@ def engine_subroutine(
 			)
 		)
 
-	while True:
-		recvd = get_input_bytes()
-		if recvd == b"shutdown":
-			for th in threading.enumerate():
-				if th.name == "rundb":
-					raise RuntimeError("Still running a database thread")
-			send_output_bytes(b"shutdown")
-			return 0
+	while (recvd := get_input_bytes()) != b"shutdown":
 		if recvd.startswith(b"echo"):
 			send_output_bytes(recvd.removeprefix(b"echo"))
 			continue
 		if recvd.startswith(b"from_archive"):
-			if engine_handle is not None:
-				engine_handle.close()
-			engine_handle = EngineHandle.from_archive(
-				recvd.removeprefix(b"from_archive"), log_queue=log_queue
-			)
+			if engine_handle is None:
+				try:
+					engine_handle = EngineHandle.from_archive(
+						recvd.removeprefix(b"from_archive"),
+						log_queue=log_queue,
+						reuse_executor=reuse_executor,
+					)
+				except BaseException as exc:
+					send_output_bytes(EngineFacade(None).pack(exc))
+					return 1
+			else:
+				try:
+					engine_handle.close()
+					engine_handle.load_archive(
+						recvd.removeprefix(b"from_archive"),
+						log_queue=log_queue,
+						reuse_executor=reuse_executor,
+					)
+				except BaseException as exc:
+					send_output_bytes(engine_handle.pack(exc))
+					return 1
 			continue
 		if engine_handle is None:
-			engine_handle = EngineHandle(*args, log_queue=log_queue, **kwargs)
-			send_output("get_btt", engine_handle.get_btt())
+			try:
+				engine_handle = EngineHandle(
+					*args,
+					log_queue=log_queue,
+					reuse_executor=reuse_executor,
+					**kwargs,
+				)
+				send_output("get_btt", engine_handle.get_btt())
+			except BaseException as exc:
+				send_output_bytes(EngineFacade(None).pack(exc))
+				return 1
 			continue
+		unpacked = engine_handle.unpack(recvd)
 		_engine_subroutine_step(
 			engine_handle,
-			engine_handle.unpack(recvd),
+			unpacked,
 			send_output,
 			send_output_prepacked,
 		)
+	if engine_handle:
+		try:
+			engine_handle.shutdown()
+		except BaseException as exc:
+			send_output_bytes(engine_handle.pack(exc))
+			return 1
+	send_output_bytes(b"shutdown")
+	return 0
 
 
-def engine_subprocess(args, kwargs, in_pipe, out_pipe, log_queue):
+def engine_subprocess(
+	args, kwargs, in_pipe, out_pipe, reuse_executor=False, log_queue=None
+):
 	return engine_subroutine(
-		args, kwargs, in_pipe.recv_bytes, out_pipe.send_bytes, log_queue
+		args,
+		kwargs,
+		in_pipe.recv_bytes,
+		out_pipe.send_bytes,
+		reuse_executor,
+		log_queue,
 	)
 
 
-def engine_subthread(args, kwargs, input_queue, output_queue, log_queue):
+def engine_subthread(
+	args,
+	kwargs,
+	input_queue,
+	output_queue,
+	reuse_executor=False,
+	log_queue=None,
+):
 	return engine_subroutine(
-		args, kwargs, input_queue.get, output_queue.put, log_queue
+		args,
+		kwargs,
+		input_queue.get,
+		output_queue.put,
+		reuse_executor,
+		log_queue,
 	)

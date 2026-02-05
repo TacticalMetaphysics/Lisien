@@ -11,10 +11,10 @@ matrix:
     - 3.14
 
 variables:
-  - &python python${PYTHON_VERSION}
+  - &stepname headed_${PYTHON_VERSION}
 
 steps:
-  - name: headed_${PYTHON_VERSION}
+  - name: *stepname
     image: zacharyspector/elide:latest
     pull: true
     commands:
@@ -25,8 +25,9 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
-      - *python -m venv --system-site-packages .venv
-      - . .venv/bin/activate
-      - *python -m pip install --upgrade pip
-      - *python -m pip install pytest lisien/ elide/
-      - pytest -vvx elide/elide/tests
+      - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
+      - echo "PYTHON=$PYTHON"
+      - PYTHONPATH="$PWD/lisien:$PWD/elide"
+      - echo "PYTHONPATH=$PYTHONPATH"
+      - export PYTHONPATH
+      - $PYTHON -m pytest -svvx elide/elide/tests

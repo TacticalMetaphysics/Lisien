@@ -639,6 +639,8 @@ class AbstractDatabaseConnector(ABC):
 
 	"""
 
+	db_type: ClassVar[str]
+
 	_pack: PackSignature
 	"""Function to pack Lisien's objects into bytes
 	
@@ -1288,7 +1290,7 @@ class AbstractDatabaseConnector(ABC):
 		tick: Tick,
 		character: CharName,
 		thing: NodeName,
-		location: NodeName | type(...),
+		location: NodeName | EllipsisType,
 	) -> tuple[Branch, Turn, Tick, bytes, bytes, bytes]: ...
 
 	@abstractmethod
@@ -2222,7 +2224,7 @@ class AbstractDatabaseConnector(ABC):
 		branch: Branch,
 		turn: Turn,
 		tick: Tick,
-		loc: NodeName,
+		loc: NodeName | EllipsisType,
 	):
 		self._things2set.append((branch, turn, tick, character, thing, loc))
 
@@ -4169,7 +4171,15 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	_pack = field(default=None)
 	_unpack = field(default=None)
+	_old_data: dict | None = field(default=None)
 	is_python: ClassVar = True
+	db_type: ClassVar = "python"
+
+	@_old_data.validator
+	def _load_old_data(self, _, old_data):
+		if old_data is None:
+			return
+		self.load_everything(old_data)
 
 	def is_empty(self) -> bool:
 		for att in dir(self):
@@ -5081,7 +5091,11 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 						for tick in turns[turn]:
 							yield plan, branch, turn, tick
 
-	commit = close = AbstractDatabaseConnector.flush
+	def commit(self):
+		self.flush()
+
+	def close(self):
+		self.flush()
 
 	def truncate_all(self) -> None:
 		for table in Batch.cached_properties:

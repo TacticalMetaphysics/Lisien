@@ -263,7 +263,7 @@ class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
 		return n
 
 	def __getitem__(self, k: _NAME) -> _CLS:
-		if k not in self and not self.engine._mock:
+		if k not in self and not getattr(self.engine, "_mock", False):
 			raise KeyError(k)
 		if k not in self._patch:
 			inner = self._get_inner_map()
@@ -1362,6 +1362,55 @@ class EngineFacade(AbstractEngine):
 		init=False,
 	)
 
+	def _char_exists(self, character: CharName) -> bool:
+		if character in self.character._patch:
+			return self.character._patch[character] is not ...
+		if self._real:
+			return self._real._char_exists(character)
+		return False
+
+	def _node_exists(self, character: CharName, node: NodeName) -> bool:
+		if character in self.character._patch:
+			cha = self.character._patch[character]
+			if cha is ...:
+				return False
+			if not isinstance(cha, CharacterFacade):
+				raise TypeError(
+					"Invalid facade cache", self, self.character._patch, cha
+				)
+			if node in cha.place._patch or node in cha.thing._patch:
+				return (
+					cha.place._patch.get(node, ...) is not ...
+					and cha.thing._patch.get(node, ...) is not ...
+				)
+		if self._real:
+			return self._real._node_exists(character, node)
+		return False
+
+	def _edge_exists(
+		self, character: CharName, orig: NodeName, dest: NodeName
+	) -> bool:
+		if character in self.character._patch:
+			cha = self.character._patch[character]
+			if cha is ...:
+				return False
+			if not isinstance(cha, CharacterFacade):
+				raise TypeError(
+					"Invalid facade cache", self, self.character._patch, cha
+				)
+			if orig not in cha.adj._patch:
+				if self._real:
+					return self._real._edge_exists(character, orig, dest)
+				return False
+			if dest not in cha.adj._patch[orig]._patch:
+				if self._real:
+					return self._real._edge_exists(character, orig, dest)
+				return False
+			return cha.adj._patch[orig]._patch[dest] is not ...
+		if self._real:
+			return self._real._edge_exists(character, orig, dest)
+		return False
+
 	@staticmethod
 	def _validate_turn_end(self, attr, turn_end):
 		if self._real and not self._real.is_proxy:
@@ -1564,14 +1613,12 @@ class EngineFacade(AbstractEngine):
 
 		def __getitem__(self, key: CharName | KeyHint, /):
 			realeng = self.engine._real
-			if realeng and key not in realeng.character:
-				raise KeyError("No character", key)
 			if key not in self._patch:
 				if realeng:
 					if key not in realeng.character:
 						raise KeyError("No such character", key)
 					fac = CharacterFacade(engine=self.engine, name=key)
-				elif self.engine._mock:
+				elif getattr(self.engine, "_mock", None):
 					fac = CharacterFacade(engine=self.engine, name=key)
 				else:
 					raise KeyError("No character", key)
@@ -1735,13 +1782,7 @@ class EngineFacade(AbstractEngine):
 	def tick(self, tick: int | Tick) -> None:
 		self._otick = tick
 
-	def _validate_random(self, attr, rando):
-		if self._real:
-			rando.setstate(self._real._rando.getstate())
-
-	_rando: Random = field(
-		factory=Random, validator=_validate_random, init=False
-	)
+	_rando: Random = field(factory=Random, init=False)
 
 	@cached_property
 	def logger(self) -> Logger:
