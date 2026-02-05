@@ -35,3 +35,24 @@ steps:
       - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
       - tox run-parallel -c $TOXFILE -e py314
+  - name: slow-headless-interpreter
+    image: zacharyspector/elide:latest
+    commands:
+      - TMPDIR=$(python find_ramdisk.py)
+      - echo "TMPDIR=$TMPDIR"
+      - export TMPDIR
+      - python -m venv .venv${PYTHON_VERSION}
+      - . .venv${PYTHON_VERSION}/bin/activate
+      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
+      - DATABASE=parquetdb
+      - export DATABASE
+      - TOXFILE=lisien/tox_prerelease_parquetdb
+      - else
+      - DATABASE="${DATABASE}"
+      - export DATABASE
+      - TOXFILE=lisien/tox.ini
+      - fi
+      - python -m pip install pytest lisien/
+      - PYTEST_KEYWORDS="(slow or big) and interpreter_workers and $DATABASE"
+      - echo "will run $PYTEST_KEYWORDS"
+      - tox run -c $TOXFILE -e py314
