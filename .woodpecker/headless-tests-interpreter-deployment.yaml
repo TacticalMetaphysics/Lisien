@@ -1,8 +1,5 @@
 when:
-  - event: push
-    branch: main
-  - event: pull_request
-    repo: clayote/Lisien
+  - event: deployment
 
 matrix:
   DATABASE:
@@ -12,7 +9,9 @@ matrix:
     - prerelease-parquetdb
   MANAGER:
     - not process_manager and not thread_manager and not interpreter_manager
+    - process_manager
     - thread_manager
+    - interpreter_manager
 
 steps:
   - name: headless-interpreter
