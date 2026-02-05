@@ -1,9 +1,6 @@
 when:
   - event: push
     branch: main
-  - event: pull_request
-    repo: clayote/Lisien
-
 matrix:
   PYTHON_VERSION:
     - 3.12
@@ -25,16 +22,17 @@ matrix:
 
 variables:
   - &python_image python:${PYTHON_VERSION}
-  - &headless_name headless_${PYTHON_VERSION}
+  - &slow_headless_name slow_headless_${PYTHON_VERSION}
 
 steps:
-  - name: *headless_name
+  - name: *slow_headless_name
     image: *python_image
-    pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
+      - python -m venv .venv${PYTHON_VERSION}
+      - . .venv${PYTHON_VERSION}/bin/activate
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
@@ -44,6 +42,6 @@ steps:
       - export DATABASE
       - fi
       - python -m pip install pytest lisien/
-      - PYTEST_MARKS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
+      - PYTEST_MARKS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_MARKS"
-      - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
+      - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
