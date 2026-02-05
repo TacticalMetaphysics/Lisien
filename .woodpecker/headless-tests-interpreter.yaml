@@ -16,13 +16,9 @@ matrix:
     - thread_manager
     - interpreter_manager
 
-variables:
-  - &python_image python:3.14
-  - &headless_name headless_3.14
-
 steps:
-  - name: *headless_name
-    image: *python_image
+  - name: headless-interpreter
+    image: zacharyspector/elide:latest
     pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
@@ -41,4 +37,4 @@ steps:
       - fi
       - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run -c $TOXFILE
+      - tox run -c $TOXFILE -e py314
