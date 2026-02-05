@@ -12,7 +12,7 @@ index 12d7d387f..3e0cbb7b6 100644
          for i, x, y, w, h in self._iterate_layout(
                  [(opt['size'], opt['size_hint'], opt['pos_hint'],
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..115f586e9 100644
+index 90c3a5011..7948a7f58 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
 @@ -266,6 +266,13 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
@@ -144,7 +144,7 @@ index 90c3a5011..115f586e9 100644
  
      def refresh_view_layout(self, index, layout, view, viewport):
 -        opt = self.view_opts[index].copy()
-+        opt = self._convert_opt(self.view_opts.get(index, {}))
++        opt = self._convert_opt(self.view_opts[index] or {})
          width_none = opt.pop('width_none')
          height_none = opt.pop('height_none')
          opt.update(layout)
