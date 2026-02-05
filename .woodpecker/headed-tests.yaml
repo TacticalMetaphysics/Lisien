@@ -19,4 +19,4 @@ steps:
       - PYTHONPATH="$PWD/lisien:$PWD/elide"
       - echo "PYTHONPATH=$PYTHONPATH"
       - export PYTHONPATH
-      - tox run -c elide/tox.ini
+      - tox run-parallel -c elide/tox.ini
