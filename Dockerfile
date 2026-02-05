@@ -342,12 +342,12 @@ patch -p1 -d kivy-$COMMIT_HASH <kivy.patch
 cd kivy-$COMMIT_HASH
 for minor in $(seq 12 14); do
     /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore pytest Cython==0.29.34 tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb legacy-cgi tox setuptools git+https://github.com/kivy/buildozer
-    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel .
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore Cython==0.29.34 tox
+    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel . pytest tomli-w u-msgpack-python sortedcontainers zict typing-extensions tornado toolz toml tblib soupsieve six pyyaml python-dotenv pyparsing pyarrow psutil ppft pox pluggy platformdirs pillow packaging numpy networkx msgpack more-itertools MarkupSafe lxml locket kiwisolver iniconfig greenlet fsspec fonttools dill cycler cloudpickle click blinker attrs annotated-types variconfig sqlalchemy python-dateutil pytest partd multiprocess jinja2 contourpy beautifulsoup4 pathos pandas matplotlib dask distributed parquetdb legacy-cgi setuptools git+https://github.com/kivy/buildozer
 done
 cd ..
-rm -rf kivy*
+mv kivy-$COMMIT_HASH/*.whl .
+rm -rf kivy-$COMMIT_HASH
 EOF
 # make some useful symlinks that are expected to exist ("/usr/local/bin/python" and friends)
 RUN set -eux; \
