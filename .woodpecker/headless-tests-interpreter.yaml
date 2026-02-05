@@ -39,9 +39,7 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - PYTHONPATH="$PWD/lisien"
-      - echo "PYTHONPATH=$PYTHONPATH"
-      - export PYTHONPATH
+      - python -m pip install pytest lisien/
       - PYTEST_MARKS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_MARKS"
       - pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
@@ -61,9 +59,7 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - fi
-      - PYTHONPATH="$PWD/lisien"
-      - echo "PYTHONPATH=$PYTHONPATH"
-      - export PYTHONPATH
+      - python -m pip install pytest lisien/
       - PYTEST_MARKS="(slow or big) and interpreter_workers and $DATABASE"
       - echo "will run $PYTEST_MARKS"
       - python -m pytest -vvx -k "$PYTEST_MARKS" lisien/lisien/tests
