@@ -16,7 +16,5 @@ steps:
       - Xvfb $DISPLAY &
       - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
-      - PYTHONPATH="$PWD/lisien:$PWD/elide"
-      - echo "PYTHONPATH=$PYTHONPATH"
-      - export PYTHONPATH
+      - $PYTHON -m wheel kivy
       - tox run-parallel -c elide/tox.ini
