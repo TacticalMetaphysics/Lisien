@@ -1,8 +1,5 @@
 when:
-  - event: push
-    branch: main
-  - event: pull_request
-    repo: clayote/Lisien
+  - event: deployment
 
 matrix:
   DATABASE:
@@ -10,29 +7,33 @@ matrix:
     - sqlite
     - parquetdb
     - prerelease-parquetdb
+  EXECUTION:
+    - thread_workers
+    - process_workers
+    - not thread_workers and not process_workers and not interpreter_workers
   MANAGER:
     - not process_manager and not thread_manager and not interpreter_manager
     - thread_manager
+    - process_manager
 
 steps:
-  - name: headless-interpreter
+  - name: headless
     image: zacharyspector/elide:latest
     pull: true
     commands:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - python -m venv .venv
-      - . .venv/bin/activate
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
-      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
       - export DATABASE
+      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
       - else
       - DATABASE="${DATABASE}"
-      - TOXFILE=lisien/tox.ini
       - export DATABASE
+      - TOXFILE=lisien/tox.ini
       - fi
-      - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
+      - python -m pip install --root-user-action ignore pytest tox lisien/
+      - PYTEST_KEYWORDS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run -c $TOXFILE -e py314
+      - tox run -c $TOXFILE

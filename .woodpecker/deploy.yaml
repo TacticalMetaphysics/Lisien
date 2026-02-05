@@ -3,8 +3,8 @@ when:
 
 depends_on:
   - check-version
-  - headless-tests
-  - headless-tests-interpreter
+  - headless-tests-deployment
+  - headless-tests-interpreter-deployment
   - slow-headless-tests
   - slow-headless-tests-interpreter
   - headed-tests
