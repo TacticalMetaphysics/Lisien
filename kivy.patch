@@ -12,7 +12,7 @@ index 12d7d387f..3e0cbb7b6 100644
          for i, x, y, w, h in self._iterate_layout(
                  [(opt['size'], opt['size_hint'], opt['pos_hint'],
 diff --git a/kivy/uix/recyclelayout.py b/kivy/uix/recyclelayout.py
-index 90c3a5011..7948a7f58 100644
+index 90c3a5011..a7a128b3e 100644
 --- a/kivy/uix/recyclelayout.py
 +++ b/kivy/uix/recyclelayout.py
 @@ -266,6 +266,13 @@ class RecycleLayout(RecycleLayoutManagerBehavior, Layout):
@@ -21,7 +21,7 @@ index 90c3a5011..7948a7f58 100644
          assert len(data) == len(opts)
 +
 +        for i, item in enumerate(data):
-+            if len(opts) > i and opts[i] is not None:
++            if len(opts) >= i and opts[i] is not None:
 +                continue
 +            opts[i] = self._convert_opt(item)
 +
