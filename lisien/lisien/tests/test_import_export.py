@@ -108,7 +108,9 @@ def exported(tmp_path, random_seed, request, turns):
 		install(eng)
 		for _ in range(turns):
 			eng.next_turn()
-		archive_name = eng.export(request.param)
+		archive_name = eng.export(
+			request.param, tmp_path.joinpath(request.param + ".lisien")
+		)
 		old_data = eng.database.dump_everything()
 	yield archive_name, old_data
 
