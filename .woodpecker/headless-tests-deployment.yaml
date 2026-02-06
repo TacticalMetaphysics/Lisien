@@ -7,8 +7,9 @@ matrix:
     - slow or big
   DATABASE:
     - not parquetdb and not sqlite
-    - sqlite
-    - parquetdb
+    - sqlite and not parquetdb
+    - parquetdb and not sqlite
+    - sqlite and parquetdb
     - prerelease-parquetdb
   EXECUTION:
     - thread_workers
