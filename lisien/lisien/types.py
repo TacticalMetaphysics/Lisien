@@ -3056,6 +3056,9 @@ class AbstractEngine(ABC):
 		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool: ...
 
+	@abstractmethod
+	def _detect_kf_interval_override(self) -> bool | None: ...
+
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
 
