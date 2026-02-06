@@ -10,9 +10,6 @@ matrix:
     - sqlite
     - parquetdb
     - prerelease-parquetdb
-  EXECUTION:
-    - interpreter_workers
-    - not thread_workers and not process_workers and not interpreter_workers
   MANAGER:
     - not process_manager and not thread_manager and not interpreter_manager
     - process_manager
@@ -38,6 +35,6 @@ steps:
       - TOXFILE=lisien/tox.ini
       - export DATABASE
       - fi
-      - PYTEST_KEYWORDS="(${SPEED}) and ${EXECUTION} and $DATABASE and ${MANAGER}"
+      - PYTEST_KEYWORDS="(${SPEED}) and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
       - tox run-parallel -c $TOXFILE -e py314
