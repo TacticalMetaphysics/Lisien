@@ -10,7 +10,7 @@ cd kivy-$COMMIT_HASH
 for minor in $(seq 12 14); do
     /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
     /usr/local/bin/python3.$minor -m pip install --root-user-action ignore Cython==0.29.34
-    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel .
+    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel --no-deps .
     /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
 done
 cd ..
