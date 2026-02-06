@@ -44,6 +44,7 @@ twine check lisien/dist/* elide/dist/*
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
+git tag -f "v${VERSION}"
 git push
 git push --tags
 cd ../..
