@@ -2,8 +2,6 @@
 set -euxo
 dos2unix -V
 alias python=/usr/local/bin/python3.14
-VERSION=$(python check_version.py)
-export VERSION
 python -m build --version
 twine --version
 python -m sphinx --version
@@ -23,6 +21,8 @@ if [ -n "${CC+x}" ]; then
   echo "$CC"
   exit 1
 fi
+VERSION=$(python check_version.py)
+export VERSION
 wget https://clayote.codeberg.page/lisien-windows.zip
 unzip lisien-windows.zip
 isort lisien
