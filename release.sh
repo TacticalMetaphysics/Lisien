@@ -10,7 +10,9 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
-ls /usr/lib/jvm/java-25-openjdk-amd64
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64
+ls $JAVA_HOME
+export JAVA_HOME
 if [ -n "$(git clean -n)" ]; then
   echo "Debris in the repository."
   git clean -n
@@ -32,7 +34,7 @@ pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 unzip lisien-windows.zip
 rm -rf bin lisien/dist elide/dist
-JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 buildozer android update clean debug
+buildozer android update clean debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
 pyclean lisien_windows
 unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
