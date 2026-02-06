@@ -43,6 +43,7 @@ RUN set -eux; \
         automake \
         autopoint \
         gettext \
+        dos2unix \
 	; \
 	apt-get dist-clean
 
