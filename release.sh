@@ -13,7 +13,7 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
-ls /usr/lib/jvm/java-21-openjdk-amd64
+ls /usr/lib/jvm/java-25-openjdk-amd64
 if [ -n "$(git clean -n)" ]; then
   echo "Debris in the repository."
   git clean -n
@@ -33,7 +33,7 @@ ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 rm -rf bin lisien/dist elide/dist
-JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 buildozer android update clean debug
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 buildozer android update clean debug
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
