@@ -37,5 +37,4 @@ steps:
       - python -m pip install --root-user-action ignore pytest tox lisien/
       - PYTEST_KEYWORDS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
-      - mv /wheels/* .
       - tox run-parallel -c $TOXFILE
