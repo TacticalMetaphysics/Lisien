@@ -2,6 +2,9 @@ when:
   - event: deployment
 
 matrix:
+  SPEED:
+    - not slow and not big
+    - slow or big
   DATABASE:
     - not parquetdb and not sqlite
     - sqlite
@@ -35,28 +38,6 @@ steps:
       - TOXFILE=lisien/tox.ini
       - export DATABASE
       - fi
-      - PYTEST_KEYWORDS="not slow and not big and ${EXECUTION} and $DATABASE and ${MANAGER}"
+      - PYTEST_KEYWORDS="(${SPEED}) and ${EXECUTION} and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
       - tox run-parallel -c $TOXFILE -e py314
-  - name: slow-headless-interpreter
-    image: zacharyspector/elide:latest
-    commands:
-      - TMPDIR=$(python find_ramdisk.py)
-      - echo "TMPDIR=$TMPDIR"
-      - export TMPDIR
-      - python -m venv .venv${PYTHON_VERSION}
-      - . .venv${PYTHON_VERSION}/bin/activate
-      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
-      - DATABASE=parquetdb
-      - export DATABASE
-      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
-      - else
-      - DATABASE="${DATABASE}"
-      - export DATABASE
-      - TOXFILE=lisien/tox.ini
-      - fi
-      - python -m pip install pytest lisien/
-      - PYTEST_KEYWORDS="(slow or big) and ${EXECUTION} and $DATABASE"
-      - export PYTEST_KEYWORDS
-      - echo "will run $PYTEST_KEYWORDS"
-      - tox run -c $TOXFILE -e py314
