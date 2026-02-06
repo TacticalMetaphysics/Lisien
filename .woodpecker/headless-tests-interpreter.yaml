@@ -7,7 +7,7 @@ when:
 matrix:
   DATABASE:
     - not parquetdb and not sqlite
-    - parquetdb
+    - parquetdb and not sqlite
   MANAGER:
     - not process_manager and not thread_manager and not interpreter_manager
     - thread_manager
