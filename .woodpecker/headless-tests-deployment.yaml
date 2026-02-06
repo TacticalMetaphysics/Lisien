@@ -56,5 +56,6 @@ steps:
       - TOXFILE=lisien/tox.ini
       - fi
       - PYTEST_KEYWORDS="(slow or big) and $DATABASE and ${EXECUTION} and ${MANAGER}"
+      - export PYTEST_KEYWORDS
       - echo "will run $PYTEST_KEYWORDS"
       - tox run-parallel -c $TOXFILE
