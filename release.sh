@@ -34,6 +34,13 @@ pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 buildozer android update clean debug
+wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
+pyclean lisien_windows
+unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
+cp -rf pages/docs lisien_windows/
+python -m build lisien/
+python -m build elide/
+twine check lisien/dist/* elide/dist/*
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
@@ -44,13 +51,6 @@ git commit -am "Release v${VERSION}"
 git tag -f "v${VERSION}"
 git push
 git push --tags
-python -m build lisien/
-python -m build elide/
-twine check lisien/dist/* elide/dist/*
 TWINE_USERNAME=$CODEBERG_USERNAME TWINE_PASSWORD=$CODEBERG_PASSWORD twine upload lisien/dist/* elide/dist/*
 TWINE_USERNAME=$PYPI_USERNAME TWINE_PASSWORD=$PYPI_PASSWORD twine upload lisien/dist/* elide/dist/*
-wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
-pyclean lisien_windows
-unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
-cp -rf pages/docs lisien_windows/
 python3.12 butler.py
