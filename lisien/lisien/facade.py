@@ -1346,6 +1346,10 @@ class EngineFacade(AbstractEngine):
 		factory=partial(defaultdict, partial(defaultdict, list)), init=False
 	)
 	_curplan: int = field(init=False, default=0)
+	keyframe_interval: int | None = field(init=False, default=None)
+
+	def _detect_kf_interval_override(self) -> bool | None:
+		return False
 
 	@staticmethod
 	def _validate_branches_d(self, attr, branches_d):

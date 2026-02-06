@@ -108,6 +108,10 @@ from .types import (
 	TurnRowType,
 	PackSignature,
 	UnpackSignature,
+	AbstractEngine,
+	KeyHint,
+	EternalKey,
+	ValueHint,
 )
 
 meta = MetaData()
@@ -173,8 +177,7 @@ for table, serializer in Batch.serializers.items():
 @define
 class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	db_type: ClassVar = "sql"
-	_pack: PackSignature
-	_unpack: UnpackSignature
+	engine: AbstractEngine
 	connect_string: str = field(default="sqlite:///:memory:")
 
 	@connect_string.validator
@@ -193,6 +196,21 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				raise TypeError("Invalid argument name", k)
 			if not isinstance(v, str):
 				raise TypeError("Invalid argument value", v)
+
+	def pack(
+		self,
+		obj: Key
+		| KeyHint
+		| EternalKey
+		| UniversalKey
+		| Stat
+		| ValueHint
+		| Value,
+	) -> bytes:
+		return self.engine.pack(obj)
+
+	def unpack(self, b: bytes) -> Value:
+		return self.engine.unpack(b)
 
 	@define
 	class Looper(ConnectionLooper):
