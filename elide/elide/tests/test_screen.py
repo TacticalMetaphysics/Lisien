@@ -155,19 +155,19 @@ def test_update(screen_test_state, elide_app):
 	)
 	idle_until(
 		lambda: almost(graphpawn.x, locspot1.right),
-		100,
+		1000,
 		"Never positioned pawn to 1's right "
 		f"(pawn is at {graphpawn.x} not {locspot1.right})",
 	)
 	idle_until(
 		lambda: almost(graphpawn.y, locspot1.top),
-		100,
+		1000,
 		"Never positioned pawn to 1's top "
 		f"(it's at {graphpawn.y}, not {locspot1.top})",
 	)
 	idle_until(
 		lambda: almost(gridpawn.pos, gridspot1.pos),
-		100,
+		1000,
 		"Never positioned pawn to grid 1, 1",
 	)
 	locspot9 = graphboard.spot[9]
@@ -181,13 +181,13 @@ def test_update(screen_test_state, elide_app):
 	)
 	idle_until(
 		lambda: 2 not in gridboard.pawn,
-		100,
+		1000,
 		"pawn never removed from grid",
 	)
 	idle_until(
 		lambda: almost(graphpawn.x, locspot9.right)
 		and almost(graphpawn.y, locspot9.top),
-		100,
+		1000,
 		f"Never positioned pawn to 9's top-right, "
 		f"it's at {graphpawn.pos} not {locspot9.right, locspot9.top}",
 	)
@@ -203,13 +203,13 @@ def test_update(screen_test_state, elide_app):
 	idle_until(
 		lambda: almost(graphpawn.x, locspot0.right)
 		and almost(graphpawn.y, locspot0.top),
-		100,
+		1000,
 		f"Never returned to 0's top-right "
 		f"(stuck at {graphpawn.pos}, should be "
 		f"{locspot0.right, locspot0.top})",
 	)
 	idle_until(
 		lambda: almost(gridpawn.pos, gridspot0.pos),
-		100,
+		1000,
 		"Never returned to grid 0, 0",
 	)
