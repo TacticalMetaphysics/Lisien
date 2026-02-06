@@ -8,7 +8,6 @@ matrix:
   DATABASE:
     - not parquetdb and not sqlite
     - parquetdb
-    - prerelease-parquetdb
   MANAGER:
     - not process_manager and not thread_manager and not interpreter_manager
     - thread_manager
@@ -23,15 +22,9 @@ steps:
       - export TMPDIR
       - python -m venv .venv
       - . .venv/bin/activate
-      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
-      - DATABASE=parquetdb
-      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
-      - export DATABASE
-      - else
       - DATABASE="${DATABASE}"
       - TOXFILE=lisien/tox.ini
       - export DATABASE
-      - fi
       - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - export PYTEST_KEYWORDS
       - echo "will run $PYTEST_KEYWORDS"
