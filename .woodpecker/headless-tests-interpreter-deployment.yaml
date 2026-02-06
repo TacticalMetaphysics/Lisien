@@ -46,7 +46,7 @@ steps:
       - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
       - DATABASE=parquetdb
       - export DATABASE
-      - TOXFILE=lisien/tox_prerelease_parquetdb
+      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
       - else
       - DATABASE="${DATABASE}"
       - export DATABASE
