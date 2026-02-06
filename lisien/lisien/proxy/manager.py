@@ -177,7 +177,7 @@ class EngineProxyManager:
 			which_db = "python"
 		else:
 			try:
-				import ParquetDB
+				import parquetdb
 
 				which_db = "parquetdb"
 			except ImportError:
