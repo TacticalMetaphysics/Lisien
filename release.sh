@@ -24,13 +24,13 @@ fi
 VERSION=$(python check_version.py)
 export VERSION
 wget https://clayote.codeberg.page/lisien-windows.zip
-unzip lisien-windows.zip
 isort lisien
 isort elide
 ruff format lisien
 ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
+unzip lisien-windows.zip
 rm -rf bin lisien/dist elide/dist
 JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 buildozer android update clean debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
