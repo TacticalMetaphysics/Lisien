@@ -292,6 +292,10 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(
 		lambda: not modal._is_open, 100, "Never closed game export modal"
 	)
-	assert "kobold.lisien" in os.listdir(".")
+	idle_until(
+		lambda: "kobold.lisien" in os.listdir("."),
+		100,
+		"Never created kobold.lisien",
+	)
 	shutil.move("kobold.lisien", app.prefix + "/kobold.lisien")
 	test_import_game(app.prefix + "/kobold.lisien", app)
