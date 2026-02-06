@@ -287,7 +287,9 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	x, y = game_list.to_parent(*button.center)
 	touch = UnitTestTouch(x, y)
 	touch.touch_down()
-	idle_until(lambda: button.state == "down", 100, "OK button unpressable")
+	idle_until(
+		lambda: button.state == "down", 100, "kobold button unpressable"
+	)
 	touch.touch_up()
 	idle_until(
 		lambda: not modal._is_open, 100, "Never closed game export modal"
