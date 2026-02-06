@@ -8,7 +8,6 @@ matrix:
   DATABASE:
     - not parquetdb and not sqlite
     - parquetdb
-    - prerelease-parquetdb
   EXECUTION:
     - thread_workers
     - process_workers
@@ -25,15 +24,9 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - if [ "${DATABASE}" = 'prerelease-parquetdb' ]; then
-      - DATABASE=parquetdb
-      - export DATABASE
-      - TOXFILE=lisien/tox_prerelease_parquetdb.ini
-      - else
       - DATABASE="${DATABASE}"
       - export DATABASE
       - TOXFILE=lisien/tox.ini
-      - fi
       - python -m pip install --root-user-action ignore pytest tox lisien/
       - PYTEST_KEYWORDS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - export PYTEST_KEYWORDS
