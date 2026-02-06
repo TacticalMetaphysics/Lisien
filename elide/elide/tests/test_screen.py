@@ -15,6 +15,15 @@ class MockStore:
 		pass
 
 
+def go(me):
+	if me["location"] == (1, 1):
+		me["location"] = 9
+	elif me["location"] == 9:
+		me["location"] = (0, 0)
+	else:
+		me["location"] = (1, 1)
+
+
 @pytest.fixture(autouse=True)
 def screen_test_state(prefix):
 	with Engine(os.path.join(prefix, "test"), workers=0) as eng:
@@ -23,15 +32,7 @@ def screen_test_state(prefix):
 		foo.add_place((1, 1))
 		foo.add_place(9)  # test that gridboard can handle this
 		this = here.new_thing(2)
-
-		@this.rule(always=True)
-		def go(me):
-			if me["location"] == (1, 1):
-				me["location"] = 9
-			elif me["location"] == 9:
-				me["location"] = (0, 0)
-			else:
-				me["location"] = (1, 1)
+		this.rule(go, always=True)
 
 
 def test_advance_time(screen_test_state, elide_app):
