@@ -13,12 +13,16 @@ for required_env in [
 	"CODEBERG_USERNAME",
 	"CODEBERG_PASSWORD",
 	"LISIEN_VERSION",
+	"LISIEN_CHANGES",
 ]:
 	if required_env not in sys.environ:
 		sys.exit(f"Required environment variable not set: {required_env}")
 lisien_version_str = sys.environ["LISIEN_VERSION"]
 if not re.match(r"v\d+\.\d+\.\d+", lisien_version_str):
 	sys.exit(f"Not a valid semantic version: {lisien_version_str}")
+lisien_changes_str = sys.environ["LISIEN_CHANGES"]
+if not lisien_changes_str.endswith("\n"):
+	sys.exit("LISIEN_CHANGES does not end with a newline")
 
 SOFT_REQUIREMENTS = {"lxml", "parquetdb"}
 

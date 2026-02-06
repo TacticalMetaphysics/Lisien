@@ -1,3 +1,8 @@
+== 0.23.2 | 2026-01-12 ==
+* Converted most of the codebase to `attrs`, which will make initialization
+  easier to understand.
+* Removed `reslot`, because `attrs` already does that.
+* Fixed crash when resuming a game where rules had run upon `Thing` objects.
 == 0.23.1 | 2025-11-16 ==
 * Fixed an inconsistency in instantiating ParquetDB that was probably preventing
   Elide from launching for anybody who wasn't running the unreleased main
