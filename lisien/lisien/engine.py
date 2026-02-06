@@ -7686,7 +7686,7 @@ class Engine(AbstractEngine, BaseExecutor):
 			archive_path = archive_path.with_suffix(".lisien")
 		elif archive_path.suffix != ".lisien":
 			raise ValueError("Invalid archive suffix: " + archive_path.suffix)
-		with ZipFile(archive_path, "r") as zf:
+		with ZipFile(archive_path, "r", ZIP_DEFLATED) as zf:
 			import_database.load_xml(zf.open("world.xml"))
 			for fn in set(zf.namelist()) - {"world.xml"}:
 				zf.extract(fn, prefix)
