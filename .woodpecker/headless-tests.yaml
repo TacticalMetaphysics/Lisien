@@ -27,7 +27,6 @@ steps:
       - DATABASE="${DATABASE}"
       - export DATABASE
       - TOXFILE=lisien/tox.ini
-      - python -m pip install --root-user-action ignore pytest tox lisien/
       - PYTEST_KEYWORDS="not slow and not big and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - export PYTEST_KEYWORDS
       - echo "will run $PYTEST_KEYWORDS"
