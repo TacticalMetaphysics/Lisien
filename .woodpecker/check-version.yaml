@@ -6,3 +6,12 @@ steps:
     image: python:3.12
     commands:
       - python check_version.py
+    environment:
+      CODEBERG_USERNAME:
+        from_secret: CODEBERG_USERNAME
+      CODEBERG_PASSWORD:
+        from_secret: CODEBERG_PASSWORD
+      PYPI_USERNAME:
+        from_secret: PYPI_USERNAME
+      PYPI_PASSWORD:
+        from_secret: PYPI_PASSWORD
