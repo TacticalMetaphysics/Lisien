@@ -14,6 +14,4 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
-      - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
-      - echo "PYTHON=$PYTHON"
       - tox run-parallel -c elide/tox.ini
