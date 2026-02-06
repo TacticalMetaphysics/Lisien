@@ -11,7 +11,7 @@ steps:
   - name: deploy
     image: zacharyspector/elide:latest
     pull: true
-    entrypoint: ["/bin/sh", "release.sh"]
+    entrypoint: ["/bin/bash", "release.sh"]
     environment:
       CODEBERG_USERNAME:
         from_secret: CODEBERG_USERNAME

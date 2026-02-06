@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euxo
 dos2unix -V
-alias python=python3.12
-VERSION=$(python3.12 check_version.py)
+alias python=/usr/local/bin/python3.14
+VERSION=$(python check_version.py)
 export VERSION
 python -m build --version
 twine --version
@@ -54,4 +54,4 @@ git push
 git push --tags
 TWINE_USERNAME=$CODEBERG_USERNAME TWINE_PASSWORD=$CODEBERG_PASSWORD twine upload lisien/dist/* elide/dist/*
 TWINE_USERNAME=$PYPI_USERNAME TWINE_PASSWORD=$PYPI_PASSWORD twine upload --repository https://codeberg.org/api/packages/clayote/pypi lisien/dist/* elide/dist/*
-python3.12 butler.py
+python butler.py
