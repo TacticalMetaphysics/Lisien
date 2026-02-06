@@ -14,4 +14,6 @@ steps:
       - echo "DISPLAY=$DISPLAY"
       - export DISPLAY
       - Xvfb $DISPLAY &
+      - python -m pip wheel lisien/
+      - mv lisien-*.whl /wheels/
       - tox run-parallel -c elide/tox.ini
