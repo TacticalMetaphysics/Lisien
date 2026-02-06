@@ -5409,6 +5409,7 @@ class Engine(AbstractEngine, BaseExecutor):
 					if a not in edges:
 						edges[a] = {}
 					for b, ex in bs.items():
+						b = unpack(b)
 						edges[a][b] = ex == TRUE
 			if NODE_VAL in chardeltpacked:
 				node_val = chardelt["node_val"] = {}
