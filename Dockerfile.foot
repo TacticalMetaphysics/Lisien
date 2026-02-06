@@ -9,8 +9,8 @@ patch -p1 -d kivy-$COMMIT_HASH <kivy.patch
 cd kivy-$COMMIT_HASH
 for minor in $(seq 12 14); do
     /usr/local/bin/python3.$minor -m pip install --upgrade --root-user-action ignore pip
-    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore Cython==0.29.34 tox twine
-    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel . legacy-cgi setuptools git+https://github.com/kivy/buildozer
+    /usr/local/bin/python3.$minor -m pip install --root-user-action ignore Cython==0.29.34
+    USE_SDL3=0 USE_X11=1 /usr/local/bin/python3.$minor -m pip wheel .
     /usr/local/bin/python3.$minor -m pip install --root-user-action ignore kivy*-cp3$minor-linux_x86_64.whl
 done
 cd ..
@@ -26,3 +26,17 @@ RUN set -eux; \
 		[ ! -e "/usr/local/bin/$dst" ]; \
 		ln -svT "$src" "/usr/local/bin/$dst"; \
 	done;
+# install test dependencies
+RUN python -m pip install --root-user-action ignore pytest tox
+# install deployment dependencies
+RUN /usr/local/bin/python3.14 -m pip install --root-user-action ignore \
+    twine \
+    sphinx \
+    isort \
+    ruff \
+    pyclean \
+    legacy-cgi \
+    setuptools \
+    build \
+    git+https://github.com/kivy/buildozer \
+    ;
