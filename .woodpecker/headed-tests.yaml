@@ -16,5 +16,4 @@ steps:
       - Xvfb $DISPLAY &
       - PYTHON=/usr/local/bin/python${PYTHON_VERSION}
       - echo "PYTHON=$PYTHON"
-      - mv /wheels/* .
       - tox run-parallel -c elide/tox.ini
