@@ -55,4 +55,5 @@ steps:
       - python -m pip install pytest lisien/
       - PYTEST_KEYWORDS="(slow or big) and interpreter_workers and $DATABASE"
       - echo "will run $PYTEST_KEYWORDS"
+      - mv /wheels/* .
       - tox run -c $TOXFILE -e py314
