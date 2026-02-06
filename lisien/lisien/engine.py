@@ -471,8 +471,8 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Directory containing the simulation and its code. If ``None`` (the 
 	default), Lisien won't save any rules code to disk, and won't save world 
-	data unless you supply :param connect_string:. Make sure to call 
-	:meth:`export` when you're done."""
+	data unless you supply :param connect_string:. If you decide you want to
+	keep the rules and world state, you need to call :meth:`export`."""
 
 	@_prefix.validator
 	def _validate_prefix(self, attr, prefix):
