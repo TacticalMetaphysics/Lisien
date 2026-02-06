@@ -8,7 +8,6 @@ python -m build --version
 twine --version
 python -m sphinx --version
 isort --version
-tox --version
 ruff --version
 pyclean --version
 wine git --version
