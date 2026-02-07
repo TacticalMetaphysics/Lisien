@@ -3279,9 +3279,11 @@ class AbstractEngine(ABC):
 			if clsn == "PythonDatabaseConnector":
 				from .db import PythonDatabaseConnector
 
-				connector = PythonDatabaseConnector()
 				if "load_me" in data:
+					connector = PythonDatabaseConnector(self)
 					connector.load_everything(data["load_me"])
+				else:
+					connector = PythonDatabaseConnector
 				return connector
 			elif clsn == "SQLAlchemyDatabaseConnector":
 				from .sql import SQLAlchemyDatabaseConnector
