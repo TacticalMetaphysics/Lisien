@@ -10,9 +10,6 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
-JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64
-ls $JAVA_HOME
-export JAVA_HOME
 if [ -n "$(git clean -n)" ]; then
   echo "Debris in the repository."
   git clean -n
