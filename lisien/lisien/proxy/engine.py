@@ -607,6 +607,9 @@ class EngineProxy(AbstractEngine):
 	def _rulebook_obj_cache(self) -> dict[RuleName, RuleBookProxy]:
 		return {}
 
+	def _detect_kf_interval_override(self) -> bool | None:
+		return False
+
 	def _get_node(
 		self, char: AbstractCharacter | KeyHint, node: NodeName
 	) -> Node:

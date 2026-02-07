@@ -147,7 +147,7 @@ def make_test_engine(
 		kwargs["sub_mode"] = Sub(execution)
 	match database:
 		case "python" | "pythondb":
-			kwargs["database"] = PythonDatabaseConnector()
+			kwargs["database"] = PythonDatabaseConnector
 		case "sqlite":
 			kwargs["database"] = partial(
 				SQLAlchemyDatabaseConnector,
@@ -160,7 +160,7 @@ def make_test_engine(
 				ParquetDatabaseConnector, path=worldpath
 			)
 		case "nodb":
-			kwargs["database"] = NullDatabaseConnector()
+			kwargs["database"] = NullDatabaseConnector
 		case _:
 			raise RuntimeError("Unknown database", database)
 	return Engine(path, **kwargs)

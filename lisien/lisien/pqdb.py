@@ -100,6 +100,9 @@ from .types import (
 	PackSignature,
 	UnpackSignature,
 	__dict__ as types_dict,
+	AbstractEngine,
+	KeyHint,
+	ValueHint,
 )
 from .util import ELLIPSIS, EMPTY
 
@@ -107,9 +110,23 @@ from .util import ELLIPSIS, EMPTY
 @define
 class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	db_type: ClassVar = "parquetdb"
-	_pack: PackSignature
-	_unpack: UnpackSignature
+	engine: AbstractEngine
 	path: Path = field(converter=Path)
+
+	def pack(
+		self,
+		obj: Key
+		| KeyHint
+		| EternalKey
+		| UniversalKey
+		| Stat
+		| ValueHint
+		| Value,
+	) -> bytes:
+		return self.engine.pack(obj)
+
+	def unpack(self, b: bytes) -> Value:
+		return self.engine.unpack(b)
 
 	@path.validator
 	def _path_exists(self, _, path: Path):

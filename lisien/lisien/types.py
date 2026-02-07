@@ -3056,6 +3056,9 @@ class AbstractEngine(ABC):
 		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool: ...
 
+	@abstractmethod
+	def _detect_kf_interval_override(self) -> bool | None: ...
+
 	def log(self, level, msg, *args, **kwargs):
 		self.logger.log(level, msg, *args, **kwargs)
 
@@ -3276,9 +3279,11 @@ class AbstractEngine(ABC):
 			if clsn == "PythonDatabaseConnector":
 				from .db import PythonDatabaseConnector
 
-				connector = PythonDatabaseConnector()
 				if "load_me" in data:
+					connector = PythonDatabaseConnector(self)
 					connector.load_everything(data["load_me"])
+				else:
+					connector = PythonDatabaseConnector
 				return connector
 			elif clsn == "SQLAlchemyDatabaseConnector":
 				from .sql import SQLAlchemyDatabaseConnector

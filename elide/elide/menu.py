@@ -248,7 +248,7 @@ class GameExporterModal(GamePickerModal):
 			) as eng:
 				if hasattr(app, "_ss"):
 					eng._shared_storage = app._ss
-				eng.export(game)
+				eng.export(game, app.prefix)
 		self.dismiss()
 
 	@logwrap(section="GameExporterModal")

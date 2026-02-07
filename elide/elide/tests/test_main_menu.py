@@ -50,19 +50,12 @@ def test_new_game(elide_app_main_menu):
 
 
 @pytest.fixture
-def zipped_kobold(kobold_sim):
-	yield shutil.make_archive("kobold", "zip", kobold_sim, kobold_sim)
-
-
-@pytest.fixture
-def zipped_kobold_in_games_dir(prefix, zipped_kobold):
-	archive_name = os.path.basename(zipped_kobold)
-	games_dir = os.path.join(prefix, "games")
-	shutil.move(
-		zipped_kobold,
-		os.path.join(games_dir, archive_name),
+def zipped_kobold_in_games_dir(prefix, kobold_sim):
+	zipped_kobold = shutil.make_archive(
+		os.path.join(prefix, "games", "kobold"), "zip", kobold_sim, kobold_sim
 	)
-	assert archive_name in os.listdir(games_dir)
+	games_dir = os.path.join(prefix, "games")
+	assert os.path.basename(zipped_kobold) in os.listdir(games_dir)
 
 
 def idle_until_kobold_is_loaded(manager):
@@ -290,14 +283,16 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(
 		lambda: button.state == "down", 100, "kobold button unpressable"
 	)
+	advance_frames(5)
 	touch.touch_up()
 	idle_until(
 		lambda: not modal._is_open, 100, "Never closed game export modal"
 	)
+	advance_frames(5)
 	idle_until(
-		lambda: "kobold.lisien" in os.listdir("."),
+		lambda: "kobold.lisien" in os.listdir(app.prefix),
 		100,
-		"Never created kobold.lisien",
+		"Never created kobold.lisien. Prefix contents: "
+		+ ", ".join(os.listdir(app.prefix)),
 	)
-	shutil.move("kobold.lisien", app.prefix + "/kobold.lisien")
 	test_import_game(app.prefix + "/kobold.lisien", app)
