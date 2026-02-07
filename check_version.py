@@ -17,10 +17,10 @@ for required_env in [
 	if required_env not in os.environ:
 		sys.exit(f"Required environment variable not set: {required_env}")
 lisien_version_str = os.environ["LISIEN_VERSION"]
-if not re.match(r"v\d+\.\d+\.\d+", lisien_version_str):
+if not re.match(r"\d+\.\d+\.\d+", lisien_version_str):
 	sys.exit(f"Not a valid semantic version: {lisien_version_str}")
 
-SOFT_REQUIREMENTS = {"lxml", "parquetdb"}
+SOFT_REQUIREMENTS = {"lxml", "parquetdb", "kivy-deps"}
 
 DEP_NAME_PAT = r"([a-zA-Z0-9_-]+)([~!<>=]=)?.*"
 REQUIREMENTS_PAT = r"requirements *= *(.+)"
@@ -32,26 +32,25 @@ loaded["project"]["version"] = lisien_version_str
 shutil.copy("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
 with open("lisien/pyproject.toml", "wb") as outf:
 	tomli_w.dump(loaded, outf)
-deps = {
-	re.match(DEP_NAME_PAT, dep).group(1)
-	for dep in loaded["project"]["dependencies"]
-} - SOFT_REQUIREMENTS
+deps = {"lisien"}
+for dep in loaded["project"]["dependencies"]:
+	deps.add(re.match(DEP_NAME_PAT, dep).group(1))
 lisien_is_in_elide_deps = False
 dep_l = []
 with open("elide/pyproject.toml", "rb") as inf:
 	loaded = tomllib.load(inf)
-elide_version_str = loaded["project"]["version"]
+loaded["project"]["version"] = lisien_version_str
 for dependency in loaded["project"]["dependencies"]:
 	if not dependency.startswith("lisien"):
 		deps.add(re.match(DEP_NAME_PAT, dependency).group(1))
 		dep_l.append(dependency)
 		continue
 	_, old_lisien_version = dependency.split("==")
-	deps.add(f"lisien=={lisien_version_str}")
 	dep_l.append(dependency)
 	lisien_is_in_elide_deps = True
 if not lisien_is_in_elide_deps:
 	raise RuntimeError("Elide doesn't depend on Lisien")
+deps.difference_update(SOFT_REQUIREMENTS)
 loaded["project"]["dependencies"] = dep_l
 shutil.copy("elide/pyproject.toml", "elide/.old.pyproject.toml")
 with open("elide/pyproject.toml", "wb") as outf:
@@ -80,12 +79,6 @@ if deps:
 
 pat = r"(\d+?\.\d+?\.\d+?)(\.post[0-9]+)?"
 lisien_version = re.match(pat, lisien_version_str).group(1)
-elide_version = re.match(pat, elide_version_str).group(1)
-
-if not (lisien_version == elide_version):
-	sys.exit(
-		f"Version numbers differ. lisien: {lisien_version}, elide: {elide_version}"
-	)
 
 output = subprocess.check_output(
 	[sys.executable, "-m", "pip", "index", "versions", "lisien"], text=True
