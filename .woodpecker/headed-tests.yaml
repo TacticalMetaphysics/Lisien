@@ -2,6 +2,12 @@ when:
   - event: push
     branch: main
 
+matrix:
+  ENV:
+    - py312
+    - py313
+    - py314
+
 steps:
   - name: headed
     image: zacharyspector/elide:latest
@@ -16,4 +22,4 @@ steps:
       - Xvfb $DISPLAY &
       - python -m pip wheel --no-deps lisien/
       - mv lisien-*.whl /wheels/lisien-0.0.0.dev0-py3-none-any.whl
-      - tox run -c elide/tox.ini
+      - tox run -c elide/tox.ini -e ${ENV}
