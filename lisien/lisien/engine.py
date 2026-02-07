@@ -7841,8 +7841,8 @@ class Engine(AbstractEngine, BaseExecutor):
 			path = Path(path)
 			if name is None:
 				name = path.name.removesuffix(".lisien")
-			elif path.is_dir():
-				path = path.joinpath(name)
+		if path.is_dir():
+			path = path.joinpath(name + ".lisien")
 		if path.exists():
 			raise FileExistsError(f"Already have something at {path}")
 		self.commit()
