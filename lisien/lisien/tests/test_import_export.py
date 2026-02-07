@@ -249,8 +249,7 @@ def test_import_parquetdb(
 def sql_connector_under_test(tmp_path, engine_facade):
 	test_world = os.path.join(tmp_path, "testworld.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		engine_facade.pack,
-		engine_facade.unpack,
+		engine_facade,
 		"sqlite:///" + test_world,
 	)
 	yield connector
@@ -261,8 +260,7 @@ def sql_connector_under_test(tmp_path, engine_facade):
 def sql_connector_correct(tmp_path, engine_facade):
 	correct_world = os.path.join(tmp_path, "world.sqlite3")
 	connector = SQLAlchemyDatabaseConnector(
-		engine_facade.pack,
-		engine_facade.unpack,
+		engine_facade,
 		"sqlite:///" + correct_world,
 	)
 	yield connector
