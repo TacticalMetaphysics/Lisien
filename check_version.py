@@ -30,7 +30,7 @@ with open("lisien/pyproject.toml", "rb") as inf:
 shutil.move("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
 
 
-loaded["product"]["version"] = lisien_version_str
+loaded["project"]["version"] = lisien_version_str
 shutil.copy("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
 with open("lisien/pyproject.toml", "wb") as outf:
 	tomli_w.dump(loaded, outf)
