@@ -27,8 +27,6 @@ REQUIREMENTS_PAT = r"requirements *= *(.+)"
 
 with open("lisien/pyproject.toml", "rb") as inf:
 	loaded = tomllib.load(inf)
-shutil.move("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
-
 
 loaded["project"]["version"] = lisien_version_str
 shutil.copy("lisien/pyproject.toml", "lisien/.old.pyproject.toml")
