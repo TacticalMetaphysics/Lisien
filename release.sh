@@ -37,13 +37,13 @@ rm -rf bin lisien/dist elide/dist
 buildozer android update clean debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
 pyclean lisien_windows
-unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
 cp -rf pages/docs lisien_windows/
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
 mv CHANGES.txt CHANGES.txt.old
 echo "$LISIEN_CHANGES" | cat - CHANGES.txt.old >CHANGES.txt
+unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
