@@ -41,8 +41,6 @@ cp -rf pages/docs lisien_windows/
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
-mv CHANGES.txt CHANGES.txt.old
-echo "$LISIEN_CHANGES" | cat - CHANGES.txt.old >CHANGES.txt
 unix2dos -n CHANGES.txt lisien_windows/CHANGES.txt
 cd pages/docs
 git add .
