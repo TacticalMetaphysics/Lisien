@@ -1,8 +1,19 @@
-== 0.23.2 | 2026-01-12 ==
+== 0.23.2 | 2026-02-07 ==
 * Converted most of the codebase to `attrs`, which will make initialization
   easier to understand.
 * Removed `reslot`, because `attrs` already does that.
+* The `export` method of `Engine` now accepts a directory for its second argument,
+  and will use the name of the game as the base name of the archive by default.
+* Elide will now export games to *its* working directory, which may be different
+  from the directory it was launched in.
 * Fixed crash when resuming a game where rules had run upon `Thing` objects.
+* Fixed various crashes when sending some object types between subinterpreters.
+  This would mainly be a problem on Android, where you have to use subinterpreters
+  to run code parallel.
+* Speaking of which, parallelism really runs in parallel now! In the previous version,
+  the workers would start, but the engine didn't really use them. I've beefed up the
+  testing regimen so this won't happen again.
+
 == 0.23.1 | 2025-11-16 ==
 * Fixed an inconsistency in instantiating ParquetDB that was probably preventing
   Elide from launching for anybody who wasn't running the unreleased main
