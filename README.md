@@ -115,8 +115,8 @@ with Engine(clear=True) as eng:
 	sq = eng.new_character('square')
 ```
 
-This starts a new game with its world state stored in the file
-'world.db'. Because of ``clear`` being ``True``, it will delete any
+This starts a new game with its world state stored in the 'world' folder.
+Because of ``clear`` being ``True``, it will delete any
 existing world state and game code each time it's run, which is often
 useful when you're getting started. It creates three characters, one
 of which, named 'physical', has a 20x20 grid in it.  The others are
