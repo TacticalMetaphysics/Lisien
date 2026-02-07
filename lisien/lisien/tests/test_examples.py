@@ -40,7 +40,7 @@ def test_college_nodb(serial_or_parallel):
 	}
 	if serial_or_parallel != "serial":
 		kwargs["sub_mode"] = serial_or_parallel
-	with Engine(None, **kwargs, database=NullDatabaseConnector()) as eng:
+	with Engine(None, **kwargs, database=NullDatabaseConnector) as eng:
 		college.install(eng)
 		for i in range(3):
 			eng.next_turn()
