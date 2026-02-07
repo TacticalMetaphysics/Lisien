@@ -1,6 +1,8 @@
 when:
   - event: push
     branch: main
+  - event: pull_request
+    repo: clayote/Lisien
 
 matrix:
   ENV:
