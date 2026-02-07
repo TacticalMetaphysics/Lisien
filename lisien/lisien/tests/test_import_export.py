@@ -217,9 +217,7 @@ def compare_stored_python_code(
 def pqdb_connector_under_test(tmp_path, engine_facade):
 	test_world = tmp_path.joinpath("test_world")
 	test_world.mkdir(parents=True)
-	connector = ParquetDatabaseConnector(
-		engine_facade.pack, engine_facade.unpack, path=test_world
-	)
+	connector = ParquetDatabaseConnector(engine_facade, path=test_world)
 	yield connector
 	connector.close()
 
@@ -228,9 +226,7 @@ def pqdb_connector_under_test(tmp_path, engine_facade):
 def pqdb_connector_correct(tmp_path, engine_facade):
 	correct_world = tmp_path.joinpath("world")
 	correct_world.mkdir(parents=True)
-	connector = ParquetDatabaseConnector(
-		engine_facade.pack, engine_facade.unpack, path=correct_world
-	)
+	connector = ParquetDatabaseConnector(engine_facade, path=correct_world)
 	yield connector
 	connector.close()
 
