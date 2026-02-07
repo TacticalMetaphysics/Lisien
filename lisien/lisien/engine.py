@@ -7843,6 +7843,8 @@ class Engine(AbstractEngine, BaseExecutor):
 				name = path.name.removesuffix(".lisien")
 			elif path.is_dir():
 				path = path.joinpath(name)
+		if path.exists():
+			raise FileExistsError(f"Already have something at {path}")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
 			with zf.open("world.xml", "w") as f:
