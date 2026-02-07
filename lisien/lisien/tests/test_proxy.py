@@ -36,9 +36,9 @@ def test_start(
 	worker_sub_mode,
 	random_seed,
 ):
-	if (
-		persistent_database == "parquetdb"
-		and worker_sub_mode == Sub.interpreter
+	if persistent_database == "parquetdb" and (
+		worker_sub_mode == Sub.interpreter
+		or kind_of_proxy_manager == "interpreter_manager"
 	):
 		raise pytest.skip(
 			"PyArrow does not yet support running in subinterpreters"
