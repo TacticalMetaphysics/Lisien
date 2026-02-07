@@ -598,16 +598,14 @@ class Engine(AbstractEngine, BaseExecutor):
 	def _database_factory(self):
 		if self._prefix is None:
 			if self.connect_string is None:
-				return PythonDatabaseConnector()
+				return PythonDatabaseConnector(self)
 			else:
 				from .sql import SQLAlchemyDatabaseConnector
 
 				return SQLAlchemyDatabaseConnector(
-					self.pack,
-					self.unpack,
+					self,
 					self.connect_string,
 					self.connect_args or {},
-					clear=self.clear,
 				)
 		else:
 			if self.connect_string is None:
@@ -617,20 +615,16 @@ class Engine(AbstractEngine, BaseExecutor):
 				path.mkdir(parents=True, exist_ok=True)
 
 				return ParquetDatabaseConnector(
-					self.pack,
-					self.unpack,
+					self,
 					path,
-					clear=self.clear,
 				)
 			else:
 				from .sql import SQLAlchemyDatabaseConnector
 
 				return SQLAlchemyDatabaseConnector(
-					self.pack,
-					self.unpack,
+					self,
 					self.connect_string,
 					self.connect_args or {},
-					clear=self.clear,
 				)
 
 	@staticmethod
@@ -642,9 +636,9 @@ class Engine(AbstractEngine, BaseExecutor):
 		self,
 	):
 		if callable(database):
-			return database(self.pack, self.unpack)
+			return database(self)
 		elif database is None:
-			return PythonDatabaseConnector(self.pack, self.unpack)
+			return PythonDatabaseConnector(self)
 		else:
 			return database  # hope you know what you're doing
 
@@ -671,7 +665,6 @@ class Engine(AbstractEngine, BaseExecutor):
 		the initial load.
 
 		"""
-		database.keyframe_interval = self.keyframe_interval
 		keyframes_dict = self._keyframes_dict
 		keyframes_times = self._keyframes_times
 		for branch, turn, tick in database.keyframes_dump():
@@ -896,8 +889,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		self._turns_completed_d.update(database.turns_completed_dump())
 		##### Load actual game state
 		self._load(*self._read_at(*self.time))
-		database.snap_keyframe = self.snap_keyframe
-		database.kf_interval_override = self._detect_kf_interval_override
+		database._initialized = True
 		rando = self._rando
 
 		try:
@@ -7659,21 +7651,20 @@ class Engine(AbstractEngine, BaseExecutor):
 							"Couldn't make directory for ParquetDB", pq_path
 						)
 					import_database = database = ParquetDatabaseConnector(
-						fake.pack, fake.unpack, pq_path
+						fake, pq_path
 					)
 				except ImportError:
 					from .sql import SQLAlchemyDatabaseConnector
 
 					import_database = database = SQLAlchemyDatabaseConnector(
-						fake.pack,
-						fake.unpack,
+						fake,
 						f"sqlite:///{prefix}/world.sqlite3",
 					)
 			else:
 				import_database = database = PythonDatabaseConnector()
 		elif callable(database):
 			fake = EngineFacade(None)
-			import_database = database(fake.pack, fake.unpack)
+			import_database = database(fake)
 			if not isinstance(import_database, AbstractDatabaseConnector):
 				raise TypeError("Not a database", import_database)
 		elif not isinstance(database, AbstractDatabaseConnector):
@@ -7850,6 +7841,10 @@ class Engine(AbstractEngine, BaseExecutor):
 			path = Path(path)
 			if name is None:
 				name = path.name.removesuffix(".lisien")
+		if path.is_dir():
+			path = path.joinpath(name + ".lisien")
+		if path.exists():
+			raise FileExistsError(f"Already have something at {path}")
 		self.commit()
 		with ZipFile(path, "w", ZIP_DEFLATED) as zf:
 			with zf.open("world.xml", "w") as f:

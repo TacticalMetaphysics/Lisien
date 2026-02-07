@@ -640,48 +640,39 @@ class AbstractDatabaseConnector(ABC):
 	"""
 
 	db_type: ClassVar[str]
+	engine: AbstractEngine
 
-	_pack: PackSignature
-	"""Function to pack Lisien's objects into bytes
-	
-	Normally the same as :py:meth:`lisien.engine.Engine.pack`.
-	
-	"""
-	_unpack: UnpackSignature
-	"""Function to unpack bytes into Lisien's objects
-	
-	Normally the same as :py:meth:`lisien.engine.Engine.unpack`.
-	
-	"""
-	clear: bool = field(kw_only=True, default=False)
-	"""Whether to delete everything immediately"""
-	kf_interval_override: Callable[[], bool | None] = field(
-		default=lambda: None, kw_only=True
-	)
-	"""Function to decide when not to respect :py:attr:`keyframe_interval`
-	
-	Before snapping a keyframe at an interval, we'll call
-	:py:attr:`kf_interval_override` with no arguments. If it returns ``True``,
-	we'll delay snapping that keyframe until :attr:`kf_interval_override`
-	returns ``False`` or ``None``.
-	
-	"""
-	keyframe_interval: int | None = field(default=1000, kw_only=True)
-	"""The number of records to be written between automatic keyframe snaps"""
-	snap_keyframe: Callable[[], None] = field(
-		default=lambda: None, kw_only=True
-	)
-	"""Function to snap keyframes
-	
-	Normally the same as :meth:`lisien.engine.Engine.snap_keyframe`.
-	
-	"""
+	@abstractmethod
+	def pack(
+		self,
+		obj: Key
+		| KeyHint
+		| EternalKey
+		| UniversalKey
+		| Stat
+		| ValueHint
+		| Value,
+	) -> bytes: ...
+
+	@abstractmethod
+	def unpack(self, b: bytes) -> Value: ...
+
+	@property
+	def keyframe_interval(self) -> int | None:
+		return self.engine.keyframe_interval
+
+	@property
+	def clear(self) -> bool:
+		return self.engine.clear
+
+	def kf_interval_override(self):
+		return self.engine._detect_kf_interval_override()
+
+	def snap_keyframe(self) -> None:
+		return self.engine.snap_keyframe(silent=True)
+
 	_initialized: bool = field(init=False, default=False)
 	_kf_interval_overridden: bool = field(init=False, default=False)
-
-	engine: AbstractEngine = field(
-		init=False, factory=partial(EngineFacade, None)
-	)
 	tree: ElementTree = field(init=False, eq=False)
 
 	@cached_property
@@ -718,14 +709,6 @@ class AbstractDatabaseConnector(ABC):
 		with self._lock:
 			yield
 
-	@property
-	def pack(self) -> PackSignature:
-		return self._pack
-
-	@property
-	def unpack(self) -> UnpackSignature:
-		return self._unpack
-
 	def dump_everything(self) -> dict[str, list[tuple]]:
 		"""Return the whole database in a Python dictionary.
 
@@ -752,14 +735,10 @@ class AbstractDatabaseConnector(ABC):
 	) -> tuple[
 		dict[str, list[tuple]],
 		bool,
-		int | None,
-		Callable[[], bool],
 	]:
 		return (
 			self.dump_everything(),
 			self._initialized,
-			self.keyframe_interval,
-			self.kf_interval_override,
 		)
 
 	def load_everything(self, state: dict[str, list[tuple]]):
@@ -774,15 +753,11 @@ class AbstractDatabaseConnector(ABC):
 		state: tuple[
 			dict[str, list[tuple]],
 			bool,
-			int | None,
-			Callable[[], bool],
 		],
 	):
 		(
 			data,
 			self._initialized,
-			self.keyframe_interval,
-			self.kf_interval_override,
 		) = state
 		self.load_everything(data)
 
@@ -1716,13 +1691,15 @@ class AbstractDatabaseConnector(ABC):
 		if n < 0:
 			raise ValueError("Don't reduce the count of written records")
 		self._records += n
+		if not self._initialized:
+			return
 		override: bool | None = self.kf_interval_override()
 		if override:
 			self._kf_interval_overridden = True
 			return
-		elif getattr(self, "_kf_interval_overridden", False) or (
-			self.keyframe_interval is not None
-			and self._records % self.keyframe_interval == 0
+		elif self.keyframe_interval is not None and (
+			self._kf_interval_overridden
+			or self._records % self.keyframe_interval == 0
 		):
 			self.snap_keyframe()
 			self._kf_interval_overridden = False
@@ -4169,8 +4146,7 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
-	_pack = field(default=None)
-	_unpack = field(default=None)
+	engine: AbstractEngine
 	_old_data: dict | None = field(default=None)
 	is_python: ClassVar = True
 	db_type: ClassVar = "python"
@@ -4607,13 +4583,20 @@ class PythonDatabaseConnector(AbstractDatabaseConnector):
 	def _lock(self) -> Lock:
 		return Lock()
 
-	@staticmethod
-	def pack(obj):
-		return obj
+	def pack(
+		self,
+		obj: Key
+		| KeyHint
+		| EternalKey
+		| UniversalKey
+		| Stat
+		| ValueHint
+		| Value,
+	) -> Value:
+		return Value(obj)
 
-	@staticmethod
-	def unpack(obj):
-		return obj
+	def unpack(self, b: Value) -> Value:
+		return b
 
 	def _load_window(
 		self,
@@ -5397,8 +5380,22 @@ class NullDatabaseConnector(AbstractDatabaseConnector):
 
 	"""
 
-	_pack = field(default=None)
-	_unpack = field(default=None)
+	engine: AbstractEngine
+
+	def pack(
+		self,
+		obj: Key
+		| KeyHint
+		| EternalKey
+		| UniversalKey
+		| Stat
+		| ValueHint
+		| Value,
+	) -> Value:
+		return obj
+
+	def unpack(self, b: Value) -> Value:
+		return b
 
 	def echo(self, *args):
 		if len(args) == 1:
@@ -6252,9 +6249,6 @@ window_getter.tables = {}
 
 @define
 class ThreadedDatabaseConnector(AbstractDatabaseConnector):
-	_pack: PackSignature
-	_unpack: UnpackSignature
-
 	Looper: ClassVar[type[ConnectionLooper]]
 
 	def _make_thread(self):

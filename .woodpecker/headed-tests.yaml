@@ -1,6 +1,8 @@
 when:
   - event: push
     branch: main
+  - event: pull_request
+    repo: clayote/Lisien
 
 steps:
   - name: headed
@@ -16,4 +18,4 @@ steps:
       - Xvfb $DISPLAY &
       - python -m pip wheel --no-deps lisien/
       - mv lisien-*.whl /wheels/lisien-0.0.0.dev0-py3-none-any.whl
-      - tox run -c elide/tox.ini
+      - tox run-parallel -c elide/tox.ini
