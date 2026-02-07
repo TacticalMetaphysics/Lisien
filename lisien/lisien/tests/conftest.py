@@ -128,10 +128,10 @@ def handle_initialized(request, tmp_path, database, random_seed):
 		keyframe = {0: data.SICKLE_KEYFRAME_0, 1: data.SICKLE_KEYFRAME_1}
 	if database in {"nodb", "pythondb"}:
 		if database == "nodb":
-			connector = NullDatabaseConnector()
+			connector = NullDatabaseConnector
 		else:
 			assert database == "pythondb"
-			connector = PythonDatabaseConnector()
+			connector = PythonDatabaseConnector
 		ret = EngineHandle(
 			None,
 			workers=0,
