@@ -283,13 +283,16 @@ def test_export_game(zipped_kobold_in_games_dir, elide_app_main_menu):
 	idle_until(
 		lambda: button.state == "down", 100, "kobold button unpressable"
 	)
+	advance_frames(5)
 	touch.touch_up()
 	idle_until(
 		lambda: not modal._is_open, 100, "Never closed game export modal"
 	)
+	advance_frames(5)
 	idle_until(
 		lambda: "kobold.lisien" in os.listdir(app.prefix),
 		100,
-		"Never created kobold.lisien",
+		"Never created kobold.lisien. Prefix contents: "
+		+ ", ".join(os.listdir(app.prefix)),
 	)
 	test_import_game(app.prefix + "/kobold.lisien", app)
