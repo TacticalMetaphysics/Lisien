@@ -5764,13 +5764,15 @@ class Engine(AbstractEngine, BaseExecutor):
 			self.string,
 		)
 
+	_closed: bool = field(init=False, default=False)
+
 	def close(self) -> None:
 		"""Commit changes and close the database
 
 		This will be useless thereafter.
 
 		"""
-		if hasattr(self, "_closed"):
+		if self._closed:
 			raise RuntimeError("Already closed")
 		if (
 			self.keyframe_on_close

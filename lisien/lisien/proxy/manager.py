@@ -736,23 +736,27 @@ class EngineProxyManager:
 		with self._round_trip_lock:
 			if hasattr(self, "_proxman_put_queue"):
 				with self._proxman_send_lock:
-					self._proxman_put_queue.put(b"echo\xb0ReadyToMakeProxy")
+					self._proxman_put_queue.put(b"go")
 				with self._proxman_recv_lock:
 					try:
 						got = self._proxman_get_queue.get(timeout=TIMEOUT)
 					except Empty:
 						raise TimeoutError("Core didn't respond")
-				unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
 			else:
 				with self._proxman_send_lock:
-					self._proxman_send_pipe.send_bytes(
-						b"echo\xb0ReadyToMakeProxy"
-					)
+					self._proxman_send_pipe.send_bytes(b"go")
 				if not self._proxman_recv_pipe.poll(TIMEOUT):
 					raise TimeoutError("Subprocess isn't ready")
 				with self._proxman_recv_lock:
 					got = self._proxman_recv_pipe.recv_bytes()
-			unpack_expected(unpack, got, b"\xb0ReadyToMakeProxy")
+			gotten = unpack(got)
+			if isinstance(gotten, BaseException):
+				raise gotten
+			cmd, branch, turn, tick, _ = gotten
+			if not isinstance(cmd, str) or not cmd.startswith(
+				"handle initialized"
+			):
+				raise RuntimeError("Failed to initialize EngineHandle", cmd)
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
@@ -785,6 +789,9 @@ class EngineProxyManager:
 			self, "_proxman_send_pipe"
 		):
 			self.engine_proxy = EngineProxy(
+				branch,
+				turn,
+				tick,
 				self._proxman_recv_pipe.recv_bytes,
 				self._proxman_send_pipe.send_bytes,
 				self.logger,
@@ -801,6 +808,9 @@ class EngineProxyManager:
 			)
 		else:
 			self.engine_proxy = EngineProxy(
+				branch,
+				turn,
+				tick,
 				self._proxman_get_queue.get,
 				self._proxman_put_queue.put,
 				self.logger,
