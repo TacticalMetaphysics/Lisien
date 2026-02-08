@@ -299,12 +299,9 @@ class EngineProxy(AbstractEngine):
 	place_cls: ClassVar = PlaceProxy
 	portal_cls: ClassVar = PortalProxy
 	is_proxy: ClassVar = True
-	_branch: Branch = field(
-		init=False, default=Branch("trunk"), converter=Branch
-	)
-	_turn: Turn = field(init=False, default=Turn(0), converter=Turn)
-	_tick: Tick = field(init=False, default=Tick(0), converter=Tick)
-	_mutable_worker: bool = field(init=False, default=False)
+	_branch: Branch = field(converter=Branch)
+	_turn: Turn = field(converter=Turn)
+	_tick: Tick = field(converter=Tick)
 	_get_input_bytes: Callable[[], bytes] | None
 	_send_output_bytes: Callable[[bytes], None] | None
 	logger: logging.Logger
@@ -480,6 +477,7 @@ class EngineProxy(AbstractEngine):
 		default=None,
 		converter=Converter(_convert_replay_file, takes_self=True),
 	)
+	_mutable_worker: bool = field(init=False, default=False)
 
 	@cached_property
 	def next_turn(self):
@@ -797,7 +795,6 @@ class EngineProxy(AbstractEngine):
 		],
 	):
 		(start_kf, eternal, plainstored, pklstored) = result
-		self._initialized = False
 		self._eternal = eternal
 		for name, store in [
 			("function", self.function),
@@ -1285,14 +1282,6 @@ class EngineProxy(AbstractEngine):
 		(self._branch, self._turn, self._tick) = time
 
 	def _init_pull_from_core(self):
-		self.debug("EngineProxy: Getting time...")
-		self.send_bytes(GET_TIME)
-		received = self.recv()
-		self.debug(
-			f"EngineProxy: Got time: {received}. Pulling initial keyframe..."
-		)
-		self._branch, self._turn, self._tick = received[-1]
-		self._initialized = False
 		self._pull_kf_now()
 		self.debug(
 			"EngineProxy: Initial keyframe pulled. "
@@ -1927,9 +1916,8 @@ class EngineProxy(AbstractEngine):
 	def close(self) -> None:
 		if getattr(self, "closed", False):
 			return
-		self._commit_lock.acquire()
-		self._commit_lock.release()
-		self.handle("close")
+		with self._commit_lock:
+			self.handle("close")
 		self.closed = True
 
 	def _node_contents(
@@ -2450,6 +2438,3 @@ class WorkerLogHandler(logging.Handler):
 	def emit(self, record):
 		record.worker_idx = self._i
 		self._logq.put(record)
-
-
-GET_TIME = b"\x81\xa7command\xa8get_time"

@@ -19,6 +19,7 @@ ordinary method calls.
 
 from __future__ import annotations
 
+import threading
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match
@@ -185,6 +186,8 @@ class EngineHandle:
 		if "executor" not in kwargs and hasattr(self, "_executor"):
 			self.debug("reusing executor")
 			kwargs["executor"] = self._executor
+		if hasattr(self, "_real") and not self._real._closed:
+			self._real.close()
 		self._real = Engine(*args, **kwargs)
 		self.debug("restarted in a handle")
 		self._logger = self._real.logger

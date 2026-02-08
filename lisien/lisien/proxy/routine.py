@@ -54,6 +54,9 @@ def worker_subroutine(
 	handler = WorkerLogHandler(logq, logging.DEBUG, i)
 	logger.addHandler(handler)
 	eng = EngineProxy(
+		"trunk",
+		0,
+		0,
 		None,
 		None,
 		logger,
@@ -237,7 +240,7 @@ def engine_subroutine(
 		if recvd.startswith(b"echo"):
 			send_output_bytes(recvd.removeprefix(b"echo"))
 			continue
-		if recvd.startswith(b"from_archive"):
+		elif recvd.startswith(b"from_archive"):
 			if engine_handle is None:
 				try:
 					engine_handle = EngineHandle.from_archive(
@@ -268,20 +271,25 @@ def engine_subroutine(
 					send_output_bytes(engine_handle.pack(exc))
 					return 1
 			continue
-		if engine_handle is None:
-			try:
-				engine_handle = EngineHandle(
-					*args,
-					log_queue=log_queue,
-					reuse_executor=reuse_executor,
-					**kwargs,
-				)
+		elif recvd == b"go":
+			if engine_handle is None:
+				try:
+					engine_handle = EngineHandle(
+						*args,
+						log_queue=log_queue,
+						reuse_executor=reuse_executor,
+						**kwargs,
+					)
+					send_output(
+						"handle initialized de novo", engine_handle.get_btt()
+					)
+				except BaseException as exc:
+					send_output_bytes(EngineFacade(None).pack(exc))
+					return 1
+			else:
 				send_output(
-					"handle initialized de novo", engine_handle.get_btt()
+					"handle initialized; restarted", engine_handle.get_btt()
 				)
-			except BaseException as exc:
-				send_output_bytes(EngineFacade(None).pack(exc))
-				return 1
 			continue
 		unpacked = engine_handle.unpack(recvd)
 		_engine_subroutine_step(
@@ -290,7 +298,7 @@ def engine_subroutine(
 			send_output,
 			send_output_prepacked,
 		)
-	if engine_handle:
+	if engine_handle is not None:
 		try:
 			engine_handle.shutdown()
 		except BaseException as exc:
