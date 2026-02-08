@@ -245,6 +245,10 @@ def engine_subroutine(
 						log_queue=log_queue,
 						reuse_executor=reuse_executor,
 					)
+					send_output(
+						"handle initialized from archive",
+						engine_handle.get_btt(),
+					)
 				except BaseException as exc:
 					send_output_bytes(EngineFacade(None).pack(exc))
 					return 1
@@ -255,6 +259,10 @@ def engine_subroutine(
 						recvd.removeprefix(b"from_archive"),
 						log_queue=log_queue,
 						reuse_executor=reuse_executor,
+					)
+					send_output(
+						"handle initialized from archive",
+						engine_handle.get_btt(),
 					)
 				except BaseException as exc:
 					send_output_bytes(engine_handle.pack(exc))
@@ -268,7 +276,9 @@ def engine_subroutine(
 					reuse_executor=reuse_executor,
 					**kwargs,
 				)
-				send_output("get_btt", engine_handle.get_btt())
+				send_output(
+					"handle initialized de novo", engine_handle.get_btt()
+				)
 			except BaseException as exc:
 				send_output_bytes(EngineFacade(None).pack(exc))
 				return 1
