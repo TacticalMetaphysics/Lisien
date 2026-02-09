@@ -45,8 +45,7 @@ for dependency in loaded["project"]["dependencies"]:
 		deps.add(re.match(DEP_NAME_PAT, dependency).group(1))
 		dep_l.append(dependency)
 		continue
-	_, old_lisien_version = dependency.split("==")
-	dep_l.append(dependency)
+	dep_l.append(f"lisien=={lisien_version_str}")
 	lisien_is_in_elide_deps = True
 if not lisien_is_in_elide_deps:
 	raise RuntimeError("Elide doesn't depend on Lisien")
