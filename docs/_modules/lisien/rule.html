@@ -4,11 +4,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.rule &#8212; Lisien 0.23.1 documentation</title>
+    <title>lisien.rule &#8212; Lisien 0.23.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=832b3b9f"></script>
+    <script src="../../_static/documentation_options.js?v=b4d3b1f5"></script>
     <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -119,14 +119,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserDict</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">,</span> <span class="n">MutableSequence</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-	<span class="n">TYPE_CHECKING</span><span class="p">,</span>
-	<span class="n">Any</span><span class="p">,</span>
-	<span class="n">Callable</span><span class="p">,</span>
-	<span class="n">Iterator</span><span class="p">,</span>
-	<span class="n">Optional</span><span class="p">,</span>
-	<span class="n">ValuesView</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">ValuesView</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">define</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">blinker</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span>
@@ -137,6 +130,7 @@
 	<span class="n">AbstractEngine</span><span class="p">,</span>
 	<span class="n">ActionFunc</span><span class="p">,</span>
 	<span class="n">ActionFuncName</span><span class="p">,</span>
+	<span class="n">AttrSignal</span><span class="p">,</span>
 	<span class="n">Branch</span><span class="p">,</span>
 	<span class="n">Key</span><span class="p">,</span>
 	<span class="n">KeyHint</span><span class="p">,</span>
@@ -153,7 +147,6 @@
 	<span class="n">TriggerFunc</span><span class="p">,</span>
 	<span class="n">TriggerFuncName</span><span class="p">,</span>
 	<span class="n">Turn</span><span class="p">,</span>
-	<span class="n">AttrSignal</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">dedent_source</span>
 
