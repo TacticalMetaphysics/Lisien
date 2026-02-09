@@ -10,9 +10,9 @@ ruff --version
 pyclean --version
 wine git --version
 buildozer --version
-if [ -n "$(git clean -n)" ]; then
+if [ -n "$(git clean -dn)" ]; then
   echo "Debris in the repository."
-  git clean -n
+  git clean -dn
   exit 1
 fi
 if [ -n "${CC+x}" ]; then
