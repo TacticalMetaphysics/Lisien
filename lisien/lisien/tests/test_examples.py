@@ -19,16 +19,11 @@ import pytest
 
 from lisien import Engine
 from lisien.db import NullDatabaseConnector
-from lisien.examples import (
-	college,
-	kobold,
-	pathfind,
-	polygons,
-)
+from lisien.enum import Sub
+from lisien.examples import college, kobold, pathfind, polygons
 from lisien.proxy.handle import EngineHandle
 from lisien.tests.data import DATA_DIR
 from lisien.types import GraphNodeValKeyframe, GraphValKeyframe, Keyframe
-from lisien.enum import Sub
 
 pytestmark = [pytest.mark.big]
 

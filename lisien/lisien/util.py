@@ -22,7 +22,7 @@ from pprint import pformat
 from queue import SimpleQueue
 from textwrap import dedent
 from time import monotonic
-from typing import Callable, Iterable, Protocol, TypeVar, Any
+from typing import Any, Callable, Iterable, Protocol, TypeVar
 
 try:
 	import msgpack

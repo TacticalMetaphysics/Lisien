@@ -20,9 +20,9 @@ import pytest
 import lisien.examples.kobold as kobold
 import lisien.examples.polygons as polygons
 from lisien.engine import Engine
+from lisien.enum import Sub
 from lisien.proxy.handle import EngineHandle
 from lisien.proxy.manager import EngineProxyManager
-from lisien.enum import Sub
 from lisien.tests import data
 from lisien.tests.util import make_test_engine, make_test_engine_kwargs
 

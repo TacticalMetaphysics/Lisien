@@ -28,11 +28,8 @@ import shutil
 import sys
 from abc import ABC, abstractmethod
 from collections import UserDict, defaultdict
-from concurrent.futures import (
-	Executor as BaseExecutor,
-	Future,
-	ThreadPoolExecutor,
-)
+from concurrent.futures import Executor as BaseExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
 from contextlib import ContextDecorator, contextmanager
 from copy import copy
@@ -43,10 +40,10 @@ from itertools import chain, pairwise
 from logging import (
 	DEBUG,
 	Formatter,
-	getLogger,
 	Logger,
 	LogRecord,
 	StreamHandler,
+	getLogger,
 )
 from multiprocessing import get_all_start_methods
 from operator import itemgetter, lt
@@ -56,22 +53,22 @@ from random import Random
 from threading import RLock, Thread
 from types import FunctionType, MethodType, ModuleType
 from typing import (
+	IO,
 	Any,
 	Callable,
+	ClassVar,
 	Iterable,
 	Iterator,
 	Literal,
 	Optional,
 	Type,
 	TypeGuard,
-	ClassVar,
-	IO,
 )
 from xml.etree.ElementTree import ElementTree
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import networkx as nx
-from attrs import define, field, Factory, Converter
+from attrs import Converter, Factory, define, field
 from blinker import Signal
 from networkx import (
 	Graph,
@@ -93,7 +90,6 @@ from .cache import (
 	CharacterThingRulesHandledCache,
 	EdgesCache,
 	EdgeValCache,
-	UniversalCache,
 	GraphCache,
 	GraphValCache,
 	NeighborhoodsCache,
@@ -112,6 +108,7 @@ from .cache import (
 	TurnEndPlanDict,
 	UnitnessCache,
 	UnitRulesHandledCache,
+	UniversalCache,
 )
 from .character import Character
 from .collections import (
@@ -131,6 +128,7 @@ from .db import (
 	NullDatabaseConnector,
 	PythonDatabaseConnector,
 )
+from .enum import Sub
 from .exc import (
 	GraphNameError,
 	HistoricKeyError,
@@ -141,9 +139,9 @@ from .exc import (
 from .facade import CharacterFacade, EngineFacade
 from .futures import (
 	Executor,
-	ThreadExecutor,
-	ProcessExecutor,
 	InterpreterExecutor,
+	ProcessExecutor,
+	ThreadExecutor,
 )
 from .node import Place, Thing
 from .portal import Portal
@@ -184,6 +182,7 @@ from .types import (
 	NodesDict,
 	NodeValDict,
 	PickierDefaultDict,
+	PickyDefaultDict,
 	Plan,
 	PrereqFuncName,
 	Query,
@@ -199,6 +198,7 @@ from .types import (
 	SlightlyPackedDeltaType,
 	Stat,
 	StatDict,
+	StructuredDefaultDict,
 	Tick,
 	Time,
 	TimeSignal,
@@ -208,20 +208,17 @@ from .types import (
 	Value,
 	sort_set,
 	validate_time,
-	PickyDefaultDict,
-	StructuredDefaultDict,
 )
-from .enum import Sub
 from .util import (
 	ACTIONS,
 	BIG,
 	EDGE_VAL,
 	EDGES,
 	ELLIPSIS,
+	EMPTY,
 	ETERNAL,
 	FALSE,
 	ILLEGAL_CHARACTER_NAMES,
-	EMPTY,
 	NEIGHBORHOOD,
 	NODE_VAL,
 	NODES,

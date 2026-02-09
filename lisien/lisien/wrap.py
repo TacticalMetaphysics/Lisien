@@ -23,20 +23,20 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import (
+	Collection,
+	Container,
 	Iterable,
 	Mapping,
 	MutableMapping,
 	MutableSequence,
-	Sequence,
-	Collection,
-	Container,
 	MutableSet,
+	Sequence,
 	Set,
 )
 from functools import partial, wraps
-from itertools import chain, zip_longest, filterfalse
+from itertools import chain, filterfalse, zip_longest
 from threading import RLock
-from typing import Callable, Hashable, TypeVar, Self, Iterator
+from typing import Callable, Hashable, Iterator, Self, TypeVar
 
 from attrs import define, field
 from more_itertools import unique_everseen

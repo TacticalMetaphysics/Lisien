@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Optional, ClassVar
+from typing import Any, ClassVar, Optional
 
 from attrs import define
 

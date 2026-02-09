@@ -37,6 +37,7 @@ from attrs import define, field
 
 from . import engine
 from .collections import ChangeTrackingDict
+from .enum import Direction
 from .exc import (
 	HistoricKeyError,
 	KeyframeError,
@@ -50,29 +51,24 @@ from .types import (
 	Key,
 	LinearTime,
 	NodeName,
+	PickyDefaultDict,
+	PrereqFuncName,
 	RuleBig,
 	RulebookName,
 	RulebookPriority,
 	RuleName,
 	RuleNeighborhood,
 	Stat,
+	StructuredDefaultDict,
 	Tick,
 	Time,
 	TriggerFuncName,
 	Turn,
 	UniversalKey,
 	Value,
-	PickyDefaultDict,
-	PrereqFuncName,
-	StructuredDefaultDict,
 	sort_set,
 )
-from .window import (
-	AssignmentTimeDict,
-	EntikeySettingsTurnDict,
-	WindowDict,
-)
-from .enum import Direction
+from .window import AssignmentTimeDict, EntikeySettingsTurnDict, WindowDict
 from .wrap import OrderlyFrozenSet
 
 if TYPE_CHECKING:
@@ -1627,14 +1623,14 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 
 		"""
 		from .character import Character
-		from .node import Place, Thing
-		from .portal import Portal
 		from .facade import (
-			FacadeEntity,
 			CharacterFacade,
 			EngineFacade,
+			FacadeEntity,
 			FacadePortal,
 		)
+		from .node import Place, Thing
+		from .portal import Portal
 
 		args: tuple[*_PARENT, _ENTITY, _KEY, Branch, Turn, Tick]
 

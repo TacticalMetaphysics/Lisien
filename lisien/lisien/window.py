@@ -38,14 +38,14 @@ from threading import RLock
 from typing import (
 	Any,
 	Callable,
+	ClassVar,
 	Iterable,
 	Iterator,
+	Protocol,
+	Sequence,
 	TypeVar,
 	Union,
-	ClassVar,
 	overload,
-	Sequence,
-	Protocol,
 )
 
 from attrs import define
@@ -53,13 +53,13 @@ from attrs import define
 from .enum import Direction
 from .exc import HistoricKeyError
 from .types import (
+	Branch,
 	LinearTime,
+	PickierDefaultDict,
 	Tick,
 	Turn,
 	Value,
 	ValueHint,
-	Branch,
-	PickierDefaultDict,
 )
 
 get0 = itemgetter(0)

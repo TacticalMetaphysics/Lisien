@@ -19,25 +19,24 @@ import json
 import logging
 import os
 import pickle
-from queue import Empty
 import sys
 import time
 import zlib
 from functools import partial
 from pathlib import Path
-from threading import Thread, Lock
+from queue import Empty
+from threading import Lock, Thread
 from zipfile import ZipFile
 
-from attrs import define, field
 import tblib
+from attrs import define, field
 
-from ..facade import EngineFacade
-from ..types import Branch, EternalKey, Key, Tick, Turn, Value, Time
 from ..enum import Sub
+from ..facade import EngineFacade
+from ..types import Branch, EternalKey, Key, Tick, Time, Turn, Value
 from ..util import unpack_expected
 from .engine import EngineProxy
 from .routine import engine_subprocess, engine_subthread
-
 
 TIMEOUT = 60
 

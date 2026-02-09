@@ -80,8 +80,8 @@ from ..util import (
 	RULES,
 	UNITS,
 	UNIVERSAL,
-	timer,
 	concat_d,
+	timer,
 )
 
 SlightlyPackedDeltaType = dict[

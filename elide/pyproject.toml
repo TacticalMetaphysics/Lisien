@@ -1,43 +1,53 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = [
+    "setuptools>=61.0",
+]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-include-package-data=true
-packages = ["elide", "elide.graph", "elide.grid", "elide.kivygarden.texturestack", "elide.tests"]
-
-[project]
-name = "elide"
-version = "0.23.1"
-authors = [
-	{ name="Zachary Spector", email="public@zacharyspector.com" },
+include-package-data = true
+packages = [
+    "elide",
+    "elide.graph",
+    "elide.grid",
+    "elide.kivygarden.texturestack",
+    "elide.tests",
 ]
-description = "Extensible Life Simulator Engine Development Environment"
-readme = "README.md"
-license = "AGPL-3.0-only"
-license-files = ["LICENSE"]
-requires-python = "~=3.12"
-classifiers = [
-	"Programming Language :: Python :: 3",
-	"Operating System :: OS Independent",
-	"Development Status :: 3 - Alpha",
-	"Intended Audience :: Developers"
-]
-dependencies = [
-	"lisien==0.23.1",
-	"kivy>=2.0.0",
-	"kivy-deps.glew ; sys_platform == 'win32'",
-	"kivy-deps.sdl2 ; sys_platform == 'win32'",
-	"pygments>=2.7.4"
-]
-
-[project.urls]
-"Homepage" = "https://codeberg.org/clayote/Lisien"
-"Bug Tracker" = "https://codeberg.org/clayote/Lisien/issues"
 
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
-	"big: marks tests as too big to diagnose specific bugs with"
+    "big: marks tests as too big to diagnose specific bugs with",
 ]
 asyncio_default_fixture_loop_scope = "function"
+
+[project]
+name = "elide"
+version = "0.23.2"
+authors = [
+    { name = "Zachary Spector", email = "public@zacharyspector.com" },
+]
+description = "Extensible Life Simulator Engine Development Environment"
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = [
+    "LICENSE",
+]
+requires-python = "~=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "lisien==0.23.2",
+    "kivy>=2.0.0",
+    "kivy-deps.glew ; sys_platform == 'win32'",
+    "kivy-deps.sdl2 ; sys_platform == 'win32'",
+    "pygments>=2.7.4",
+]
+
+[project.urls]
+Homepage = "https://codeberg.org/clayote/Lisien"
+"Bug Tracker" = "https://codeberg.org/clayote/Lisien/issues"

@@ -18,29 +18,27 @@ import os
 import sys
 import threading
 from abc import ABC, abstractmethod
-from concurrent.futures import Executor, Future, wait as futwait
+from concurrent.futures import Executor, Future
+from concurrent.futures import wait as futwait
 from contextlib import contextmanager
-from functools import cached_property, wraps, partial
+from functools import cached_property, partial, wraps
 from logging import Logger, LogRecord
+from multiprocessing import SimpleQueue as MPSimpleQueue
+from multiprocessing import get_context
+from multiprocessing.connection import Connection
+from multiprocessing.context import DefaultContext, ForkContext, SpawnContext
+from multiprocessing.process import BaseProcess
 from pathlib import Path
-from queue import Queue, SimpleQueue, Empty
+from queue import Empty, Queue, SimpleQueue
 from threading import Lock, Thread
 from time import sleep
-from typing import Callable, TYPE_CHECKING, Literal
-from multiprocessing import SimpleQueue as MPSimpleQueue, get_context
-from multiprocessing.process import BaseProcess
-from multiprocessing.context import (
-	ForkContext,
-	SpawnContext,
-	DefaultContext,
-)
-from multiprocessing.connection import Connection
+from typing import TYPE_CHECKING, Callable, Literal
 
 from attrs import Factory, define, field
 
-from .proxy.routine import worker_subthread, worker_subprocess
+from .proxy.routine import worker_subprocess, worker_subthread
 from .proxy.worker_subinterpreter import worker_subinterpreter
-from .types import AbstractEngine, Time, EternalKey, Value, Branch, Turn, Tick
+from .types import AbstractEngine, Branch, EternalKey, Tick, Time, Turn, Value
 from .util import msgpack_array_header, msgpack_map_header, unpack_expected
 
 if TYPE_CHECKING:
@@ -673,10 +671,7 @@ class InterpreterWorker(Worker):
 		executor: InterpreterExecutor,
 		engine: AbstractEngine | None = None,
 	) -> InterpreterWorker:
-		from concurrent.interpreters import (
-			create,
-			create_queue,
-		)
+		from concurrent.interpreters import create, create_queue
 
 		i = len(executor._workers)
 		input = create_queue()

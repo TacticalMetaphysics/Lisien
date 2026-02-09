@@ -30,6 +30,7 @@ from threading import Lock
 from time import monotonic
 from types import MethodType
 from typing import (
+	IO,
 	Any,
 	Callable,
 	ClassVar,
@@ -39,11 +40,10 @@ from typing import (
 	MutableMapping,
 	Optional,
 	Protocol,
-	IO,
 )
 
-from attrs import Converter, define, field
 import networkx as nx
+from attrs import Converter, define, field
 from blinker import Signal
 
 try:
@@ -62,21 +62,25 @@ except ImportError:
 	Ext = msgpack.Ext
 
 from ..collections import (
+	ActionStore,
 	FunctionStore,
-	TriggerStore,
 	GenericFunctionStore,
 	MethodStore,
-	ActionStore,
 	PrereqStore,
+	TriggerStore,
 )
+from ..enum import MsgpackExtensionType
 from ..exc import OutOfTimelineError, WorkerProcessReadOnlyError
 from ..types import (
 	AbstractBookmarkMapping,
 	AbstractCharacter,
 	AbstractEngine,
 	AbstractFunctionStore,
+	AbstractLanguageDescriptor,
 	ActionFuncName,
+	AttrSignal,
 	Branch,
+	CharacterRulebookTypeStr,
 	CharDelta,
 	CharName,
 	DeltaDict,
@@ -93,12 +97,15 @@ from ..types import (
 	NodeName,
 	NodesDict,
 	NodeValDict,
+	PickyDefaultDict,
 	PrereqFuncName,
 	RulebookName,
 	RulebookPriority,
 	RuleName,
 	RuleNeighborhood,
+	Stat,
 	StatDict,
+	StructuredDefaultDict,
 	Tick,
 	Time,
 	TimeSignalDescriptor,
@@ -107,14 +114,7 @@ from ..types import (
 	UniversalKey,
 	Value,
 	ValueHint,
-	PickyDefaultDict,
-	StructuredDefaultDict,
-	AbstractLanguageDescriptor,
-	Stat,
-	CharacterRulebookTypeStr,
-	AttrSignal,
 )
-from ..enum import MsgpackExtensionType
 from ..util import (
 	dedent_source,
 	format_call_sig,

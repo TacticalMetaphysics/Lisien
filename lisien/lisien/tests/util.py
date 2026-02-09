@@ -5,22 +5,23 @@ import pickle
 import shutil
 import tempfile
 from contextlib import contextmanager
-from functools import wraps, partial
+from functools import partial, wraps
 from itertools import product
 from logging import getLogger
 from os import PathLike
 from pathlib import Path
 from queue import Empty, SimpleQueue
 from threading import Thread
-from typing import Any, Callable, TypeVar, Literal, TYPE_CHECKING, Iterator
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Literal, TypeVar
 from unittest.mock import MagicMock, patch
+
 from umsgpack import packb
 
 from lisien import Engine
 from lisien.db import (
+	AbstractDatabaseConnector,
 	NullDatabaseConnector,
 	PythonDatabaseConnector,
-	AbstractDatabaseConnector,
 )
 from lisien.facade import EngineFacade
 from lisien.pqdb import ParquetDatabaseConnector
@@ -29,11 +30,12 @@ from lisien.proxy.manager import EngineProxyManager
 from lisien.sql import SQLAlchemyDatabaseConnector
 from lisien.tests.data import DATA_DIR
 from lisien.types import (
-	LoadedDict,
-	Keyframe,
 	GraphNodeValKeyframe,
 	GraphValKeyframe,
+	Keyframe,
+	LoadedDict,
 )
+
 from ..enum import Sub
 
 if TYPE_CHECKING:

@@ -41,9 +41,9 @@ from itertools import chain
 from typing import (
 	TYPE_CHECKING,
 	Callable,
+	ClassVar,
 	Iterable,
 	Iterator,
-	ClassVar,
 	Literal,
 )
 
@@ -61,9 +61,9 @@ from .types import (
 	AbstractCharacter,
 	BaseMutableCharacterMapping,
 	Branch,
+	CharacterMapping,
 	CharacterStatAlias,
 	CharName,
-	CharacterMapping,
 	DiGraphPredecessorsMapping,
 	DiGraphSuccessorsMapping,
 	GraphNodeMapping,

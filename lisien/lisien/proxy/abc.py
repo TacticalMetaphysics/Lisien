@@ -18,18 +18,19 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import (
 	TYPE_CHECKING,
+	ClassVar,
 	Iterator,
 	Literal,
 	MutableMapping,
 	MutableSequence,
 	Optional,
-	ClassVar,
 )
 
 from attrs import define
 from blinker import Signal
 
 from ..types import (
+	AttrSignal,
 	FuncName,
 	Key,
 	KeyHint,
@@ -39,7 +40,6 @@ from ..types import (
 	RuleNeighborhood,
 	Value,
 	ValueHint,
-	AttrSignal,
 )
 from ..wrap import DictWrapper, ListWrapper, SetWrapper
 

@@ -19,16 +19,16 @@ from functools import cached_property
 from types import EllipsisType
 from typing import (
 	TYPE_CHECKING,
+	ClassVar,
 	Iterable,
 	Iterator,
 	Mapping,
 	MutableMapping,
 	Optional,
-	ClassVar,
 )
 
-from attrs import define, field
 import networkx as nx
+from attrs import define, field
 from blinker import Signal
 
 from lisien.exc import AmbiguousLeaderError
@@ -42,6 +42,7 @@ from lisien.proxy.abc import (
 )
 from lisien.types import (
 	AbstractCharacter,
+	AttrSignal,
 	CharDelta,
 	CharName,
 	Edge,
@@ -57,7 +58,6 @@ from lisien.types import (
 	Tick,
 	Value,
 	ValueHint,
-	AttrSignal,
 )
 
 from ..util import getatt
