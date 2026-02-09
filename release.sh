@@ -54,8 +54,8 @@ cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
 git tag -f "v${VERSION}"
-git push
-git push --tags
+git push ssh://git@codeberg.org/clayote/Lisien.git HEAD:pages
+git push --tags ssh://git@codeberg.org/clayote/Lisien.git HEAD:pages
 cd ../..
 git commit -am "Release v${VERSION}"
 git tag -f "v${VERSION}"
