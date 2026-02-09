@@ -22,14 +22,14 @@ if [ -n "${CC+x}" ]; then
 fi
 VERSION=$(python check_version.py)
 export VERSION
-wget https://clayote.codeberg.page/lisien-windows.zip
+wget https://clayote.codeberg.page/lisien/lisien-windows.tar.xz
 isort lisien
 isort elide
 ruff format lisien
 ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
-unzip lisien-windows.zip
+tar xf lisien-windows.tar.xz
 rm -rf bin lisien/dist elide/dist
 buildozer android update clean debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
