@@ -32,7 +32,7 @@ from attrs import define, field
 import tblib
 
 from ..facade import EngineFacade
-from ..types import Branch, EternalKey, Key, Tick, Turn, Value
+from ..types import Branch, EternalKey, Key, Tick, Turn, Value, Time
 from ..enum import Sub
 from ..util import unpack_expected
 from .engine import EngineProxy
@@ -116,7 +116,7 @@ class EngineProxyManager:
 			prefix = None
 		if prefix is not None:
 			prefix = Path(prefix)
-		self._make_proxy(prefix, **kwargs)
+		self._make_proxy(*self._go_time(), prefix, **kwargs)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
@@ -716,15 +716,7 @@ class EngineProxyManager:
 		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
-	def _make_proxy(
-		self,
-		prefix: Path | None,
-		install_modules=(),
-		enforce_end_of_time=False,
-		game_source_code: dict[str, str] | None = None,
-		game_strings: dict[str, str] | None = None,
-		**kwargs,
-	):
+	def _go_time(self) -> Time:
 		if hasattr(self, "engine_proxy"):
 			if not self.engine_proxy.closed:
 				raise RuntimeError(
@@ -757,6 +749,20 @@ class EngineProxyManager:
 				"handle initialized"
 			):
 				raise RuntimeError("Failed to initialize EngineHandle", cmd)
+		return Branch(branch), Turn(turn), Tick(tick)
+
+	def _make_proxy(
+		self,
+		branch: Branch,
+		turn: Turn,
+		tick: Tick,
+		prefix: Path | None,
+		install_modules=(),
+		enforce_end_of_time=False,
+		game_source_code: dict[str, str] | None = None,
+		game_strings: dict[str, str] | None = None,
+		**kwargs,
+	):
 		branches_d, eternal_d = self._initialize_proxy_db(prefix, **kwargs)
 		if game_source_code is None:
 			game_source_code = {}
@@ -877,7 +883,14 @@ class EngineProxyManager:
 		worker_sub = kwargs.pop("sub_mode", None)
 		if worker_sub is not None:
 			worker_sub = Sub(worker_sub).value
-		payload = b"from_archive" + EngineFacade(None).pack(
+		if hasattr(self, "engine_proxy"):
+			pack = self.engine_proxy.pack
+			unpack = self.engine_proxy.unpack
+		else:
+			fac = EngineFacade(None)
+			pack = fac.pack
+			unpack = fac.unpack
+		payload = b"from_archive" + pack(
 			{
 				"archive_path": str(archive_path),
 				"prefix": str(prefix),
@@ -885,11 +898,33 @@ class EngineProxyManager:
 				**kwargs,
 			}
 		)
-		if hasattr(self, "_proxman_send_pipe"):
-			self._proxman_send_pipe.send_bytes(payload)
-		else:
-			self._proxman_put_queue.put(payload)
-		self._make_proxy(prefix, game_source_code=game_code, **kwargs)
+		with self._round_trip_lock:
+			if hasattr(self, "_proxman_send_pipe"):
+				with self._proxman_send_lock:
+					self._proxman_send_pipe.send_bytes(payload)
+				with self._proxman_recv_lock:
+					if not self._proxman_recv_pipe.poll(TIMEOUT):
+						raise TimeoutError("Didn't import archive in time")
+					recvd = self._proxman_recv_pipe.recv_bytes()
+			else:
+				with self._proxman_send_lock:
+					self._proxman_put_queue.put(payload)
+				with self._proxman_recv_lock:
+					try:
+						recvd = self._proxman_get_queue.get(timeout=TIMEOUT)
+					except Empty:
+						raise TimeoutError("Didn't import archive in time")
+		unpacked = unpack(recvd)
+		if isinstance(unpacked, BaseException):
+			raise unpacked
+		cmd, branch, turn, tick, _ = unpacked
+		if cmd != "handle initialized from archive":
+			raise RuntimeError(
+				f"Expected 'handle initialized from archive', got {cmd}"
+			)
+		self._make_proxy(
+			branch, turn, tick, prefix, game_source_code=game_code, **kwargs
+		)
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 

@@ -287,9 +287,7 @@ def engine_subroutine(
 					send_output_bytes(EngineFacade(None).pack(exc))
 					return 1
 			else:
-				send_output(
-					"handle initialized; restarted", engine_handle.get_btt()
-				)
+				send_output("handle initialized", engine_handle.get_btt())
 			continue
 		unpacked = engine_handle.unpack(recvd)
 		_engine_subroutine_step(
