@@ -61,6 +61,7 @@ from typing import (
 	Annotated,
 	Any,
 	Callable,
+	ClassVar,
 	ContextManager,
 	Iterable,
 	Iterator,
@@ -71,16 +72,15 @@ from typing import (
 	NewType,
 	Optional,
 	Protocol,
+	Self,
 	TypedDict,
 	TypeGuard,
 	TypeVar,
 	Union,
 	get_args,
 	get_origin,
-	override,
-	Self,
-	ClassVar,
 	overload,
+	override,
 )
 
 import networkx as nx
@@ -91,30 +91,29 @@ from networkx import NetworkXError
 from tblib import Traceback
 from zict import LRU
 
-from . import exc
-from . import enum
+from . import enum, exc
 from .enum import MsgpackExtensionType
 from .exc import TimeError, TravelException, WorkerProcessReadOnlyError
+from .util import concat_d, concat_list
 from .wrap import (
 	DictWrapper,
 	ListWrapper,
 	MappingUnwrapper,
-	SetWrapper,
-	OrderlySet,
 	OrderlyFrozenSet,
+	OrderlySet,
+	SetWrapper,
 	unwrap_items,
 	wrapval,
 )
-from .util import concat_d, concat_list
 
 if TYPE_CHECKING:
 	from .character import Character
 	from .db import AbstractDatabaseConnector
 	from .engine import Engine
+	from .facade import EngineFacade
 	from .node import Thing
 	from .portal import Portal
 	from .rule import Rule, RuleBook
-	from .facade import EngineFacade
 
 
 type KeyHint = (
@@ -3110,6 +3109,7 @@ class AbstractEngine(ABC):
 
 	def _pack_with_umsgpack(self, obj: ValueHint | Value) -> bytes:
 		from umsgpack import Ext, packb
+
 		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
 
 		if inspect.isclass(obj) and issubclass(obj, AbstractDatabaseConnector):
@@ -3156,14 +3156,15 @@ class AbstractEngine(ABC):
 		return packb(obj, ext_handlers=self._umsgpack_pack_handlers)
 
 	def _msgpack_packer(self) -> Callable[[ValueHint | value], bytes]:
+		import msgpack
+
 		from .db import AbstractDatabaseConnector
 		from .facade import (
 			CharacterFacade,
-			FacadeThing,
 			FacadePlace,
 			FacadePortal,
+			FacadeThing,
 		)
-		import msgpack
 
 		handlers = self._msgpack_pack_handlers
 
@@ -3231,10 +3232,10 @@ class AbstractEngine(ABC):
 	def _unpack_handlers(self):
 		from .facade import (
 			CharacterFacade,
-			FacadeThing,
 			FacadePlace,
 			FacadePortal,
 			FacadePortalSuccessors,
+			FacadeThing,
 		)
 
 		char_cls = self.char_cls
@@ -3440,9 +3441,9 @@ class AbstractEngine(ABC):
 		from .db import AbstractDatabaseConnector, PythonDatabaseConnector
 		from .facade import (
 			CharacterFacade,
-			FacadeThing,
 			FacadePlace,
 			FacadePortal,
+			FacadeThing,
 		)
 		from .wrap import (
 			DictWrapper,

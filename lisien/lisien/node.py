@@ -24,7 +24,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Set, ValuesView
 from copy import deepcopy
 from functools import cached_property
-from typing import TYPE_CHECKING, Iterator, List, Literal, Optional, ClassVar
+from typing import TYPE_CHECKING, ClassVar, Iterator, List, Literal, Optional
 
 from attrs import define
 from networkx import shortest_path, shortest_path_length

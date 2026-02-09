@@ -86,14 +86,7 @@ from ast import parse, unparse
 from collections import UserDict
 from collections.abc import Iterable, MutableMapping, MutableSequence
 from functools import cached_property, partial
-from typing import (
-	TYPE_CHECKING,
-	Any,
-	Callable,
-	Iterator,
-	Optional,
-	ValuesView,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterator, Optional, ValuesView
 
 from attrs import define
 from blinker import Signal
@@ -104,6 +97,7 @@ from .types import (
 	AbstractEngine,
 	ActionFunc,
 	ActionFuncName,
+	AttrSignal,
 	Branch,
 	Key,
 	KeyHint,
@@ -120,7 +114,6 @@ from .types import (
 	TriggerFunc,
 	TriggerFuncName,
 	Turn,
-	AttrSignal,
 )
 from .util import dedent_source
 

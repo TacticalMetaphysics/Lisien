@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 
-
 from lisien.engine import Engine
 from lisien.examples.pathfind import install
 from lisien.tests.data import DATA_DIR

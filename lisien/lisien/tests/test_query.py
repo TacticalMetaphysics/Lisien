@@ -14,14 +14,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from collections import defaultdict
-from functools import reduce, partial
+from functools import partial, reduce
 
 import pytest
 
-from .data import DATA_DIR
 from .. import Engine
 from ..query import windows_intersection
 from ..sql import SQLAlchemyDatabaseConnector
+from .data import DATA_DIR
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]
 

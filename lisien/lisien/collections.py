@@ -37,17 +37,20 @@ from hashlib import blake2b
 from inspect import getsource
 from pathlib import Path
 from types import FunctionType, MethodType
-from typing import TYPE_CHECKING, Callable, Iterator, TypeVar, ClassVar
+from typing import TYPE_CHECKING, Callable, ClassVar, Iterator, TypeVar
 
 import networkx as nx
-from attrs import field, define
+from attrs import define, field
 from blinker import Signal
 
 from .types import (
 	AbstractEngine,
 	AbstractFunctionStore,
+	AbstractLanguageDescriptor,
+	AbstractStringStore,
 	ActionFunc,
 	ActionFuncName,
+	AttrSignal,
 	CharName,
 	KeyHint,
 	PrereqFunc,
@@ -59,9 +62,6 @@ from .types import (
 	Value,
 	ValueHint,
 	sort_set,
-	AbstractLanguageDescriptor,
-	AbstractStringStore,
-	AttrSignal,
 )
 from .util import dedent_source, getatt
 from .wrap import wrapval

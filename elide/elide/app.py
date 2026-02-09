@@ -53,6 +53,7 @@ from kivy.properties import (
 from kivy.resources import resource_find
 from kivy.uix.screenmanager import NoTransition, Screen, ScreenManager
 
+from lisien.enum import Sub
 from lisien.proxy.character import (
 	CharacterProxy,
 	CharStatProxy,
@@ -60,7 +61,6 @@ from lisien.proxy.character import (
 	ThingProxy,
 )
 from lisien.proxy.manager import EngineProxyManager
-from lisien.enum import Sub
 
 from .graph.arrow import GraphArrow
 from .graph.board import GraphBoard

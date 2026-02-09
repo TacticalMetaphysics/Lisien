@@ -27,13 +27,13 @@ from itertools import filterfalse, starmap
 from pathlib import Path
 from queue import Queue
 from threading import Lock, Thread
-from types import FunctionType, MethodType, EllipsisType
+from types import EllipsisType, FunctionType, MethodType
 from typing import (
+	IO,
 	TYPE_CHECKING,
 	Any,
 	Callable,
 	ClassVar,
-	IO,
 	Iterable,
 	Iterator,
 	Literal,
@@ -43,14 +43,14 @@ from typing import (
 	Optional,
 	Set,
 	TypeVar,
-	get_origin,
 	get_args,
+	get_origin,
 	get_type_hints,
 )
 
+import networkx as nx
 from attr import Factory
 from attrs import define, field
-import networkx as nx
 from tblib import Traceback
 
 if TYPE_CHECKING:
@@ -99,6 +99,8 @@ from .types import (
 	GraphValRowType,
 	Key,
 	Keyframe,
+	KeyframeExtensionRowType,
+	KeyframeGraphRowType,
 	KeyHint,
 	LoadedCharWindow,
 	LoadedDict,
@@ -109,6 +111,7 @@ from .types import (
 	NodeRulesHandledRowType,
 	NodeValRowType,
 	PackSignature,
+	PickierDefaultDict,
 	Plan,
 	PlanTicksRowType,
 	PortalRulebookRowType,
@@ -148,9 +151,6 @@ from .types import (
 	deannotate,
 	root_type,
 	sort_set,
-	PickierDefaultDict,
-	KeyframeExtensionRowType,
-	KeyframeGraphRowType,
 )
 from .util import ILLEGAL_CHARACTER_NAMES, garbage
 from .window import (

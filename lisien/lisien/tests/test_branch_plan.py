@@ -14,11 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from lisien import Engine
 from lisien.collections import (
+	ActionStore,
 	FunctionStore,
+	PrereqStore,
 	StringStore,
 	TriggerStore,
-	PrereqStore,
-	ActionStore,
 )
 
 

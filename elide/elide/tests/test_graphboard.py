@@ -10,12 +10,12 @@ from elide.app import ElideApp
 from elide.graph.arrow import ArrowPlane
 from elide.graph.board import GraphBoard, GraphBoardView
 from lisien.collections import (
+	ActionStore,
 	FunctionStore,
 	GenericFunctionStore,
 	MethodStore,
-	TriggerStore,
 	PrereqStore,
-	ActionStore,
+	TriggerStore,
 )
 from lisien.facade import CharacterFacade, EngineFacade
 from lisien.types import SignalDict

@@ -40,6 +40,7 @@ try:
 except AttributeError:
 	Sub._value2member_map_["serial"] = Sub.serial
 
+
 class Direction(Enum):
 	FORWARD = "forward"
 	BACKWARD = "backward"

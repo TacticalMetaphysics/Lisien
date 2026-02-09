@@ -20,19 +20,12 @@ from functools import partial
 
 import pytest
 
+from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
 from lisien.engine import Engine
-from ..futures import (
-	ThreadExecutor,
-	ProcessExecutor,
-	InterpreterExecutor,
-)
-from lisien.db import (
-	NullDatabaseConnector,
-	PythonDatabaseConnector,
-)
 from lisien.proxy.handle import EngineHandle
-from ..enum import Sub
 
+from ..enum import Sub
+from ..futures import InterpreterExecutor, ProcessExecutor, ThreadExecutor
 from ..pqdb import ParquetDatabaseConnector
 from ..proxy.manager import EngineProxyManager
 from ..sql import SQLAlchemyDatabaseConnector
