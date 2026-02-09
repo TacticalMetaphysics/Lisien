@@ -37,7 +37,9 @@ ruff format lisien
 ruff format elide
 pyclean --debris=tox .
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
-mkdir lisien_windows
+if [ ! -d lisien_windows ]; then
+  mkdir lisien_windows
+fi
 tar -C lisien_windows -xf pages/lisien-windows.tar.xz
 rm -rf bin lisien/dist elide/dist
 buildozer android clean update debug
