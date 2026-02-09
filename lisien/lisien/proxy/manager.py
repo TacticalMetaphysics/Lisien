@@ -310,9 +310,6 @@ class EngineProxyManager:
 		else:
 			eng = EngineFacade(None)
 			unpack = eng.unpack
-		if hasattr(self, "_logq"):
-			self._logq.put(b"shutdown")
-			del self._logq
 		if hasattr(self, "_p"):
 			if self._p.is_alive():
 				with self._round_trip_lock:
@@ -352,9 +349,14 @@ class EngineProxyManager:
 				if self._t.is_alive():
 					raise TimeoutError("Couldn't join thread")
 			del self._t
+
+		if hasattr(self, "_logq"):
+			self._logq.put(b"shutdown")
 		if hasattr(self, "_log_thread"):
 			self._log_thread.join()
 			del self._log_thread
+		if hasattr(self, "_logq"):
+			del self._logq
 		if hasattr(self, "_terp"):
 			if self._terp.is_running():
 				self._terp.close()
