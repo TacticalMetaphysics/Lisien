@@ -25,8 +25,7 @@ for elide_apk in os.listdir("bin/"):
 else:
 	sys.exit("Couldn't find the Elide APK")
 
-windist = os.path.expanduser("~/lisien_windows")
-if not os.path.exists(windist):
+if not os.path.exists("lisien_windows"):
 	sys.exit("Couldn't find the Elide Windows distribution")
 os.system(
 	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}"
