@@ -18,4 +18,4 @@ steps:
       - Xvfb $DISPLAY &
       - python -m pip wheel --no-deps lisien/
       - mv lisien-*.whl /wheels/lisien-0.0.0.dev0-py3-none-any.whl
-      - tox run-parallel -c elide/tox.ini
+      - tox run-parallel -o -c elide/tox.ini
