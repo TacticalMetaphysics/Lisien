@@ -2,6 +2,8 @@
 * Converted most of the codebase to `attrs`, which will make initialization
   easier to understand.
 * Removed `reslot`, because `attrs` already does that.
+* `Engine` defaults to database-free operation if you don't give it a directory
+  to work in.
 * The `export` method of `Engine` now accepts a directory for its second argument,
   and will use the name of the game as the base name of the archive by default.
 * Elide will now export games to *its* working directory, which may be different
