@@ -28,4 +28,4 @@ steps:
       - PYTEST_KEYWORDS="not slow and not big and interpreter_workers and $DATABASE and ${MANAGER}"
       - export PYTEST_KEYWORDS
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run -o -c $TOXFILE -e py314
+      - tox run -c $TOXFILE -e py314
