@@ -21,3 +21,5 @@ steps:
         from_secret: PYPI_USERNAME
       PYPI_PASSWORD:
         from_secret: PYPI_PASSWORD
+      ITCH_TOKEN:
+        from_secret: ITCH_TOKEN

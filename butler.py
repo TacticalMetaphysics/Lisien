@@ -27,15 +27,21 @@ else:
 
 if not os.path.exists("lisien_windows"):
 	sys.exit("Couldn't find the Elide Windows distribution")
+if "ITCH_TOKEN" in os.environ:
+	with open("butler_creds", "wt") as butler_creds:
+		butler_creds.write(os.environ["ITCH_TOKEN"])
+	postfix = " -i butler_creds"
+else:
+	postfix = ""
 os.system(
-	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}"
+	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}" + postfix
 )
 os.system(
-	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}"
+	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}" + postfix
 )
 os.system(
-	f"butler push {windist} clayote/lisien:windows --userversion {version}"
+	f"butler push {windist} clayote/lisien:windows --userversion {version}" + postfix
 )
 os.system(
-	f"butler push bin/{elide_apk} clayote/lisien:android --userversion {version}"
+	f"butler push bin/{elide_apk} clayote/lisien:android --userversion {version}" + postfix
 )
