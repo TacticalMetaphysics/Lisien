@@ -34,14 +34,18 @@ if "ITCH_TOKEN" in os.environ:
 else:
 	postfix = ""
 os.system(
-	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}" + postfix
+	f"butler push lisien/dist/{lisien_wheel} clayote/lisien:lisien-whl --userversion {version}"
+	+ postfix
 )
 os.system(
-	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}" + postfix
+	f"butler push elide/dist/{elide_wheel} clayote/lisien:elide-whl --userversion {version}"
+	+ postfix
 )
 os.system(
-	f"butler push {windist} clayote/lisien:windows --userversion {version}" + postfix
+	f"butler push {windist} clayote/lisien:windows --userversion {version}"
+	+ postfix
 )
 os.system(
-	f"butler push bin/{elide_apk} clayote/lisien:android --userversion {version}" + postfix
+	f"butler push bin/{elide_apk} clayote/lisien:android --userversion {version}"
+	+ postfix
 )
