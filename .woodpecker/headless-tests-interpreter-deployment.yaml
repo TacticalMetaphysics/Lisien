@@ -38,4 +38,4 @@ steps:
       - fi
       - PYTEST_KEYWORDS="(${SPEED}) and interpreter_workers and $DATABASE and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
-      - tox run-parallel -c $TOXFILE -e py314
+      - tox run-parallel -o -c $TOXFILE -e py314
