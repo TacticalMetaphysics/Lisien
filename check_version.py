@@ -12,6 +12,7 @@ for required_env in [
 	"PYPI_PASSWORD",
 	"CODEBERG_USERNAME",
 	"CODEBERG_PASSWORD",
+	"ITCH_TOKEN",
 	"LISIEN_VERSION",
 ]:
 	if required_env not in os.environ:
