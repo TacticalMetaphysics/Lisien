@@ -10,9 +10,6 @@
 * Fixed various crashes when sending some object types between subinterpreters.
   This would mainly be a problem on Android, where you have to use subinterpreters
   to run code parallel.
-* Speaking of which, parallelism really runs in parallel now! In the previous version,
-  the workers would start, but the engine didn't really use them. I've beefed up the
-  testing regimen so this won't happen again.
 
 == 0.23.1 | 2025-11-16 ==
 * Fixed an inconsistency in instantiating ParquetDB that was probably preventing
