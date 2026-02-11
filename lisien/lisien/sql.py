@@ -252,8 +252,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			return resp
 
 		def call(self, k, *largs, **kwargs):
-			from sqlalchemy import CursorResult
-
 			statement = self.sql[k].compile(dialect=self.engine.dialect)
 			if hasattr(statement, "positiontup"):
 				kwargs.update(dict(zip(statement.positiontup, largs)))
