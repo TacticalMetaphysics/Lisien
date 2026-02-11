@@ -247,7 +247,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			return self.call("create_{}".format(tbl))
 
 		def convert_response(self, resp):
-			if isinstance(resp, CursorResult):
+			if isinstance(resp, CursorResult) and resp.returns_rows:
 				return list(map(tuple, resp))
 			return resp
 
