@@ -41,4 +41,4 @@ steps:
       - PYTEST_KEYWORDS="(${SPEED}) and $DATABASE and ${EXECUTION} and ${MANAGER}"
       - echo "will run $PYTEST_KEYWORDS"
       - mv /wheels/* .
-      - tox run -c $TOXFILE
+      - tox run-parallel -o -c $TOXFILE
