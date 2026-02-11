@@ -273,7 +273,12 @@ _RET = TypeVar("_RET")
 def mutexed(
 	func: Callable[[_ARGS, ...], _RET],
 ) -> Callable[[_ARGS, ...], _RET]:
-	"""Decorator for when an entire method's body holds a mutex lock"""
+	"""Decorator for when an entire method's body holds a mutex lock
+
+	Should be applied to a method. Expects that the method's class has another
+	method, `mutex()`, that is a context manager, which holds the lock.
+
+	"""
 
 	@wraps(func)
 	def mutexy(self, *args, **kwargs):
