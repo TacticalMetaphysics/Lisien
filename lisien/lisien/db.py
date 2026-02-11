@@ -289,9 +289,6 @@ class Batch(list):
 
 	Construct these with the :func:`batched` decorator.
 
-	The type annotations on the decorated function will be used to generate the
-	schema for at least SQL and ParquetDB databases, and preferably every other.
-
 	"""
 
 	connector: AbstractDatabaseConnector
