@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import inspect
-import sys
 from functools import cached_property, partial
 from operator import itemgetter, call
 from pathlib import Path
@@ -72,7 +71,6 @@ from .types import (
 	NodeRulebookRowType,
 	NodeRulesHandledRowType,
 	NodeValRowType,
-	PackSignature,
 	Plan,
 	PortalRulebookRowType,
 	PortalRulesHandledRowType,
@@ -99,7 +97,6 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	UnpackSignature,
 	Value,
 	ValueHint,
 )

@@ -15,9 +15,8 @@
 from __future__ import annotations
 
 import inspect
-import sys
 from collections import OrderedDict
-from functools import cached_property, partial, partialmethod
+from functools import cached_property, partialmethod
 from queue import Queue
 from typing import ClassVar, Iterator, Union, get_args
 
