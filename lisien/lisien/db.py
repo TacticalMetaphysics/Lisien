@@ -570,6 +570,8 @@ def batched(
 
 	The type annotations on the decorated function will be used to generate the
 	schema for at least SQL and ParquetDB databases, and preferably every other.
+	The decorated function will never be called; it's just convenient to use
+	function signatures and annotations to express de/serialization.
 
 	:param key_len: How long the primary key is. Used to delete records matching
 		those in the batch.
