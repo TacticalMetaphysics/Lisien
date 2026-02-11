@@ -45,7 +45,6 @@ from typing import (
 	Set,
 	TypeVar,
 	get_args,
-	get_origin,
 	get_type_hints,
 )
 
@@ -111,7 +110,6 @@ from .types import (
 	NodeRulebookRowType,
 	NodeRulesHandledRowType,
 	NodeValRowType,
-	PackSignature,
 	PickierDefaultDict,
 	Plan,
 	PlanTicksRowType,
@@ -146,7 +144,6 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	UnpackSignature,
 	Value,
 	ValueHint,
 	deannotate,
