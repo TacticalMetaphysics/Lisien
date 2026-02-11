@@ -36,7 +36,7 @@ from .util import make_test_engine_facade
 @pytest.fixture(scope="session", autouse=True)
 def lots_of_open_files():
 	"""Allow ParquetDB to make all the files it wants"""
-	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 69105))
+	resource.setrlimit(resource.RLIMIT_NOFILE, (1024, 691050))
 
 
 at_least_314 = pytest.mark.skipif(
