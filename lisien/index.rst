@@ -24,13 +24,28 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. autoproperty:: lisien.Engine.turn
 
-      .. py:property:: Engine.time
+      .. py:property:: time
 
-         Acts like a tuple of (branch, turn) for the most part.
+        A tuple-like object holding the *current* ``branch, turn, tick`` --
+        which may not be the same as when last you accessed ``time``.
 
-         This wraps a :class:`blinker.Signal`. To set a function to be called whenever the
-         branch or turn changes, pass it to the ``Engine.time.connect`` method.
+        To register a function ``time_passes`` when the time changes, pass
+        it to ``time.connect``::
 
+            engine.time.connect(time_passes)
+
+        Or decorate it::
+
+            @engine.time.connect
+            def time_passes(
+                time,
+                then: tuple[str, int, int],
+                now: tuple[str, int, int]
+            ):
+                ...
+
+        It will be passed the time object itself, as well as tuples of the
+        previous time ``then`` and the current time ``now``.
       .. py:property:: Engine.rule
 
          A mapping of all rules that have been made.
