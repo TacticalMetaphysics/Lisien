@@ -290,20 +290,6 @@ that unit happens to be in. Nodes may be units of any number of
 
          Alias: ``pred``
 
-      .. py:property:: unit
-
-         A two-layermapping of this character's units in other characters.
-
-         Units are nodes in other characters that are in some sense part of this one. A common example in strategy
-         games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
-         state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
-         general's :class:`Character`, are still under their command, and therefore follow rules defined on the
-         general's ``unit.rule`` subproperty.
-
-         The outer layer is the name of the character. The inner layer is the name
-         of the unit, which may ebe a :class:`lisien.node.Place` or a
-         :class:`lisien.node.Thing`.
-
       .. automethod:: add_portal
 
       .. automethod:: new_portal
