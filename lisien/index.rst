@@ -473,6 +473,16 @@ extend Lisien's capabilities.
 
     .. autoclass:: NullDatabaseConnector
 
+#########
+ futures
+#########
+
+.. automodule:: lisien.futures
+
+    .. autoclass:: Executor
+
+    .. autoclass:: Worker
+
 #######
  types
 #######
