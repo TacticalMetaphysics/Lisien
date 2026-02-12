@@ -24,6 +24,8 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. autoproperty:: lisien.Engine.turn
 
+      .. autoproperty:: lisien.Engine.tick
+
       .. py:property:: time
 
         A tuple-like object holding the *current* ``branch, turn, tick`` --
