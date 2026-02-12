@@ -12,6 +12,23 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Run a Lisien server as an Android background process
+
+If using Kivy's `Buildozer`_ tool to package an Elide-based app, make sure that
+your buildozer.spec file includes the line:
+
+``services =  core:_python_bundle/site-packages/lisien/android_service.py``
+
+This module will run in the background and accept commands from Elide via
+`OSC`_. There are only two public
+endpoints: ``/`` accepts packed instructions, possibly split into chunks;
+``/shutdown`` commits pending changes and ends the server process.
+
+.. _Buildozer: https://buildozer.readthedocs.io/en/latest/
+.. _OSC: https://opensoundcontrol.stanford.edu/
+
+"""
+
 import logging
 import os
 import pickle
@@ -40,6 +57,8 @@ Logger.debug("core: imported libs")
 
 
 class CommandDispatcher:
+	"""Glue between OSC and :class:`lisien.proxy.handle.EngineHandle`"""
+
 	def __init__(self, handle: EngineHandle, client: SimpleTCPClient):
 		self._handle = handle
 		self._client = client
@@ -47,6 +66,14 @@ class CommandDispatcher:
 		self._last_uid = 0
 
 	def dispatch_command(self, _, uid: int, chunks: int, inst: bytes):
+		"""Collect commands in multiple chunks and do what they say
+
+		:param uid: An arbitrary integer that should be unique per run.
+		:param chunks: How many chunks the whole message takes up.
+		Each chunk should be no more than a kilobyte large.
+		:param inst: Bytes encoding part of the instruction.
+
+		"""
 		Logger.debug(
 			"core: in dispatch_command, got %d bytes of a %d part message with uid %d",
 			len(inst),
@@ -120,6 +147,8 @@ class CommandDispatcher:
 
 
 class CoreLogHandler(logging.Handler):
+	"""Send all log records to Elide, pickled"""
+
 	def __init__(
 		self, pack: Callable, client: SimpleTCPClient, level: int = 0
 	):
@@ -158,6 +187,15 @@ def core_server(
 	args: list,
 	kwargs: dict,
 ):
+	"""The OSC server process
+
+	:param lowest_port: The lowest port to try serving on
+	:param highest_port: The highest port to try serving on
+	:param replies_port: The port to send the results of commands to
+	:param args: Positional arguments to :class:`lisien.proxy.handle.EngineHandle`
+	:param kwargs: Keyword arguments to :class:`lisien.proxy.handle.EngineHandle`
+
+	"""
 	dispatcher = Dispatcher()
 	for _ in range(128):
 		my_port = random.randint(lowest_port, highest_port)
