@@ -108,9 +108,10 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         * ``"_lisien_schema_version"`` is an integer used to check compatibility.
       .. py:property:: Engine.universal
 
-         A mapping of arbitrary data that changes over sim-time.
+         A mapping of arbitrary data that changes over :attr:`time`.
 
-         The state of the randomizer is saved here under the key ``'rando_state'``.
+         The state of the randomizer is saved here under the key ``"rando_state"``.
+         It's a bad idea to set that directly; instead, set :attr:`random_seed`.
 
       .. py:property:: Engine.trigger
 
