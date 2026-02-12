@@ -169,9 +169,9 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. automethod:: plan
 
-      .. automethod:: snap_keyframe
-
       .. automethod:: delete_plan
+
+      .. automethod:: snap_keyframe
 
       .. automethod:: new_character
 
