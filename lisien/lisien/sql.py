@@ -821,6 +821,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		def close(self):
 			self.transaction.close()
 			self.connection.close()
+			self.engine.dispose()
 
 	def delete_many_silent(self, table, args):
 		self.call_many_silent(table + "_del", args)
