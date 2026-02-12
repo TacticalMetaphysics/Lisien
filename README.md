@@ -393,8 +393,8 @@ Game code must not alter the function of Lisien itself (no "hot patching"). If
 it does, then it is part of Lisien.
 
 If you write another application (not using any Lisien or
-Elide code) that accesses a Lisien server via HTTP(S), it is separate
-from Lisien and not subject to its license. If you run Lisien in a
+Elide code) that accesses a Lisien server via internet,
+it is separate from Lisien and not subject to its license. If you run Lisien in a
 Python interpreter embedded into your application, the Lisien
 license only covers Lisien itself, and not any code run outside
 of that Python interpreter. You must still release any modifications
