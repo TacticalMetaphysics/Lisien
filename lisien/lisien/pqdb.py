@@ -15,9 +15,8 @@
 from __future__ import annotations
 
 import inspect
-import sys
 from functools import cached_property, partial
-from operator import itemgetter
+from operator import itemgetter, call
 from pathlib import Path
 from types import EllipsisType
 from typing import (
@@ -72,7 +71,6 @@ from .types import (
 	NodeRulebookRowType,
 	NodeRulesHandledRowType,
 	NodeValRowType,
-	PackSignature,
 	Plan,
 	PortalRulebookRowType,
 	PortalRulesHandledRowType,
@@ -99,7 +97,6 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	UnpackSignature,
 	Value,
 	ValueHint,
 )
@@ -839,128 +836,45 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 				db.update([named_data])
 			return create
 
-		def run(self):
-			def loud_exit(inst, ex):
-				try:
-					msg = (
-						f"While calling {inst[0]}"
-						f"({', '.join(map(repr, inst[1]))}{', ' if inst[2] else ''}"
-						f"{', '.join('='.join(pair) for pair in inst[2].items())})"
-						f"silenced, ParquetDBHolder got the exception: {repr(ex)}"
-					)
-				except Exception as ex2:
-					grp = ExceptionGroup(
-						"Multiple exceptions in ParquetDB connector", [ex, ex2]
-					)
-					msg = f"While calling {inst[0]}: {grp}"
-				print(msg, file=sys.stderr)
-				sys.exit(msg)
-
-			inq = self.inq
-			outq = self.outq
-
-			def call_method(name, *args, silent=False, **kwargs):
-				if callable(name):
-					mth = name
-				elif hasattr(self, name):
-					mth = getattr(self, name)
-				elif name.startswith("load_") and name.endswith(
-					"_tick_to_end"
-				):
-					table = name.removeprefix("load_").removesuffix(
-						"_tick_to_end"
-					)
-					mth = partial(self.load_tick_to_end, table)
-				elif name.startswith("load_") and name.endswith(
+		def call(self, name, *args, **kwargs):
+			if callable(name):
+				mth = name
+			elif hasattr(self, name):
+				mth = getattr(self, name)
+			elif not isinstance(name, str):
+				raise TypeError(
+					"Invalid type for method or method name", type(name), name
+				)
+			elif name.startswith("load_") and name.endswith("_tick_to_end"):
+				table = name.removeprefix("load_").removesuffix("_tick_to_end")
+				mth = partial(self.load_tick_to_end, table)
+			elif name.startswith("load_") and name.endswith("_tick_to_tick"):
+				table = name.removeprefix("load_").removesuffix(
 					"_tick_to_tick"
-				):
-					table = name.removeprefix("load_").removesuffix(
-						"_tick_to_tick"
-					)
-					mth = partial(self.load_tick_to_tick, table)
+				)
+				mth = partial(self.load_tick_to_tick, table)
+			else:
+				raise AttributeError("No method by this name", name)
+			return mth(*args, **kwargs)
+
+		def call_many(self, name: str, largs: list[tuple | dict]):
+			todo: list[partial] = []
+			for arg in largs:
+				if isinstance(arg, dict):
+					todo.append(partial(self.call, name, **arg))
+				elif isinstance(arg, tuple):
+					if (
+						len(arg) == 2
+						and isinstance(arg[0], tuple)
+						and isinstance(arg[1], dict)
+					):
+						args, kwargs = arg
+						todo.append(partial(self.call, name, *args, **kwargs))
+					else:
+						todo.append(partial(self.call, name, *arg))
 				else:
-					raise ValueError("No method", name)
-				try:
-					res = mth(*args, **kwargs)
-				except Exception as ex:
-					if silent:
-						loud_exit(inst, ex)
-					res = ex
-				if not silent:
-					outq.put(res)
-				inq.task_done()
-
-			while True:
-				inst = inq.get()
-				if inst == "close":
-					self.close()
-					inq.task_done()
-					return
-				if inst == "commit":
-					inq.task_done()
-					continue
-				if not isinstance(inst, (str, tuple)):
-					raise TypeError("Can't use SQLAlchemy with ParquetDB")
-				silent = False
-				if inst[0] == "silent":
-					silent = True
-					inst = inst[1:]
-				match inst:
-					case ("echo", msg):
-						outq.put(msg)
-						inq.task_done()
-					case ("echo", args, _):
-						outq.put(args)
-						inq.task_done()
-					case ("one", cmd):
-						call_method(cmd, silent=silent)
-					case ("one", cmd, args):
-						call_method(cmd, *args, silent=silent)
-					case ("one", cmd, args, kwargs):
-						call_method(cmd, *args, silent=silent, **kwargs)
-					case ("many", cmd, several):
-						for args, kwargs in several:
-							try:
-								res = getattr(self, cmd)(*args, **kwargs)
-							except Exception as ex:
-								if silent:
-									loud_exit(("many", cmd, several), ex)
-								res = ex
-							if not silent:
-								outq.put(res)
-							if isinstance(res, Exception):
-								break
-						inq.task_done()
-					case (cmd, args, kwargs):
-						call_method(cmd, *args, silent=silent, **kwargs)
-					case (cmd, args):
-						call_method(cmd, *args, silent=silent)
-					case cmd:
-						call_method(cmd)
-
-	@mutexed
-	def call(self, method, *args, **kwargs):
-		self._inq.put((method, args, kwargs))
-		ret = self._outq.get()
-		self._outq.task_done()
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def call_silent(self, method, *args, **kwargs):
-		self._inq.put(("silent", method, args, kwargs))
-
-	@mutexed
-	def call_many(self, query_name: str, args: list):
-		self._inq.put(("many", query_name, args))
-		ret = self._outq.get()
-		self._outq.task_done()
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def call_many_silent(self, query_name: str, args: list):
-		self._inq.put(("silent", "many", query_name, args))
+					raise TypeError("Invalid argument", type(arg), arg)
+			return list(map(call, todo))
 
 	@mutexed
 	def insert_many(self, table_name: str, args: list[dict]):
@@ -1620,10 +1534,6 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 
 	def truncate_all(self) -> None:
 		self.call("truncate_all")
-
-	def commit(self) -> None:
-		self.flush()
-		self.call("commit")
 
 	def __attrs_post_init__(self):
 		if self._initialized:
