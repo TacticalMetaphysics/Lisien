@@ -372,10 +372,10 @@ Elide uses third-party graphics sets:
 * Everything else is by [Kenney](https://kenney.nl), available under
   [CC0](http://creativecommons.org/publicdomain/zero/1.0/).
 
-The allegedb, Lisien, and Elide source files are licensed under the
+The Lisien and Elide source files are licensed under the
 terms of the GNU Affero Public License version 3 (and no later).
 If you make a game with it, you have to release any modifications you
-make to Elide, allegedb, or Lisien itself under the AGPL, but 
+make to Elide or Lisien itself under the AGPL, but 
 this doesn't apply to your game code.
 
 Game code is that which is loaded into the engine at
@@ -392,7 +392,7 @@ Or stored in files by those names (plus extensions) inside the game's prefix.
 Game code must not alter the function of Lisien itself (no "hot patching"). If 
 it does, then it is part of Lisien.
 
-If you write another application (not using any allegedb, Lisien, or
+If you write another application (not using any Lisien or
 Elide code) that accesses a Lisien server via HTTP(S), it is separate
 from Lisien and not subject to its license. If you run Lisien in a
 Python interpreter embedded into your application, the Lisien
