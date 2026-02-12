@@ -31,7 +31,7 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor as BaseExecutor
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
-from contextlib import ContextDecorator, contextmanager
+from contextlib import contextmanager
 from copy import copy
 from functools import cached_property, partial, wraps
 from hashlib import blake2b
