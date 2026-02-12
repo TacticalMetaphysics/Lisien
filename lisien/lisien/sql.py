@@ -15,9 +15,8 @@
 from __future__ import annotations
 
 import inspect
-import sys
 from collections import OrderedDict
-from functools import cached_property, partial, partialmethod
+from functools import cached_property, partialmethod
 from queue import Queue
 from typing import ClassVar, Iterator, Union, get_args
 
@@ -43,6 +42,7 @@ from sqlalchemy import (
 	null,
 	or_,
 	select,
+	CursorResult,
 )
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.sql.ddl import CreateTable
@@ -83,7 +83,6 @@ from .types import (
 	NodeRulebookRowType,
 	NodeRulesHandledRowType,
 	NodeValRowType,
-	PackSignature,
 	PortalRulebookRowType,
 	PortalRulesHandledRowType,
 	PrereqFuncName,
@@ -108,7 +107,6 @@ from .types import (
 	UnitRulesHandledRowType,
 	UniversalKey,
 	UniversalRowType,
-	UnpackSignature,
 	Value,
 	ValueHint,
 	root_type,
@@ -245,9 +243,12 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		def init_table(self, tbl):
 			return self.call("create_{}".format(tbl))
 
-		def call(self, k, *largs, **kwargs):
-			from sqlalchemy import CursorResult
+		def convert_response(self, resp):
+			if isinstance(resp, CursorResult) and resp.returns_rows:
+				return list(map(tuple, resp))
+			return resp
 
+		def call(self, k, *largs, **kwargs):
 			statement = self.sql[k].compile(dialect=self.engine.dialect)
 			if hasattr(statement, "positiontup"):
 				kwargs.update(dict(zip(statement.positiontup, largs)))
@@ -273,14 +274,25 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			)
 			return ret
 
-		def call_many(self, k, largs):
-			statement = self.sql[k].compile(dialect=self.engine.dialect)
+		def call_many(self, name: str, largs: list[tuple | dict]):
+			statement = self.sql[name].compile(dialect=self.engine.dialect)
 			aargs = []
 			for larg in largs:
 				if isinstance(larg, dict):
 					aargs.append(larg)
+				elif isinstance(larg, tuple):
+					if (
+						len(larg) == 2
+						and isinstance(larg[0], tuple)
+						and isinstance(larg[1], dict)
+					):
+						darg = larg[1].copy()
+						darg.update(zip(statement.positiontup, larg[1]))
+						aargs.append(darg)
+					else:
+						aargs.append(dict(zip(statement.positiontup, larg)))
 				else:
-					aargs.append(dict(zip(statement.positiontup, larg)))
+					raise TypeError("Invalid argument", type(larg), larg)
 			return self.connection.execute(
 				statement,
 				aargs,
@@ -768,7 +780,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 
 			return r
 
-		def run(self):
+		def begin(self):
 			dbstring = self.dbstring
 			connect_args = self.connect_args
 			self.logger.debug("about to connect " + dbstring)
@@ -776,78 +788,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self.connection = self.engine.connect()
 			self.transaction = self.connection.begin()
 			self.logger.debug("transaction started")
-			while True:
-				inst = self.inq.get()
-				if inst == "shutdown":
-					self.transaction.close()
-					self.connection.close()
-					self.engine.dispose()
-					self.existence_lock.release()
-					self.inq.task_done()
-					return
-				if inst == "commit":
-					self.commit()
-					self.inq.task_done()
-					continue
-				if inst == "initdb":
-					self.outq.put(self.initdb())
-					self.inq.task_done()
-					continue
-				silent = False
-				if inst[0] == "silent":
-					inst = inst[1:]
-					silent = True
-				self.logger.debug(inst[:2])
-
-				def _call_n(mth, cmd, *args, silent=False, **kwargs):
-					try:
-						res = mth(cmd, *args, **kwargs)
-						if silent:
-							return ...
-						else:
-							if (
-								hasattr(res, "returns_rows")
-								and res.returns_rows
-							):
-								return list(res)
-							return None
-					except Exception as ex:
-						self.logger.error(repr(ex))
-						if silent:
-							print(
-								f"Got exception while silenced: {repr(ex)}",
-								file=sys.stderr,
-							)
-							sys.exit(repr(ex))
-						return ex
-
-				call_one = partial(_call_n, self.call)
-				call_many = partial(_call_n, self.call_many)
-				call_select = partial(_call_n, self.connection.execute)
-				match inst:
-					case ("echo", msg):
-						self.outq.put(msg)
-						self.inq.task_done()
-					case ("echo", msg, _):
-						self.outq.put(msg)
-						self.inq.task_done()
-					case ("select", qry, args):
-						o = call_select(qry, args, silent=silent)
-						if not silent:
-							self.outq.put(o)
-						self.inq.task_done()
-					case ("one", cmd, args, kwargs):
-						o = call_one(cmd, *args, silent=silent, **kwargs)
-						if not silent:
-							self.outq.put(o)
-						self.inq.task_done()
-					case ("many", cmd, several):
-						o = call_many(cmd, several, silent=silent)
-						if not silent:
-							self.outq.put(o)
-						self.inq.task_done()
-					case "close":
-						return self.close()
 
 		def initdb(self) -> dict[bytes, bytes] | Exception:
 			"""Set up the database schema, both for allegedb and the special
@@ -881,30 +821,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		def close(self):
 			self.transaction.close()
 			self.connection.close()
-
-	@mutexed
-	def call(self, string, *args, **kwargs):
-		self._inq.put(("one", string, args, kwargs))
-		ret = self._outq.get()
-		self._outq.task_done()
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def call_silent(self, string, *args, **kwargs):
-		self._inq.put(("one", string, args, kwargs))
-
-	def call_many(self, string, args):
-		with self.mutex():
-			self._inq.put(("many", string, args))
-			ret = self._outq.get()
-			self._outq.task_done()
-		if isinstance(ret, Exception):
-			raise ret
-		return ret
-
-	def call_many_silent(self, string, args):
-		self._inq.put(("silent", "many", string, args))
+			self.engine.dispose()
 
 	def delete_many_silent(self, table, args):
 		self.call_many_silent(table + "_del", args)
@@ -1377,14 +1294,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		self._planticks2set()
 		for rec in (data := self.call("plan_ticks_dump")):
 			yield rec
-
-	def commit(self):
-		"""Commit the transaction"""
-		self.flush()
-		self._inq.put("commit")
-		self._inq.join()
-		if (got := self.echo("committed")) != "committed":
-			raise RuntimeError("Failed commit", got)
 
 	def __attrs_post_init__(self):
 		if self._initialized:

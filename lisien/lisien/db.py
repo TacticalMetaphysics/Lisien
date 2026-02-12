@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import inspect
 import os
+import sys
 from abc import ABC, abstractmethod
 from ast import literal_eval
 from collections import UserDict, defaultdict, deque
@@ -44,7 +45,6 @@ from typing import (
 	Set,
 	TypeVar,
 	get_args,
-	get_origin,
 	get_type_hints,
 )
 
@@ -110,7 +110,6 @@ from .types import (
 	NodeRulebookRowType,
 	NodeRulesHandledRowType,
 	NodeValRowType,
-	PackSignature,
 	PickierDefaultDict,
 	Plan,
 	PlanTicksRowType,
@@ -145,7 +144,6 @@ from .types import (
 	UniversalKey,
 	UniversalKeyframe,
 	UniversalRowType,
-	UnpackSignature,
 	Value,
 	ValueHint,
 	deannotate,
@@ -249,9 +247,100 @@ class ConnectionLooper(ABC):
 
 		return getLogger("lisien." + self.__class__.__name__)
 
+	def dispatch_special_instruction(self, inst):
+		raise TypeError(
+			"Don't know what to do with this type of instruction",
+			type(inst),
+			inst,
+		)
+
 	@abstractmethod
+	def call(self, name: str, *args, **kwargs): ...
+
+	@abstractmethod
+	def call_many(self, name: str, largs: list[tuple | dict]) -> Iterable: ...
+
+	def convert_response(self, resp):
+		return resp
+
+	def _dispatch_instruction(self, *inst):
+		match inst:
+			case ("one", cmd):
+				return self.call(cmd)
+			case ("one", cmd, args):
+				return self.call(cmd, *args)
+			case ("one", cmd, args, kwargs):
+				return self.call(cmd, *args, **kwargs)
+			case ("many", cmd, argls):
+				return self.call_many(cmd, argls)
+			case (cmd, args, kwargs):
+				return self.call(cmd, *args, **kwargs)
+			case (cmd, args):
+				return self.call(cmd, *args)
+			case (cmd,):
+				return self.call(cmd)
+			case _:
+				raise TypeError("Invalid instruction", inst)
+
+	def dispatch_instruction(self, *inst):
+		return self.convert_response(self._dispatch_instruction(*inst))
+
+	def dispatch_silent_instruction(self, *args) -> None:
+		self._dispatch_instruction(*args)
+
+	def begin(self):
+		"""Do anything needed to connect to the database and start a transaction
+
+		Might be nothing, if it's a file-based local database, such as ParquetDB.
+
+		"""
+
 	def run(self):
-		pass
+		self.begin()
+		inq = self.inq
+		outq = self.outq
+
+		def send(output):
+			inq.task_done()
+			outq.put(output)
+
+		while (inst := inq.get()) != "close":
+			if inst == "commit":
+				self.commit()
+				send("committed")
+			elif inst == "initdb":
+				send(self.initdb())
+			elif not isinstance(inst, tuple):
+				try:
+					send(self.dispatch_special_instruction(inst))
+				except BaseException as exc:
+					send(exc)
+					continue
+			elif inst[0] == "silent":
+				try:
+					self.dispatch_silent_instruction(*inst[1:])
+					inq.task_done()
+					continue
+				except BaseException as exc:
+					message = f"{self.__class__.__name__}: Got exception while silenced: {exc}"
+					print(message, file=sys.stderr)
+					self.logger.error(message, exc_info=exc)
+					continue
+			elif inst[0] == "echo":
+				if len(inst) == 1:
+					send("echo")
+					continue
+				else:
+					send(inst[1])
+					continue
+			else:
+				try:
+					send(self.dispatch_instruction(*inst))
+				except BaseException as exc:
+					send(exc)
+					continue
+		self.close()
+		inq.task_done()
 
 	@abstractmethod
 	def initdb(self):
@@ -6272,6 +6361,14 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 		self._looper.existence_lock.release()
 		self._t.join()
 
+	def commit(self) -> None:
+		self.flush()
+		self._inq.put("commit")
+		got = self._outq.get()
+		self._outq.task_done()
+		if got != "committed":
+			raise RuntimeError("Failed commit", got)
+
 	@contextmanager
 	def mutex(self):
 		def consume_errors():
@@ -6319,6 +6416,30 @@ class ThreadedDatabaseConnector(AbstractDatabaseConnector):
 	@cached_property
 	def _outq(self) -> Queue:
 		return Queue()
+
+	@mutexed
+	def call(self, query_name: str, *args, **kwargs):
+		self._inq.put(("one", query_name, args, kwargs))
+		ret = self._outq.get()
+		self._outq.task_done()
+		if isinstance(ret, BaseException):
+			raise ret
+		return ret
+
+	def call_silent(self, query_name: str, *args, **kwargs):
+		self._inq.put(("silent", "one", query_name, args, kwargs))
+
+	@mutexed
+	def call_many(self, query_name: str, args: list) -> None:
+		self._inq.put(("many", query_name, args))
+		ret = self._outq.get()
+		self._outq.task_done()
+		if isinstance(ret, BaseException):
+			raise ret
+		return ret
+
+	def call_many_silent(self, query_name: str, args: list) -> None:
+		self._inq.put(("silent", "many", query_name, args))
 
 	def echo(self, string: str) -> str:
 		with self.mutex():
