@@ -136,6 +136,9 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
          A mapping of, and decorator for, generic functions.
 
+         Only functions stored in one of these attributes can be used by Lisien's
+         workers. :attr:`function` will do, if none of the others make sense.
+
       .. py:property:: rule
 
          A mapping of :class:`lisien.rule.Rule` objects, whether applied to an entity or not.
