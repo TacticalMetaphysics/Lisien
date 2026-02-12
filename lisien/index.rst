@@ -459,6 +459,20 @@ extend Lisien's capabilities.
 
     .. autoclass:: FunctionStore
 
+####
+ db
+####
+
+.. automodule:: lisien.db
+
+    .. autoclass:: AbstractDatabaseConnector
+
+    .. autoclass:: ThreadedDatabaseConnector
+
+    .. autoclass:: PythonDatabaseConnector
+
+    .. autoclass:: NullDatabaseConnector
+
 #######
  types
 #######
