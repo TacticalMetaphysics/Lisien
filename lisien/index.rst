@@ -80,10 +80,32 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. py:property:: Engine.eternal
 
-         A mapping of arbitrary data, not sensitive to sim-time.
+        A mapping of arbitrary data, not sensitive to changes in :attr:`time`.
 
-         It's stored in the database. A good place to keep your game's settings.
+        Data kept here will be stored in the same database as the game itself,
+        and will be exported with all the rest of the game's data if you call
+        :meth:`export`. This makes :attr:`eternal` a good place to keep
+        the settings of the game.
 
+        There are a few special keys here you shouldn't set directly:
+
+        * ``"branch"``, ``"turn"``, and ``"tick"`` hold the last :attr:`time` that
+            the game was at. If you close and reopen the same game, it will
+            resume at that time.
+        * ``"language"`` is the three-letter code of the language the game
+            displays to the player. To change it, for instance, to French::
+
+                engine.string.language = "fra"
+
+            Each language's strings are kept in a JSON file in the game's
+            ``strings/`` directory. These may be edited while the game is not
+            running, so long as all the expected strings are present when the
+            game either starts with a given language, or switches to it.
+        * ``"trunk"`` is the name of the branch that the game started from.
+            To start a new game, which shares no history with the current game,
+            go to tick 0 of turn 0 and set the engine's :attr:`trunk` attribute
+            to the name of your new trunk.
+        * ``"_lisien_schema_version"`` is an integer used to check compatibility.
       .. py:property:: Engine.universal
 
          A mapping of arbitrary data that changes over sim-time.
