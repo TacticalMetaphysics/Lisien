@@ -48,7 +48,20 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         previous time ``then`` and the current time ``now``.
       .. py:property:: Engine.rule
 
-         A mapping of all rules that have been made.
+        A mapping of all :class:`lisien.rule.Rule` objects that have been made.
+
+        It's possible to make new rules with this. It works the same way as the
+        ``rule`` decorator that all Lisien entities have, but doesn't result
+        in the rule being assigned to anything::
+
+            @engine.rule
+            def do_something(obj):
+                ...
+
+            print(type(do_something))
+
+        This prints ``<class 'lisien.rule.Rule'>``. You'll need to put the rule
+        in a rulebook yourself.
 
       .. py:property:: Engine.rulebook
 
