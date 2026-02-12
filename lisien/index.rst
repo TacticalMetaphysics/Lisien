@@ -229,22 +229,29 @@ that unit happens to be in. Nodes may be units of any number of
       .. py:property:: place
 
          A mapping of :class:`lisien.node.Place` objects in this :class:`Character`.
+         :class:`lisien.node.Thing` objects may be located in these.
 
-         Has a ``rule`` method for applying new rules to every :class:`Place` here, and a ``rulebook`` property for
-         assigning premade rulebooks.
+         This mapping has a ``rule`` method for applying new rules to every
+         :class:`Place` here, and a ``rulebook`` property for assigning premade
+         rulebooks.
 
       .. py:property:: thing
 
-         A mapping of :class:`lisien.node.Thing` objects in this :class:`Character`.
+         A mapping of :class:`lisien.node.Thing` objects in this :class:`Character`,
+         representing the type of node that can be located in another node--either
+         a :class:`lisien.node.Place` or a :class:`lisien.node.Thing`.
 
-         Has a ``rule`` method for applying new rules to every :class:`Thing` here, and a ``rulebook`` property for
+         This mapping a ``rule`` method for applying new rules to every
+         :class:`Thing` here, and a ``rulebook`` property for
          assigning premade rulebooks.
 
       .. py:property:: node
 
-         A mapping of :class:`lisien.node.Thing` and :class:`lisien.node.Place` objects in this :class:`Character`.
+         A mapping of :class:`lisien.node.Thing` and :class:`lisien.node.Place`
+         objects in this :class:`Character`.
 
-         Has a ``rule`` method for applying new rules to every :class:`Node` here, and a ``rulebook`` property for
+         This mapping has a ``rule`` method for applying new rules to every
+         :class:`Node` here, and a ``rulebook`` property for
          assigning premade rulebooks.
 
       .. py:property:: portal
