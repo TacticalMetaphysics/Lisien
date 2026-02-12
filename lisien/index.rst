@@ -409,11 +409,20 @@ that unit happens to be in. Nodes may be units of any number of
  query
 #######
 
+An interface inspired by SQLAlchemy's expression language, with which to
+construct queries about the history of your Lisien game.
+
 .. automodule:: lisien.query
 
 ########
  facade
 ########
+
+Low-overhead "working copies" of Lisien objects.
+
+Under the hood, facades store patches to the underlying entity (if any).
+The changes in those patches won't be stored permanently unless you call
+the facade's ``apply()`` method.
 
 .. automodule:: lisien.facade
 
