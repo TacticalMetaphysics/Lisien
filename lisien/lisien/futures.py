@@ -60,7 +60,7 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 
 
 @define
-class Worker:
+class Worker(ABC):
 	last_update: Time
 	unpack: Callable[[bytes], Value]
 	lock: Lock = field(init=False, factory=Lock)
