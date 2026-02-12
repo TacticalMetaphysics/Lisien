@@ -12,6 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Executor classes, for Lisien's various forms of parallelism
+
+Lisien's workers are stateful--they each hold a shallow copy of the world state.
+These executors keep that copy synchronized with the current state of the game.
+
+"""
+
 from __future__ import annotations
 
 import os
@@ -61,24 +68,35 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 
 @define
 class Worker(ABC):
+	"""Abstract class representing one worker in an :class:`Executor`
+
+	Implementations may represent a worker thread in the same interpreter,
+	a worker thread in a subinterpreter, or a worker process.
+
+	"""
+
 	last_update: Time
 	unpack: Callable[[bytes], Value]
 	lock: Lock = field(init=False, factory=Lock)
 
 	@abstractmethod
-	def send_input_bytes(self, input_bytes: bytes) -> None: ...
+	def send_input_bytes(self, input_bytes: bytes) -> None:
+		"""Send packed data to the worker"""
 
 	@abstractmethod
-	def get_output_bytes(self) -> bytes: ...
+	def get_output_bytes(self) -> bytes:
+		"""Get a reply from the worker"""
 
 	@abstractmethod
-	def shutdown(self) -> None: ...
+	def shutdown(self) -> None:
+		"""Stop running the worker"""
 
 	@classmethod
 	@abstractmethod
 	def from_executor(
 		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> Worker: ...
+	) -> Worker:
+		"""The usual way of instantiating a :class:`Worker`"""
 
 	@staticmethod
 	def _sync_log_forever(
@@ -163,9 +181,10 @@ class _BaseLisienExecutor[WRKR: Worker](Executor, ABC):
 
 @define
 class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
-	"""Lisien's parallelism
+	"""Abstract class for Lisien's parallel execution
 
-	Starts workers in threads, processes, or interpreters.
+	Starts workers in threads, processes, or interpreters, depending on which
+	subclass you use.
 
 	Usually, you don't want to instantiate these directly -- :class:`Engine`
 	will do it for you -- but if you want to close an :class:`Engine` while
