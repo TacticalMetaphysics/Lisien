@@ -93,9 +93,7 @@ class Worker(ABC):
 
 	@classmethod
 	@abstractmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> Worker:
+	def from_executor(cls, executor: Executor) -> Worker:
 		"""The usual way of instantiating a :class:`Worker`"""
 
 	@staticmethod
@@ -314,18 +312,18 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 		self._futs_to_start.put(ret)
 		return ret
 
-	def _setup_workers(self, engine: AbstractEngine) -> None:
+	def _setup_workers(self) -> None:
 		self._worker_last_branches.clear()
-		self._worker_last_branches.update(engine._branches_d)
+		self._worker_last_branches.update(self.engine._branches_d)
 		self._worker_last_eternal.clear()
 		self._worker_last_eternal.update(self.eternal)
-		while len(self._workers) < engine.workers:
-			self._workers.append(self._make_worker(engine))
-		while len(self._workers) > engine.workers:
+		while len(self._workers) < self.engine.workers:
+			self._workers.append(self._make_worker())
+		while len(self._workers) > self.engine.workers:
 			self._workers.pop().shutdown()
 
 	@abstractmethod
-	def _make_worker(self, engine: AbstractEngine) -> WRKR: ...
+	def _make_worker(self) -> WRKR: ...
 
 	def _manage_futs(self):
 		self._stop_managing_futs = False
@@ -420,24 +418,20 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 			ret.append(retbytes)
 		return ret
 
-	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
+	def restart(self):
 		"""Overwrite all workers' state to match my attributes
 
 		For when the Lisien engine is done working with this executor,
 		and you want to reuse it for another Lisien engine, likely in
 		a unit test.
 
-		:param keyframe_cb: Function to get the initial payload. If omitted,
-		the workers will have only the state expressed in the engine's attributes.
-		Should be the :meth:`_get_worker_kf_payload` method of
-		:class:`lisien.Engine`.
-
 		"""
 		if self._fut_manager_thread.is_alive():
 			self._futs_to_start.put(b"shutdown")
 			self._fut_manager_thread.join()
 			self._fut_manager_thread = self._make_fut_manager_thread()
-		self._setup_workers(self.engine)
+		initial_payload = self.engine._get_worker_kf_payload()
+		self._setup_workers()
 		assert len(self._workers) == self.workers
 
 		from umsgpack import packb
@@ -455,10 +449,8 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 			),
 			msgpack_map_header(0),
 		)
-		if keyframe_cb:
-			initial_payload = keyframe_cb()
-			for i in range(self.workers):
-				self._send_worker_input_bytes(i, initial_payload)
+		for i in range(self.workers):
+			self._send_worker_input_bytes(i, initial_payload)
 		try:
 			self._fut_manager_thread.start()
 		except RuntimeError:
@@ -501,11 +493,8 @@ class ThreadWorker(Worker):
 				self.log_thread.join()
 
 	@classmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> ThreadWorker:
-		if engine is None:
-			engine = executor.engine
+	def from_executor(cls, executor: Executor) -> ThreadWorker:
+		engine = executor.engine
 		i = len(executor._workers)
 		inq = SimpleQueue()
 		outq = SimpleQueue()
@@ -548,8 +537,8 @@ class ThreadWorker(Worker):
 
 @define
 class ThreadExecutor(Executor[ThreadWorker]):
-	def _make_worker(self, engine: AbstractEngine) -> ThreadWorker:
-		return ThreadWorker.from_executor(self, engine)
+	def _make_worker(self) -> ThreadWorker:
+		return ThreadWorker.from_executor(self)
 
 
 @define
@@ -588,12 +577,9 @@ class ProcessWorker(Worker):
 			self.process.close()
 
 	@classmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> ProcessWorker:
+	def from_executor(cls, executor: Executor) -> ProcessWorker:
 		i = len(executor._workers)
-		if engine is None:
-			engine = executor.engine
+		engine = executor.engine
 		ctx = executor._mp_ctx
 		lock = Lock()
 		with lock:
@@ -643,8 +629,8 @@ class ProcessExecutor(Executor[ProcessWorker]):
 		init=False, factory=partial(get_context, "spawn")
 	)
 
-	def _make_worker(self, engine: AbstractEngine) -> ProcessWorker:
-		return ProcessWorker.from_executor(self, engine)
+	def _make_worker(self) -> ProcessWorker:
+		return ProcessWorker.from_executor(self)
 
 
 @define
@@ -688,10 +674,10 @@ class InterpreterWorker(Worker):
 	def from_executor(
 		cls,
 		executor: InterpreterExecutor,
-		engine: AbstractEngine | None = None,
 	) -> InterpreterWorker:
 		from concurrent.interpreters import create, create_queue
 
+		engine = executor.engine
 		i = len(executor._workers)
 		input = create_queue()
 		output = create_queue()
@@ -747,5 +733,5 @@ class InterpreterWorker(Worker):
 
 @define
 class InterpreterExecutor(Executor[InterpreterWorker]):
-	def _make_worker(self, engine: AbstractEngine) -> InterpreterWorker:
-		return InterpreterWorker.from_executor(self, engine)
+	def _make_worker(self) -> InterpreterWorker:
+		return InterpreterWorker.from_executor(self)
