@@ -1,3 +1,15 @@
+=======
+  API
+=======
+
+Here is the portion of Lisien's codebase that game developers should be
+familiar with. Generally, you should access everything through an
+:class:`lisien.engine.Engine` object. The exception is when Lisien is not
+running in the same process, in which case, you'll need
+:class:`lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
+But :class:`lisien.proxy.engine.EngineProxy` works just like
+:class:`lisien.engine.Engine`, for the most part.
+
 ########
  engine
 ########
@@ -295,7 +307,30 @@
  query
 #######
 
+An interface inspired by SQLAlchemy's expression language, with which to
+construct queries about the history of your Lisien game.
+
 .. automodule:: lisien.query
+
+########
+ facade
+########
+
+Low-overhead "working copies" of Lisien objects.
+
+Under the hood, facades store patches to the underlying entity (if any).
+The changes in those patches won't be stored permanently unless you call
+the facade's ``apply()`` method.
+
+.. automodule:: lisien.facade
+
+===========
+ Internals
+===========
+
+These modules are used by :mod:`lisien.engine` or :mod:`lisien.proxy` somehow.
+You shouldn't need to know about them unless they're broken, or you want to
+extend Lisien's capabilities.
 
 #######
  types
