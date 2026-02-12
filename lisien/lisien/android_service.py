@@ -12,7 +12,16 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Run a Lisien server as an Android background process
+"""The background process that Lisien runs in on Android.
+
+It's a tiny `OSC`_ server. All it does
+is start the same :class:`lisien.proxy.handle.EngineHandle` that's used
+for accessing an :class:`lisien.engine.Engine` in a subprocess, but,
+since you're not allowed to start subprocesses on Android, we have to do it
+in a server instead.
+
+It's probably a bad idea to use this anywhere outside of ``localhost``, since
+:mod:`lisien.android_service` performs no authentication whatsoever.
 
 If using Kivy's `Buildozer`_ tool to package an Elide-based app, make sure that
 your buildozer.spec file includes the line:

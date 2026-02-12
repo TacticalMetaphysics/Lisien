@@ -433,19 +433,6 @@ extend Lisien's capabilities.
 #################
  android_service
 #################
-
-The background process that the engine runs in on Android.
-
-It's a tiny `OSC`_ server. All it does
-is start the same :class:`lisien.proxy.handle.EngineHandle` that's used
-for accessing an :class:`lisien.engine.Engine` in a subprocess, but,
-since you're not allowed to start subprocesses on Android, we have to do it
-in a server instead.
-
-It's probably a bad idea to use this anywhere outside of ``localhost``, since
-:mod:`lisien.android_service` performs no authentication whatsoever.
-
-.. _OSC: https://opensoundcontrol.stanford.edu/
 .. automodule:: lisien.android_service
 
    .. autoclass:: CommandDispatcher
