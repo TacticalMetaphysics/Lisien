@@ -12,7 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Classes for in-memory storage and retrieval of historical graph data."""
+"""Versioned in-memory data stores that Lisien data is kept in, once it's loaded.
+
+This module is where we keep the code for storage and retrieval of both
+individual values and keyframes. It makes heavy use of the :mod:`window`
+module for the underlying data structures.
+
+"""
 
 from __future__ import annotations
 

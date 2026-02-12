@@ -455,17 +455,25 @@ It's probably a bad idea to use this anywhere outside of ``localhost``, since
    .. autofunction:: core_server
 
 #######
+ cache
+#######
+
+.. automodule:: lisien.cache
+
+    .. autoclass:: Cache
+
+#############
+ collections
+#############
+
+.. automodule:: lisien.collections
+
+    .. autoclass:: StringStore
+
+    .. autoclass:: FunctionStore
+
+#######
  types
 #######
 
 .. automodule:: lisien.types
-
-##############
- collections
-##############
-
-.. automodule:: lisien.collections
-
-   .. autoclass:: StringStore
-
-   .. autoclass:: FunctionStore
