@@ -191,6 +191,10 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. automethod:: unload
 
+      .. automethod:: export
+
+      .. automethod:: from_archive
+
 ###########
  character
 ###########
@@ -457,6 +461,12 @@ extend Lisien's capabilities.
 .. automodule:: lisien.db
 
     .. autoclass:: AbstractDatabaseConnector
+
+        .. automethod:: load_xml
+
+        .. automethod:: to_xml
+
+        .. automethod:: write_xml
 
     .. autoclass:: ThreadedDatabaseConnector
 
