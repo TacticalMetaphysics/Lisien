@@ -12,10 +12,7 @@ steps:
       - TMPDIR=$(python find_ramdisk.py)
       - echo "TMPDIR=$TMPDIR"
       - export TMPDIR
-      - DISPLAY=:0
-      - echo "DISPLAY=$DISPLAY"
-      - export DISPLAY
-      - Xvfb $DISPLAY &
       - python -m pip wheel --no-deps lisien/
       - mv lisien-*.whl /wheels/lisien-0.0.0.dev0-py3-none-any.whl
+      - for minor in $(seq 12 14); do Xvfb -once :$minor & done;
       - tox run-parallel -o -c elide/tox.ini
