@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Database access and query builder
+"""Query builder, for queries about the game's history
 
 Sometimes you want to know when some stat of a lisien entity had a particular
 value. To find out, construct a historical query and pass it to
