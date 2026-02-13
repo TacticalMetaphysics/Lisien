@@ -464,6 +464,22 @@ extend Lisien's capabilities.
 
     .. autoclass:: NullDatabaseConnector
 
+-----
+ sql
+-----
+
+.. automodule:: lisien.db.sql
+
+    .. autoclass:: SQLAlchemyDatabaseConnector
+
+------
+ pqdb
+------
+
+.. automodule:: lisien.db.pqdb
+
+    .. autoclass:: ParquetDatabaseConnector
+
 #########
  futures
 #########
