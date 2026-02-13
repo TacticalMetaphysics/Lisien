@@ -26,9 +26,9 @@ from lisien.proxy.handle import EngineHandle
 
 from ..enum import Sub
 from ..futures import InterpreterExecutor, ProcessExecutor, ThreadExecutor
-from ..pqdb import ParquetDatabaseConnector
+from lisien.db.pqdb import ParquetDatabaseConnector
 from ..proxy.manager import EngineProxyManager
-from ..sql import SQLAlchemyDatabaseConnector
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from . import data
 from .util import make_test_engine_facade
 

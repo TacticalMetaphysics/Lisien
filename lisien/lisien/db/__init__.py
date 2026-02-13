@@ -86,9 +86,9 @@ else:
 
 import lisien.types
 
-from .exc import KeyframeError
-from .facade import EngineFacade
-from .types import (
+from ..exc import KeyframeError
+from ..facade import EngineFacade
+from ..types import (
 	AbstractEngine,
 	ActionFuncName,
 	ActionRowType,
@@ -164,13 +164,13 @@ from .types import (
 	root_type,
 	sort_set,
 )
-from .util import ILLEGAL_CHARACTER_NAMES, garbage
-from .window import (
+from ..util import ILLEGAL_CHARACTER_NAMES, garbage
+from ..window import (
 	AssignmentTimeDict,
 	BranchingTimeListDict,
 	LinearTimeListDict,
 )
-from .wrap import DictWrapper, ListWrapper, SetWrapper
+from ..wrap import DictWrapper, ListWrapper, SetWrapper
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
 SCHEMA_VERSION = 2
