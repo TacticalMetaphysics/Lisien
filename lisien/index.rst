@@ -409,9 +409,6 @@ that unit happens to be in. Nodes may be units of any number of
  query
 #######
 
-An interface inspired by SQLAlchemy's expression language, with which to
-construct queries about the history of your Lisien game.
-
 .. automodule:: lisien.query
 
 ########
