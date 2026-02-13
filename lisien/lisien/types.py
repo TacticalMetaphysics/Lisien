@@ -3287,11 +3287,11 @@ class AbstractEngine(ABC):
 					connector = PythonDatabaseConnector
 				return connector
 			elif clsn == "SQLAlchemyDatabaseConnector":
-				from .sql import SQLAlchemyDatabaseConnector
+				from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 				return partial(SQLAlchemyDatabaseConnector, **data)
 			elif clsn == "ParquetDatabaseConnector":
-				from .pqdb import ParquetDatabaseConnector
+				from lisien.db.pqdb import ParquetDatabaseConnector
 
 				return partial(ParquetDatabaseConnector, **data)
 			else:
@@ -3572,13 +3572,13 @@ class AbstractEngine(ABC):
 				if inspect.isclass(cls) and issubclass(cls, Exception):
 					ret[cls] = pack_exception
 		try:
-			from .sql import SQLAlchemyDatabaseConnector
+			from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
 		except ImportError:
 			pass
 		try:
-			from .pqdb import ParquetDatabaseConnector
+			from lisien.db.pqdb import ParquetDatabaseConnector
 
 			ret[ParquetDatabaseConnector] = pack_database_connector
 		except ImportError:

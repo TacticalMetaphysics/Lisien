@@ -187,7 +187,7 @@ class EngineProxyManager:
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
-			from ..sql import meta
+			from lisien.db.sql import meta
 
 			connect_args = {}
 			if "connect_string" in kwargs:

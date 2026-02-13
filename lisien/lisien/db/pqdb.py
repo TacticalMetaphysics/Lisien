@@ -36,7 +36,7 @@ import pyarrow as pa
 from attrs import define, field
 from pyarrow import compute as pc
 
-from .db import (
+from lisien.db import (
 	SCHEMA_VERSION_B,
 	SCHEMAVER_B,
 	Batch,
@@ -45,8 +45,8 @@ from .db import (
 	ThreadedDatabaseConnector,
 	mutexed,
 )
-from .exc import KeyframeError
-from .types import (
+from lisien.exc import KeyframeError
+from lisien.types import (
 	AbstractEngine,
 	ActionRowType,
 	Branch,
@@ -100,8 +100,8 @@ from .types import (
 	Value,
 	ValueHint,
 )
-from .types import __dict__ as types_dict
-from .util import ELLIPSIS, EMPTY
+from lisien.types import __dict__ as types_dict
+from lisien.util import ELLIPSIS, EMPTY
 
 
 @define
