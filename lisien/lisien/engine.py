@@ -201,7 +201,7 @@ from .types import (
 	StructuredDefaultDict,
 	Tick,
 	Time,
-	TimeSignal,
+	Time,
 	TriggerFuncName,
 	Turn,
 	UniversalKey,
@@ -251,11 +251,16 @@ class InnerStopIteration(StopIteration):
 class NextTurn(Signal):
 	"""Make time move forward in the simulation.
 
-	Calls ``advance`` repeatedly, returning a list of the rules' return values.
+	Stops when the turn has ended, or a rule returns something non-``None``.
 
-	I am also a ``Signal``, so you can register functions to be
-	called when the simulation runs. Pass them to my ``connect``
-	method.
+	This is also a :class:`blinker.Signal`, so you can register functions to
+	be called when the simulation runs. Pass them to
+	``Engine.next_turn.connect(..)``.
+
+	:return: a pair, of which item 0 is the returned value from a rule if
+	applicable (default: ``[]``), and item 1 is a delta describing changes to
+	the simulation resulting from this call. See the following method,
+	:meth:`get_delta`, for a description of the delta format.
 
 	"""
 
@@ -514,7 +519,16 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing utility functions; if absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
-	the ``prefix``."""
+	the ``prefix``.
+	
+     Only functions stored in one of these attributes can be used by Lisien's
+     workers for parallel processing:
+     
+        * :attr:`function`
+        * :attr:`method`
+        * :attr:`trigger`
+     
+     :attr:`function` will do, if none of the others make sense."""
 	method: ModuleType | MethodStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -525,7 +539,20 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing functions taking this engine as first argument. If 
 	absent, we'll use a :class:`lisien.collections.FunctionStore` to keep 
-	them in a .py file in the ``prefix``."""
+	them in a .py file in the ``prefix``.
+	
+     Only functions stored in one of these attributes can be used by Lisien's
+     workers for parallel processing:
+     
+        * :attr:`function`
+        * :attr:`method`
+        * :attr:`trigger`
+    
+    :attr:`method` is often the most convenient, since the function will be
+    passed this :class:`Engine`, and can access anything else it needs through
+    it.
+    
+    """
 	trigger: ModuleType | TriggerStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -537,7 +564,11 @@ class Engine(AbstractEngine, BaseExecutor):
 	"""Module containing trigger functions, taking a Lisien entity and 
 	returning a boolean for whether to run a rule. If absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
-	the ``prefix``."""
+	the ``prefix``.
+	
+    Trigger functions are evaluated in parallel by default.
+    
+    """
 	prereq: ModuleType | PrereqStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -2639,6 +2670,7 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@cached_property
 	def next_turn(self) -> NextTurn:
+		__doc__ = NextTurn.__doc__
 		return NextTurn(self)
 
 	@cached_property

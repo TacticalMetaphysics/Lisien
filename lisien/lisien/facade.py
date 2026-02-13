@@ -74,7 +74,6 @@ from .types import (
 	SignalDict,
 	Stat,
 	Tick,
-	TimeSignalDescriptor,
 	Turn,
 	Value,
 	ValueHint,
@@ -1473,7 +1472,6 @@ class EngineFacade(AbstractEngine):
 	thing_cls: ClassVar = FacadeThing
 	place_cls: ClassVar = FacadePlace
 	portal_cls: ClassVar = FacadePortal
-	time: ClassVar = TimeSignalDescriptor()
 
 	def _function_store_creator(self, attr: str) -> FunctionStore:
 		if self._mock:

@@ -108,7 +108,6 @@ from ..types import (
 	StructuredDefaultDict,
 	Tick,
 	Time,
-	TimeSignalDescriptor,
 	TriggerFuncName,
 	Turn,
 	UniversalKey,
