@@ -1155,100 +1155,23 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def engine(self):
 		return self.character.engine
 
-	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Branch, Turn, Tick], Iterator[Stat]],
-		CharName,
-		Time,
-	]:
-		return (
-			self.engine._graph_val_cache.iter_keys,
-			self.character.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick], bool],
-		CharName,
-	]:
-		return self.engine._graph_val_cache.contains_key, self.character.name
-
-	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Branch, Turn, Tick], int],
-		CharName,
-		Time,
-	]:
-		return (
-			self.engine._graph_val_cache.count_keys,
-			self.character.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _get_stuff(
-		self,
-	) -> tuple[
-		Callable[[Stat, Branch, Turn, Tick], Value],
-		Time,
-	]:
-		return self._get_cache, self.engine.time
-
-	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-	]:
-		return self.engine.database.graph_val_set, self.character.name
-
-	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
-	]:
-		return self.engine._graph_val_cache.store, self.character.name
-
-	@cached_property
-	def _del_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
-	]:
-		return self.engine.database.graph_val_set, self.character.name
-
-	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick], Value],
-		CharName,
-	]:
-		return (self.engine._graph_val_cache.retrieve, self.character.name)
-
 	def __iter__(self) -> Iterator[Stat]:
-		iter_entity_keys, graphn, btt = self._iter_stuff
-		yield from iter_entity_keys(graphn, *btt)
+		yield from self.engine._graph_val_cache.iter_keys(
+			self.character.name, *self.engine.time
+		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn = self._cache_contains_stuff
-		return contains_key(graphn, key, branch, turn, tick)
+		return self.engine._graph_val_cache.contains_key(
+			self.character.name, key, branch, turn, tick
+		)
 
 	def __len__(self):
-		count_keys, graphn, btt = self._len_stuff
 		branch, turn, tick = btt
-		return count_keys(graphn, branch, turn, tick)
+		return self.engine._graph_val_cache.count_keys(
+			self.character.name, branch, turn, tick
+		)
 
 	def __getitem__(self, item: Key | KeyHint) -> Value:
 		if item == "name":
@@ -1265,12 +1188,12 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn = self._get_cache_stuff
-		return retrieve(graphn, key, branch, turn, tick)
+		return self.engine._graph_val_cache.retrieve(
+			self.character.name, key, branch, turn, tick
+		)
 
 	def _get(self, key: Stat) -> Value:
-		get_cache, btt = self._get_stuff
-		return get_cache(key, *btt)
+		return self._get_cache(key, *self.engine.time)
 
 	def _set_db(
 		self,
@@ -1280,8 +1203,9 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		graph_val_set, graphn = self._set_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, value)
+		self.engine.database.graph_val_set(
+			self.character.name, key, branch, turn, tick, value
+		)
 
 	def _set_cache(
 		self,
@@ -1291,14 +1215,16 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		store, graphn = self._set_cache_stuff
-		store(graphn, key, branch, turn, tick, value)
+		self.engine._graph_val_cache.store(
+			self.character.name, key, branch, turn, tick, value
+		)
 
 	def _del_db(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		graph_val_set, graphn = self._del_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, Value(...))
+		self.engine.database.graph_val_set(
+			self.character.name, key, branch, turn, tick, Value(...)
+		)
 
 	def clear(self) -> None:
 		keys = set(self.keys())
@@ -1360,76 +1286,30 @@ class Node(AbstractEntityMapping, ABC):
 	def engine(self):
 		return self.character.engine
 
-	@cached_property
-	def _iter_stuff(self):
-		return (
-			self.engine._node_val_cache.iter_keys,
-			self.character.name,
-			self.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _cache_contains_stuff(self):
-		return (
-			self.engine._node_val_cache.contains_key,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _len_stuff(self):
-		return (
-			self.engine._node_val_cache.count_keys,
-			self.character.name,
-			self.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _get_cache_stuff(self):
-		return (
-			self.engine._node_val_cache.retrieve,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _set_db_stuff(self):
-		return (
-			self.engine.database.node_val_set,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _set_cache_stuff(self):
-		return (
-			self.engine._node_val_cache.store,
-			self.character.name,
-			self.name,
-		)
-
 	def __iter__(self):
-		iter_entity_keys, graphn, node, btt = self._iter_stuff
-		branch, turn, tick = btt
-		return iter_entity_keys(graphn, node, branch, turn, tick)
+		branch, turn, tick = self.engine.time
+		return self.engine._node_val_cache.iter_keys(
+			self.character.name, self.name, branch, turn, tick
+		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn, node = self._cache_contains_stuff
-		return contains_key(graphn, node, key, branch, turn, tick)
+		return self.engine._node_val_cache.contains_key(
+			self.character.name, self.name, key, branch, turn, tick
+		)
 
 	def __len__(self):
-		count_entity_keys, graphn, node, btt = self._len_stuff
-		return count_entity_keys(graphn, node, *btt)
+		return self.engine._node_val_cache.count_keys(
+			self.character.name, self.name, *self.engine.time
+		)
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn, node = self._get_cache_stuff
-		return retrieve(graphn, node, key, branch, turn, tick)
+		return self.engine._node_val_cache.retrieve(
+			self.character.name, self.name, key, branch, turn, tick
+		)
 
 	def _set_db(
 		self,
@@ -1439,8 +1319,9 @@ class Node(AbstractEntityMapping, ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		node_val_set, graphn, node = self._set_db_stuff
-		node_val_set(graphn, node, key, branch, turn, tick, value)
+		self.engine.database.node_val_set(
+			self.character.name, self.name, key, branch, turn, tick, value
+		)
 
 	def _set_cache(
 		self,
@@ -1450,8 +1331,9 @@ class Node(AbstractEntityMapping, ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		store, graphn, node = self._set_cache_stuff
-		store(graphn, node, key, branch, turn, tick, value)
+		self.engine._node_val_cache.store(
+			self.character.name, self.name, key, branch, turn, tick, value
+		)
 
 	def add_portal(
 		self,
@@ -1544,93 +1426,57 @@ class Edge(AbstractEntityMapping, ABC):
 	def __str__(self):
 		return str(dict(self))
 
-	@cached_property
-	def _iter_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.iter_keys,
-			self.character.name,
-			self.orig,
-			self.dest,
-			self.character.engine.time,
-		)
-
 	def __iter__(self) -> Iterator[Stat]:
-		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
-		return iter_entity_keys(graphn, orig, dest, *btt)
-
-	@cached_property
-	def _cache_contains_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.contains_key,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.character.engine._edge_val_cache.iter_keys(
+			self.character.name, self.orig, self.dest, *self.engine.time
 		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn, orig, dest = self._cache_contains_stuff
-		return contains_key(graphn, orig, dest, key, branch, turn, tick)
-
-	@cached_property
-	def _len_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.count_keys,
-			self.character.name,
-			self.orig,
-			self.dest,
-			self.character.engine.time,
+		return self.character.engine._edge_val_cache.contains_key(
+			self.character.name, self.orig, self.dest, key, branch, turn, tick
 		)
 
 	def __len__(self) -> int:
-		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
-		return count_entity_keys(graphn, orig, dest, *btt)
-
-	@cached_property
-	def _get_cache_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.retrieve,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.engine._edge_val_cache.count_keys(
+			self.character.name, self.orig, self.dest, *self.engine.time
 		)
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn, orig, dest = self._get_cache_stuff
-		return retrieve(graphn, orig, dest, key, branch, turn, tick)
-
-	@cached_property
-	def _set_db_stuff(self):
-		return (
-			self.character.engine.database.edge_val_set,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.engine._edge_val_cache.retrieve(
+			self.character.name, self.orig, self.dest, key, branch, turn, tick
 		)
 
 	def _set_db(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
 	) -> None:
-		edge_val_set, graphn, orig, dest = self._set_db_stuff
-		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
-
-	@cached_property
-	def _set_cache_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.store,
+		self.engine.database.edge_val_set(
 			self.character.name,
 			self.orig,
 			self.dest,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
 		)
 
 	def _set_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
 	) -> None:
-		store, graphn, orig, dest = self._set_cache_stuff
-		store(graphn, orig, dest, key, branch, turn, tick, value)
+		self.engine._edge_val_cache.store(
+			self.character.name,
+			self.orig,
+			self.dest,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+		)
 
 
 @define(slots=True)
@@ -5476,16 +5322,17 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	def _lock(self):
 		return RLock()
 
-	@cached_property
-	def _stuff(self):
-		return self.layer, self.type, self.args_munger, self.kwargs_munger
-
 	def __getitem__(self, k: _K) -> _V:
 		with self._lock:
 			self.gettest(k)
 			if k in self:
 				return dict.__getitem__(self, k)
-			layer, typ, args_munger, kwargs_munger = self._stuff
+			layer, typ, args_munger, kwargs_munger = (
+				self.layer,
+				self.type,
+				self.args_munger,
+				self.kwargs_munger,
+			)
 			if layer == 1:
 				if typ is type(None):
 					ret = {}
@@ -5507,8 +5354,13 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	def __setitem__(self, k: _K, v: _V) -> None:
 		with self._lock:
 			self.settest(k, v)
+			layer, typ, args_munger, kwargs_munger = (
+				self.layer,
+				self.type,
+				self.args_munger,
+				self.kwargs_munger,
+			)
 			if type(v) is StructuredDefaultDict:
-				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					v.layer == layer - 1
 					and (typ is type(None) or v.type is typ)
@@ -5518,7 +5370,6 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 					super().__setitem__(k, v)
 					return
 			elif type(v) is PickyDefaultDict:
-				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					layer == 1
 					and v.value_type is typ
