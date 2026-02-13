@@ -47,8 +47,8 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.sql.ddl import CreateTable
 
-from . import types
-from .db import (
+from lisien import types
+from lisien.db import (
 	SCHEMA_VERSION_B,
 	SCHEMAVER_B,
 	Batch,
@@ -57,8 +57,8 @@ from .db import (
 	ThreadedDatabaseConnector,
 	mutexed,
 )
-from .exc import KeyframeError
-from .types import (
+from lisien.exc import KeyframeError
+from lisien.types import (
 	AbstractEngine,
 	ActionFuncName,
 	ActionRowType,
