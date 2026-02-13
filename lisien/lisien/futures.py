@@ -184,14 +184,15 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 	Starts workers in threads, processes, or interpreters, depending on which
 	subclass you use.
 
-	Usually, you don't want to instantiate these directly -- :class:`Engine`
-	will do it for you -- but if you want to close an :class:`Engine` while
-	keeping its workers alive, and reuse them when next you start the game,
-	you can do that by creating your own :class:`Executor`, passing it to
-	:class:`lisien.Engine`, and holding onto it until the one engine's shut
-	down, and it's time to start the next.
+	Usually, you don't want to instantiate these directly --
+	:class:`.Engine` will do it for you -- but if you want to
+	close an :class:`.Engine` while keeping its workers alive,
+	and reuse them when next you start the game, you can do that by creating
+	your own :class:`Executor`, passing it to :class:`.Engine`,
+	and holding onto it until the one engine's shut down, and it's time to
+	start the next.
 
-	These are stateful, and can only serve one :class:`Engine` at a time.
+	These are stateful, and can only serve one :class:`.Engine` at a time.
 
 	"""
 
