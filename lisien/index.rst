@@ -418,12 +418,6 @@ construct queries about the history of your Lisien game.
  facade
 ########
 
-Low-overhead "working copies" of Lisien objects.
-
-Under the hood, facades store patches to the underlying entity (if any).
-The changes in those patches won't be stored permanently unless you call
-the facade's ``apply()`` method.
-
 .. automodule:: lisien.facade
 
 ===========
