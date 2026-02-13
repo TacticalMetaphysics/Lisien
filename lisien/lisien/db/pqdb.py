@@ -12,6 +12,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""The default ParquetDB database connector
+
+`Parquet`_ is a columnar data file format that's good for time-series databases,
+such as Lisien's. `ParquetDB`_ is a simple database-shaped interface to a bunch
+of Parquet files. Where available, Lisien defaults to storing its data with
+:class:`lisien.db.pqdb.ParquetDatabaseConnector`, so that it will be small.
+However, ParquetDB often opens a lot of files at once, which can cause problems
+on constrained platforms like Android.
+
+.. _Parquet: https://parquet.apache.org/docs/
+.. _ParquetDB: https://parquetdb.readthedocs.io/en/latest/
+
+"""
+
 from __future__ import annotations
 
 import inspect
