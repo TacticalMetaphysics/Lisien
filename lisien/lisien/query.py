@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Database access and query builder
+"""Query builder, for queries about the game's history
 
 The main class here is :class:`QueryEngine`, which mostly just runs
 SQL on demand -- but, for the most common insert commands, it keeps
