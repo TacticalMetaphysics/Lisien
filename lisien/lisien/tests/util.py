@@ -24,10 +24,10 @@ from lisien.db import (
 	PythonDatabaseConnector,
 )
 from lisien.facade import EngineFacade
-from lisien.pqdb import ParquetDatabaseConnector
+from lisien.db.pqdb import ParquetDatabaseConnector
 from lisien.proxy.engine import EngineProxy
 from lisien.proxy.manager import EngineProxyManager
-from lisien.sql import SQLAlchemyDatabaseConnector
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from lisien.tests.data import DATA_DIR
 from lisien.types import (
 	GraphNodeValKeyframe,
