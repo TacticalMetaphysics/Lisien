@@ -14,13 +14,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Database connectors to persist Lisien's state to disk
 
-The base class, :class:`lisien.db.AbstractDatbaseConnector`, defines the API
-that database connectors need to use. Most databases should implement
-:class:`lisien.db.ThreadedDatabaseConnector`, which does background
-processing in a subthread.
+The base class, :class:`AbstractDatabaseConnector`, defines the API that
+database connectors need to use. Most databases should implement
+:class:`ThreadedDatabaseConnector`, which does background processing in a
+subthread.
 
-The connectors also have import/export code to save and load the whole database.
-One concrete class, :class:`lisien.db.PythonDatabaseConnector`, is provided
+The connectors also have import/export code to save and load the whole
+database. One concrete class, :class:`PythonDatabaseConnector`, is provided
 for when that's all the persistence you want. The other,
 :class:`NullDatabaseConnector`, can't import, export, or persist anything at
 all; it's not much good for anything but tests.
