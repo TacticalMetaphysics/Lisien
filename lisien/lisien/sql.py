@@ -133,6 +133,8 @@ for table, serializer in Batch.serializers.items():
 		ret_annot = ret_annot.evaluate_value()
 	if hasattr(ret_annot, "__value__"):
 		ret_annot = ret_annot.__value__
+	if ret_annot is Time:
+		ret_annot = tuple[Branch, Turn, Tick]
 	columns = []
 	with_rowid = batch.key_len == 0
 	for n, (arg, ret_typ) in enumerate(
@@ -140,6 +142,7 @@ for table, serializer in Batch.serializers.items():
 	):
 		if hasattr(ret_typ, "evaluate_value"):
 			ret_typ = ret_typ.evaluate_value()
+		assert ret_typ is not Time
 		args = get_args(ret_typ)
 		nullable = type(None) in args
 		orig = root_type(ret_typ)

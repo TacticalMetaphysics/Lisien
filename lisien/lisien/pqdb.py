@@ -149,6 +149,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					typ = typ.evaluate_value()
 				if hasattr(typ, "__supertype__"):
 					return typ.__supertype__
+				if typ is Time:
+					return tuple
 				ret = get_origin(typ)
 				if ret is Annotated:
 					return get_args(typ)[0]
@@ -159,6 +161,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					typ = typ.evaluate_value()
 				if isinstance(typ, TypeAliasType):
 					typ = typ.__value__
+				if typ is Time:
+					return (str, int, int)
 				return get_args(typ)
 
 			def original(typ):
@@ -186,6 +190,8 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 					serialized_tuple_type = eval(
 						serialized_tuple_type, dict(types_dict)
 					)
+				if serialized_tuple_type is Time:
+					serialized_tuple_type = tuple[Branch, Turn, Tick]
 				columns = ret[table] = []
 				for column, serialized_type in zip(
 					argspec.args[1:], argeval(serialized_tuple_type)

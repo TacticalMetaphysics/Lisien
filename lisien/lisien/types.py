@@ -20,6 +20,7 @@ import builtins
 import inspect
 import operator
 import os
+import sys
 import typing
 import weakref
 from abc import ABC, abstractmethod
@@ -86,7 +87,7 @@ from typing import (
 import networkx as nx
 from annotated_types import Ge, Le
 from attrs import Factory, define, field, validators
-from blinker import Signal
+from blinker import Signal, ANY
 from networkx import NetworkXError
 from tblib import Traceback
 from zict import LRU
@@ -268,8 +269,179 @@ Turn = NewType("Turn", Annotated[int, Ge(0)])
 """Turn number. Starts at zero and increases monotonically."""
 Tick = NewType("Tick", Annotated[int, Ge(0)])
 """Tick number. Starts at zero and increases one by one, but resets every turn."""
-type Time = tuple[Branch, Turn, Tick]
-"""A point in time in a Lisien timestream."""
+
+
+class Time(tuple[Branch, Turn, Tick]):
+	"""A tuple of branch, turn, and tick
+
+	If you access this from :attr:`lisien.engine.Engine.time`, you can register
+	a function to be called whenever the time changes::
+
+		from lisien import Engine
+
+		with Engine() as engine:
+			@engine.time.connect
+			def time_changed(engine, *, then: tuple[str, int, int], now: tuple[str, int, int]):
+				print(f'{then} was then, {now} is now')
+
+	"""
+
+	__slots__ = ()
+
+	def __new__(
+		cls,
+		branch: Branch
+		| tuple[Branch, Turn, Tick]
+		| tuple[Branch, Turn, Tick, AbstractEngine],
+		turn: Turn | None = None,
+		tick: Tick | None = None,
+		engine: AbstractEngine | None = None,
+	) -> Time:
+		if turn is None or tick is None:
+			if not isinstance(branch, tuple):
+				raise TypeError(
+					f"Can't make Time out of {type(branch)}", branch
+				)
+			if len(branch) == 4:
+				return tuple.__new__(cls, branch)
+			elif len(branch) == 3:
+				return tuple.__new__(cls, (*branch, None))
+			else:
+				raise TypeError("Wrong arity", branch)
+		return tuple.__new__(cls, (branch, turn, tick, engine))
+
+	@property
+	def engine(self) -> AbstractEngine | None:
+		return tuple.__getitem__(self, 3)
+
+	@property
+	def branch(self) -> Branch:
+		return tuple.__getitem__(self, 0)
+
+	@property
+	def turn(self):
+		return tuple.__getitem__(self, 1)
+
+	@property
+	def tick(self):
+		return tuple.__getitem__(self, 2)
+
+	def __iter__(self):
+		yield super().__getitem__(0)
+		yield super().__getitem__(1)
+		yield super().__getitem__(2)
+
+	def __len__(self):
+		return 3
+
+	def __hash__(self):
+		return hash(
+			(
+				super().__getitem__(0),
+				super().__getitem__(1),
+				super().__getitem__(2),
+			)
+		)
+
+	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
+		if i in ("branch", 0):
+			return super().__getitem__(0)
+		if i in ("turn", 1):
+			return super().__getitem__(1)
+		if i in ("tick", 2):
+			return super().__getitem__(2)
+		if isinstance(i, int):
+			raise IndexError(i)
+		else:
+			raise KeyError(i)
+
+	def _me(self):
+		return (
+			super().__getitem__(0),
+			super().__getitem__(1),
+			super().__getitem__(2),
+		)
+
+	@overload
+	def __add__(self, value: tuple[_T_co, ...], /) -> tuple[_T_co, ...]: ...
+
+	@overload
+	def __add__(self, value: tuple[_T, ...], /) -> tuple[_T_co | _T, ...]: ...
+
+	def __add__(self, value, /):
+		return self._me().__add__(value)
+
+	def __eq__(self, value, /) -> bool:
+		return self._me() == value
+
+	def __ne__(self, value, /):
+		return self._me() != value
+
+	def __mul__(self, value, /):
+		return self._me().__mul__(value)
+
+	def __rmul__(self, value, /):
+		return self._me().__rmul__(value)
+
+	def count(self, value, /):
+		return self._me().count(value)
+
+	def index(self, value, start=0, stop=sys.maxsize, /):
+		return self._me().index(value, start, stop)
+
+	def __reversed__(self):
+		return self._me().__reversed__()
+
+	@wraps(Signal.connect)
+	def connect(
+		self,
+		receiver: Callable[..., Any],
+		sender: Any = ANY,
+		weak: bool = True,
+	) -> None:
+		self.engine._time_signal.connect(receiver)
+
+	@wraps(Signal.disconnect)
+	def disconnect(
+		self, receiver: Callable[..., Any], sender: Any = ANY
+	) -> None:
+		self.engine._time_signal.disconnect(receiver, sender)
+
+	@wraps(Signal.connect_via)
+	def connect_via(
+		self, sender, weak: bool = False
+	) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+		return self.engine._time_signal.connect_via(sender, weak)
+
+	@wraps(Signal.connected_to)
+	def connected_to(
+		self, receiver: Callable[..., Any], sender: Any = ANY
+	) -> Generator[None, None, None]:
+		return self.engine._time_signal.connected_to(receiver, sender)
+
+	@wraps(Signal.muted)
+	def muted(self) -> Generator[None, None, None]:
+		return self.engine._time_signal.muted()
+
+	@wraps(Signal.has_receivers_for)
+	def has_receivers_for(self, sender):
+		return self.engine._time_signal.has_receivers_for(sender)
+
+	@wraps(Signal.receivers_for)
+	def receivers_for(self, sender):
+		return self.engine._time_signal.receivers_for(sender)
+
+	@wraps(Signal.send)
+	def send(self, sender, *, _async_wrapper=None, **kwargs):
+		return self.engine._time_signal.send(
+			sender, _async_wrapper=_async_wrapper, **kwargs
+		)
+
+	@wraps(Signal.send_async)
+	def send_async(self, sender, *, _sync_wrapper=None, **kwargs):
+		return self.engine._time_signal.send_async(
+			sender, _sync_wrapper=_sync_wrapper, **kwargs
+		)
 
 
 class ValidateTimeProtocol(Protocol):
@@ -1021,100 +1193,23 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def engine(self):
 		return self.character.engine
 
-	@cached_property
-	def _iter_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Branch, Turn, Tick], Iterator[Stat]],
-		CharName,
-		Time,
-	]:
-		return (
-			self.engine._graph_val_cache.iter_keys,
-			self.character.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _cache_contains_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick], bool],
-		CharName,
-	]:
-		return self.engine._graph_val_cache.contains_key, self.character.name
-
-	@cached_property
-	def _len_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Branch, Turn, Tick], int],
-		CharName,
-		Time,
-	]:
-		return (
-			self.engine._graph_val_cache.count_keys,
-			self.character.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _get_stuff(
-		self,
-	) -> tuple[
-		Callable[[Stat, Branch, Turn, Tick], Value],
-		Time,
-	]:
-		return self._get_cache, self.engine.time
-
-	@cached_property
-	def _set_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None],
-		CharName,
-	]:
-		return self.engine.database.graph_val_set, self.character.name
-
-	@cached_property
-	def _set_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
-	]:
-		return self.engine._graph_val_cache.store, self.character.name
-
-	@cached_property
-	def _del_db_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick, Value], None], CharName
-	]:
-		return self.engine.database.graph_val_set, self.character.name
-
-	@cached_property
-	def _get_cache_stuff(
-		self,
-	) -> tuple[
-		Callable[[CharName, Stat, Branch, Turn, Tick], Value],
-		CharName,
-	]:
-		return (self.engine._graph_val_cache.retrieve, self.character.name)
-
 	def __iter__(self) -> Iterator[Stat]:
-		iter_entity_keys, graphn, btt = self._iter_stuff
-		yield from iter_entity_keys(graphn, *btt)
+		yield from self.engine._graph_val_cache.iter_keys(
+			self.character.name, *self.engine.time
+		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn = self._cache_contains_stuff
-		return contains_key(graphn, key, branch, turn, tick)
+		return self.engine._graph_val_cache.contains_key(
+			self.character.name, key, branch, turn, tick
+		)
 
 	def __len__(self):
-		count_keys, graphn, btt = self._len_stuff
 		branch, turn, tick = btt
-		return count_keys(graphn, branch, turn, tick)
+		return self.engine._graph_val_cache.count_keys(
+			self.character.name, branch, turn, tick
+		)
 
 	def __getitem__(self, item: Key | KeyHint) -> Value:
 		if item == "name":
@@ -1131,12 +1226,12 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn = self._get_cache_stuff
-		return retrieve(graphn, key, branch, turn, tick)
+		return self.engine._graph_val_cache.retrieve(
+			self.character.name, key, branch, turn, tick
+		)
 
 	def _get(self, key: Stat) -> Value:
-		get_cache, btt = self._get_stuff
-		return get_cache(key, *btt)
+		return self._get_cache(key, *self.engine.time)
 
 	def _set_db(
 		self,
@@ -1146,8 +1241,9 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		graph_val_set, graphn = self._set_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, value)
+		self.engine.database.graph_val_set(
+			self.character.name, key, branch, turn, tick, value
+		)
 
 	def _set_cache(
 		self,
@@ -1157,14 +1253,16 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		store, graphn = self._set_cache_stuff
-		store(graphn, key, branch, turn, tick, value)
+		self.engine._graph_val_cache.store(
+			self.character.name, key, branch, turn, tick, value
+		)
 
 	def _del_db(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> None:
-		graph_val_set, graphn = self._del_db_stuff
-		graph_val_set(graphn, key, branch, turn, tick, Value(...))
+		self.engine.database.graph_val_set(
+			self.character.name, key, branch, turn, tick, Value(...)
+		)
 
 	def clear(self) -> None:
 		keys = set(self.keys())
@@ -1226,76 +1324,30 @@ class Node(AbstractEntityMapping, ABC):
 	def engine(self):
 		return self.character.engine
 
-	@cached_property
-	def _iter_stuff(self):
-		return (
-			self.engine._node_val_cache.iter_keys,
-			self.character.name,
-			self.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _cache_contains_stuff(self):
-		return (
-			self.engine._node_val_cache.contains_key,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _len_stuff(self):
-		return (
-			self.engine._node_val_cache.count_keys,
-			self.character.name,
-			self.name,
-			self.engine.time,
-		)
-
-	@cached_property
-	def _get_cache_stuff(self):
-		return (
-			self.engine._node_val_cache.retrieve,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _set_db_stuff(self):
-		return (
-			self.engine.database.node_val_set,
-			self.character.name,
-			self.name,
-		)
-
-	@cached_property
-	def _set_cache_stuff(self):
-		return (
-			self.engine._node_val_cache.store,
-			self.character.name,
-			self.name,
-		)
-
 	def __iter__(self):
-		iter_entity_keys, graphn, node, btt = self._iter_stuff
-		branch, turn, tick = btt
-		return iter_entity_keys(graphn, node, branch, turn, tick)
+		branch, turn, tick = self.engine.time
+		return self.engine._node_val_cache.iter_keys(
+			self.character.name, self.name, branch, turn, tick
+		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn, node = self._cache_contains_stuff
-		return contains_key(graphn, node, key, branch, turn, tick)
+		return self.engine._node_val_cache.contains_key(
+			self.character.name, self.name, key, branch, turn, tick
+		)
 
 	def __len__(self):
-		count_entity_keys, graphn, node, btt = self._len_stuff
-		return count_entity_keys(graphn, node, *btt)
+		return self.engine._node_val_cache.count_keys(
+			self.character.name, self.name, *self.engine.time
+		)
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn, node = self._get_cache_stuff
-		return retrieve(graphn, node, key, branch, turn, tick)
+		return self.engine._node_val_cache.retrieve(
+			self.character.name, self.name, key, branch, turn, tick
+		)
 
 	def _set_db(
 		self,
@@ -1305,8 +1357,9 @@ class Node(AbstractEntityMapping, ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		node_val_set, graphn, node = self._set_db_stuff
-		node_val_set(graphn, node, key, branch, turn, tick, value)
+		self.engine.database.node_val_set(
+			self.character.name, self.name, key, branch, turn, tick, value
+		)
 
 	def _set_cache(
 		self,
@@ -1316,8 +1369,9 @@ class Node(AbstractEntityMapping, ABC):
 		tick: Tick,
 		value: Value,
 	) -> None:
-		store, graphn, node = self._set_cache_stuff
-		store(graphn, node, key, branch, turn, tick, value)
+		self.engine._node_val_cache.store(
+			self.character.name, self.name, key, branch, turn, tick, value
+		)
 
 	def add_portal(
 		self,
@@ -1410,93 +1464,57 @@ class Edge(AbstractEntityMapping, ABC):
 	def __str__(self):
 		return str(dict(self))
 
-	@cached_property
-	def _iter_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.iter_keys,
-			self.character.name,
-			self.orig,
-			self.dest,
-			self.character.engine.time,
-		)
-
 	def __iter__(self) -> Iterator[Stat]:
-		iter_entity_keys, graphn, orig, dest, btt = self._iter_stuff
-		return iter_entity_keys(graphn, orig, dest, *btt)
-
-	@cached_property
-	def _cache_contains_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.contains_key,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.character.engine._edge_val_cache.iter_keys(
+			self.character.name, self.orig, self.dest, *self.engine.time
 		)
 
 	def _cache_contains(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> bool:
-		contains_key, graphn, orig, dest = self._cache_contains_stuff
-		return contains_key(graphn, orig, dest, key, branch, turn, tick)
-
-	@cached_property
-	def _len_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.count_keys,
-			self.character.name,
-			self.orig,
-			self.dest,
-			self.character.engine.time,
+		return self.character.engine._edge_val_cache.contains_key(
+			self.character.name, self.orig, self.dest, key, branch, turn, tick
 		)
 
 	def __len__(self) -> int:
-		count_entity_keys, graphn, orig, dest, btt = self._len_stuff
-		return count_entity_keys(graphn, orig, dest, *btt)
-
-	@cached_property
-	def _get_cache_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.retrieve,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.engine._edge_val_cache.count_keys(
+			self.character.name, self.orig, self.dest, *self.engine.time
 		)
 
 	def _get_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick
 	) -> Value:
-		retrieve, graphn, orig, dest = self._get_cache_stuff
-		return retrieve(graphn, orig, dest, key, branch, turn, tick)
-
-	@cached_property
-	def _set_db_stuff(self):
-		return (
-			self.character.engine.database.edge_val_set,
-			self.character.name,
-			self.orig,
-			self.dest,
+		return self.engine._edge_val_cache.retrieve(
+			self.character.name, self.orig, self.dest, key, branch, turn, tick
 		)
 
 	def _set_db(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
 	) -> None:
-		edge_val_set, graphn, orig, dest = self._set_db_stuff
-		edge_val_set(graphn, orig, dest, key, branch, turn, tick, value)
-
-	@cached_property
-	def _set_cache_stuff(self):
-		return (
-			self.character.engine._edge_val_cache.store,
+		self.engine.database.edge_val_set(
 			self.character.name,
 			self.orig,
 			self.dest,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
 		)
 
 	def _set_cache(
 		self, key: Stat, branch: Branch, turn: Turn, tick: Tick, value: Value
 	) -> None:
-		store, graphn, orig, dest = self._set_cache_stuff
-		store(graphn, orig, dest, key, branch, turn, tick, value)
+		self.engine._edge_val_cache.store(
+			self.character.name,
+			self.orig,
+			self.dest,
+			key,
+			branch,
+			turn,
+			tick,
+			value,
+		)
 
 
 @define(slots=True)
@@ -2750,167 +2768,6 @@ class AbstractBookmarkMapping(MutableMapping[KeyHint, Time], Callable):
 _SEQT = TypeVar("_SEQT", bound=Sequence[ValueHint])
 
 
-class TimeSignal(
-	tuple[Branch, Turn, Tick], Signal, Sequence[Branch | Turn | Tick]
-):
-	"""Like a tuple of the present ``(branch, turn, tick)`` that follows sim-time.
-
-	This is a ``Signal``. To set a function to be called whenever the
-	time changes, pass it to my ``connect`` method.
-
-	This always refers to the present game time. It will change when
-	simulation occurs. If you don't want that, convert it to a tuple, or unpack
-	it like: ``branch, turn, tick = engine.time``
-
-	"""
-
-	@property
-	def engine(self):
-		return tuple.__getitem__(self, 0)
-
-	def __iter__(self):
-		yield self.engine.branch
-		yield self.engine.turn
-		yield self.engine.tick
-
-	def __len__(self):
-		return 3
-
-	def __hash__(self):
-		raise TypeError(
-			"TimeSignal is mutable, not hashable. Convert it to a tuple."
-		)
-
-	def __call__(self) -> tuple[Branch, Turn, Tick]:
-		return self.engine.branch, self.engine.turn, self.engine.tick
-
-	def __getitem__(self, i: str | int) -> Branch | Turn | Tick:
-		if i in ("branch", 0):
-			return self.engine.branch
-		if i in ("turn", 1):
-			return self.engine.turn
-		if i in ("tick", 2):
-			return self.engine.tick
-		if isinstance(i, int):
-			raise IndexError(i)
-		else:
-			raise KeyError(i)
-
-	@property
-	def branch(self):
-		return self.engine.branch
-
-	@property
-	def turn(self):
-		return self.engine.turn
-
-	@property
-	def tick(self):
-		return self.engine.tick
-
-	def __setitem__(self, i: str | int, v: str | int) -> None:
-		if i in ("branch", 0):
-			if not isinstance(v, str):
-				raise TypeError("Invalid branch", v)
-			self.engine.branch = Branch(v)
-		elif i in ("turn", 1):
-			if not isinstance(v, int):
-				raise TypeError("Invalid turn", v)
-			if v < 0:
-				raise ValueError("Negative turn", v)
-			self.engine.turn = Turn(v)
-		elif i in ("tick", 2):
-			if not isinstance(v, int):
-				raise TypeError("Invalid tick", v)
-			if v < 0:
-				raise ValueError("Negative tick", v)
-			self.engine.tick = Tick(v)
-		else:
-			exctyp = KeyError if isinstance(i, str) else IndexError
-			raise exctyp(i)
-
-	def __str__(self):
-		return str(tuple(self))
-
-	def __eq__(self, other):
-		return tuple(self) == other
-
-	def __ne__(self, other):
-		return tuple(self) != other
-
-	def __gt__(self, other):
-		return tuple(self) > other
-
-	def __ge__(self, other):
-		return tuple(self) >= other
-
-	def __lt__(self, other):
-		return tuple(self) < other
-
-	def __le__(self, other):
-		return tuple(self) <= other
-
-
-class TimeSignalDescriptor:
-	__doc__ = TimeSignal.__doc__
-
-	def __get__(self, inst, cls) -> TimeSignal:
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		return inst._time_signal
-
-	def __set__(self, inst: AbstractEngine, val: Time):
-		if getattr(inst, "_worker", False):
-			raise WorkerProcessReadOnlyError(
-				"Tried to change the world state in a worker process"
-			)
-		if not hasattr(inst, "_time_signal"):
-			inst._time_signal = TimeSignal((inst,))
-		sig = inst._time_signal
-		branch_then, turn_then, tick_then = inst.time
-		branch_now, turn_now, tick_now = val
-		if (branch_then, turn_then, tick_then) == (
-			branch_now,
-			turn_now,
-			tick_now,
-		):
-			return
-		e = inst
-		# enforce the arrow of time, if it's in effect
-		if (
-			hasattr(e, "_forward")
-			and e._forward
-			and hasattr(e, "_planning")
-			and not e._planning
-		):
-			if branch_now != branch_then:
-				raise TimeError("Can't change branches in a forward context")
-			if turn_now < turn_then:
-				raise TimeError(
-					"Can't time travel backward in a forward context"
-				)
-			if turn_now > turn_then + 1:
-				raise TimeError("Can't skip turns in a forward context")
-		# make sure I'll end up within the revision range of the
-		# destination branch
-
-		if branch_now in e.branches():
-			e._extend_branch(branch_now, turn_now, tick_now)
-			e.load_at(branch_now, turn_now, tick_now)
-		else:
-			e._start_branch(branch_then, branch_now, turn_now, tick_now)
-		e._time_warp(branch_now, turn_now, tick_now)
-		sig.send(
-			e,
-			branch_then=branch_then,
-			turn_then=turn_then,
-			tick_then=tick_then,
-			branch_now=branch_now,
-			turn_now=turn_now,
-			tick_now=tick_now,
-		)
-
-
 _EXT = TypeVar("_EXT")
 _TYP = TypeVar("_TYP")
 
@@ -2927,11 +2784,53 @@ class AbstractEngine(ABC):
 	place_cls: ClassVar[type[Node]]
 	portal_cls: ClassVar[type[Edge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
-	time: ClassVar[GetSetDescriptorType] = TimeSignalDescriptor()
+
+	@property
+	def time(self) -> tuple[Branch, Turn, Tick]:
+		return Time(self.branch, self.turn, self.tick, self)
+
+	@time.setter
+	def time(self, time: tuple[Branch, Turn, Tick]):
+		branch_then, turn_then, tick_then = self.time
+		branch_now, turn_now, tick_now = time
+		if (branch_then, turn_then, tick_then) == (
+			branch_now,
+			turn_now,
+			tick_now,
+		):
+			return
+		# enforce the arrow of time, if it's in effect
+		if self._forward and not self._planning:
+			if branch_now != branch_then:
+				raise TimeError("Can't change branches in a forward context")
+			if turn_now < turn_then:
+				raise TimeError(
+					"Can't time travel backward in a forward context"
+				)
+			if turn_now > turn_then + 1:
+				raise TimeError("Can't skip turns in a forward context")
+		# make sure I'll end up within the revision range of the
+		# destination branch
+
+		if branch_now in self.branches():
+			self._extend_branch(branch_now, turn_now, tick_now)
+			self.load_at(branch_now, turn_now, tick_now)
+		else:
+			self._start_branch(branch_then, branch_now, turn_now, tick_now)
+		self._time_warp(branch_now, turn_now, tick_now)
+		self._time_signal.send(
+			self,
+			branch_then=branch_then,
+			turn_then=turn_then,
+			tick_then=tick_then,
+			branch_now=branch_now,
+			turn_now=turn_now,
+			tick_now=tick_now,
+		)
 
 	@cached_property
-	def _time_signal(self):
-		return TimeSignal((self,))
+	def _time_signal(self) -> Signal:
+		return Signal()
 
 	illegal_node_names: ClassVar = {
 		"nodes",
@@ -3132,7 +3031,7 @@ class AbstractEngine(ABC):
 					),
 				)
 			)
-		elif isinstance(obj, TimeSignal):
+		elif isinstance(obj, Time):
 			return packb(tuple(obj))
 		elif isinstance(obj, (list, ListWrapper)):
 			return concat_list(list(map(self._pack_with_umsgpack, obj)))
@@ -3216,7 +3115,7 @@ class AbstractEngine(ABC):
 				return dict(obj)
 			elif isinstance(obj, (list, ListWrapper)):
 				return list(obj)
-			elif isinstance(obj, TimeSignal):
+			elif isinstance(obj, Time):
 				return obj()
 			raise TypeError("Can't pack {}".format(typ))
 
@@ -4531,6 +4430,8 @@ def root_type(t: type) -> type | tuple[type, ...]:
 		t = t.__value__
 	if t is Key or t is Value:
 		return t
+	elif t is Time:
+		return tuple
 	elif hasattr(t, "__supertype__"):
 		return root_type(t.__supertype__)
 	elif hasattr(t, "__origin__"):
@@ -5459,16 +5360,17 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	def _lock(self):
 		return RLock()
 
-	@cached_property
-	def _stuff(self):
-		return self.layer, self.type, self.args_munger, self.kwargs_munger
-
 	def __getitem__(self, k: _K) -> _V:
 		with self._lock:
 			self.gettest(k)
 			if k in self:
 				return dict.__getitem__(self, k)
-			layer, typ, args_munger, kwargs_munger = self._stuff
+			layer, typ, args_munger, kwargs_munger = (
+				self.layer,
+				self.type,
+				self.args_munger,
+				self.kwargs_munger,
+			)
 			if layer == 1:
 				if typ is type(None):
 					ret = {}
@@ -5490,8 +5392,13 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 	def __setitem__(self, k: _K, v: _V) -> None:
 		with self._lock:
 			self.settest(k, v)
+			layer, typ, args_munger, kwargs_munger = (
+				self.layer,
+				self.type,
+				self.args_munger,
+				self.kwargs_munger,
+			)
 			if type(v) is StructuredDefaultDict:
-				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					v.layer == layer - 1
 					and (typ is type(None) or v.type is typ)
@@ -5501,7 +5408,6 @@ class StructuredDefaultDict[_K, _V](dict[_K, _V]):
 					super().__setitem__(k, v)
 					return
 			elif type(v) is PickyDefaultDict:
-				layer, typ, args_munger, kwargs_munger = self._stuff
 				if (
 					layer == 1
 					and v.value_type is typ
