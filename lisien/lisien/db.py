@@ -595,7 +595,10 @@ class Batch(list):
 			rett = eval(rett)
 		if hasattr(rett, "__value__"):
 			rett = rett.__value__
-		rett = get_args(rett)
+		if rett is Time:
+			rett = (Branch, Turn, Tick)
+		else:
+			rett = get_args(rett)
 		if len(rett) != len(args):
 			raise TypeError(
 				"Wrong record length", sig.return_annotation, rett, args

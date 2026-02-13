@@ -201,7 +201,7 @@ from .types import (
 	StructuredDefaultDict,
 	Tick,
 	Time,
-	TimeSignal,
+	Time,
 	TriggerFuncName,
 	Turn,
 	UniversalKey,
@@ -251,11 +251,16 @@ class InnerStopIteration(StopIteration):
 class NextTurn(Signal):
 	"""Make time move forward in the simulation.
 
-	Calls ``advance`` repeatedly, returning a list of the rules' return values.
+	Stops when the turn has ended, or a rule returns something non-``None``.
 
-	I am also a ``Signal``, so you can register functions to be
-	called when the simulation runs. Pass them to my ``connect``
-	method.
+	This is also a :class:`blinker.Signal`, so you can register functions to
+	be called when the simulation runs. Pass them to
+	``Engine.next_turn.connect(..)``.
+
+	:return: a pair, of which item 0 is the returned value from a rule if
+	applicable (default: ``[]``), and item 1 is a delta describing changes to
+	the simulation resulting from this call. See the following method,
+	:meth:`get_delta`, for a description of the delta format.
 
 	"""
 
@@ -514,7 +519,16 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing utility functions; if absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
-	the ``prefix``."""
+	the ``prefix``.
+	
+     Only functions stored in one of these attributes can be used by Lisien's
+     workers for parallel processing:
+     
+        * :attr:`function`
+        * :attr:`method`
+        * :attr:`trigger`
+     
+     :attr:`function` will do, if none of the others make sense."""
 	method: ModuleType | MethodStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -525,7 +539,20 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing functions taking this engine as first argument. If 
 	absent, we'll use a :class:`lisien.collections.FunctionStore` to keep 
-	them in a .py file in the ``prefix``."""
+	them in a .py file in the ``prefix``.
+	
+     Only functions stored in one of these attributes can be used by Lisien's
+     workers for parallel processing:
+     
+        * :attr:`function`
+        * :attr:`method`
+        * :attr:`trigger`
+    
+    :attr:`method` is often the most convenient, since the function will be
+    passed this :class:`Engine`, and can access anything else it needs through
+    it.
+    
+    """
 	trigger: ModuleType | TriggerStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -537,7 +564,11 @@ class Engine(AbstractEngine, BaseExecutor):
 	"""Module containing trigger functions, taking a Lisien entity and 
 	returning a boolean for whether to run a rule. If absent, we'll use a 
 	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
-	the ``prefix``."""
+	the ``prefix``.
+	
+    Trigger functions are evaluated in parallel by default.
+    
+    """
 	prereq: ModuleType | PrereqStore = field(
 		kw_only=True,
 		converter=Converter(
@@ -1346,32 +1377,6 @@ class Engine(AbstractEngine, BaseExecutor):
 		return LRU(self.cache_portals, {})
 
 	@cached_property
-	def _nbtt_stuff(self):
-		return (
-			self.time,
-			self._turn_end_plan,
-			self._turn_end,
-			self._plan_ticks,
-			self._time_plan,
-		)
-
-	@cached_property
-	def _node_exists_stuff(self):
-		return self._nodes_cache._base_retrieve, self.time
-
-	@cached_property
-	def _exist_node_stuff(self):
-		return self._nbtt, self.database.exist_node, self._nodes_cache.store
-
-	@cached_property
-	def _edge_exists_stuff(self):
-		return self._edges_cache._base_retrieve, self.time
-
-	@cached_property
-	def _exist_edge_stuff(self):
-		return self._nbtt, self.database.exist_edge, self._edges_cache.store
-
-	@cached_property
 	def _loaded(
 		self,
 	) -> dict[Branch, tuple[Turn, Tick, Optional[Turn], Optional[Tick]]]:
@@ -1381,23 +1386,6 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		"""
 		return {}
-
-	@cached_property
-	def _get_node_stuff(
-		self,
-	):
-		return (
-			self._node_objs,
-			self._nodes_cache._base_retrieve,
-			self.time,
-			self._make_node,
-		)
-
-	@cached_property
-	def _get_edge_stuff(
-		self,
-	):
-		return self._edge_objs, self._edge_exists, self._make_edge
 
 	@cached_property
 	def _childbranch(self) -> dict[Branch, set[Branch]]:
@@ -1691,14 +1679,10 @@ class Engine(AbstractEngine, BaseExecutor):
 		can only do once per branch, turn, tick.
 
 		"""
-		(
-			btt,
-			turn_end_plan,
-			turn_end,
-			plan_ticks,
-			time_plan,
-		) = self._nbtt_stuff
-		branch, turn, tick = btt
+		branch, turn, tick = self.time
+		turn_end = self._turn_end
+		turn_end_plan = self._turn_end_plan
+		plan_ticks = self._plan_ticks
 		branch_turn = (branch, turn)
 		tick += 1
 		if branch_turn in turn_end_plan and tick <= turn_end_plan[branch_turn]:
@@ -1733,14 +1717,14 @@ class Engine(AbstractEngine, BaseExecutor):
 			else:
 				this_plan[turn] = [tick]
 			self.database.plans_insert(last_plan, branch, turn, tick)
-			time_plan[branch, turn, tick] = last_plan
+			self._time_plan[branch, turn, tick] = last_plan
 		else:
 			end_turn, _ = self._branch_end(branch)
 			if turn < end_turn:
 				raise OutOfTimelineError(
 					"You're in the past. Go to turn {} to change things"
 					" -- or start a new branch".format(end_turn),
-					*btt,
+					*self.time,
 					branch,
 					turn,
 					tick,
@@ -1765,7 +1749,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		then = tuple(self.time)
 		self._otick = tick
 		self.time.send(self, then=then, now=tuple(self.time))
-		return branch, turn, tick
+		return Time(branch, turn, tick, self)
 
 	def __getattr__(self, item):
 		try:
@@ -1843,7 +1827,12 @@ class Engine(AbstractEngine, BaseExecutor):
 	def _get_node(
 		self, graph: CharName | DiGraph, node: NodeName
 	) -> place_cls | thing_cls:
-		node_objs, retrieve, time, make_node = self._get_node_stuff
+		node_objs, retrieve, time, make_node = (
+			self._node_objs,
+			self._nodes_cache._base_retrieve,
+			self.time,
+			self._make_node,
+		)
 		if hasattr(graph, "name"):
 			graphn = graph.name
 		else:
@@ -1868,7 +1857,11 @@ class Engine(AbstractEngine, BaseExecutor):
 	def _get_edge(
 		self, graph: DiGraph | CharName, orig: NodeName, dest: NodeName
 	) -> portal_cls:
-		edge_objs, edge_exists, make_edge = self._get_edge_stuff
+		edge_objs, edge_exists, make_edge = (
+			self._edge_objs,
+			self._edge_exists,
+			self._make_edge,
+		)
 		if type(graph) is str:
 			graphn = graph
 			graph = self.character[graphn]
@@ -2639,6 +2632,7 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@cached_property
 	def next_turn(self) -> NextTurn:
+		__doc__ = NextTurn.__doc__
 		return NextTurn(self)
 
 	@cached_property
@@ -4081,18 +4075,14 @@ class Engine(AbstractEngine, BaseExecutor):
 				)
 		return time_from[0], branched_turn_from, branched_tick_from
 
-	@cached_property
-	def _char_exists_stuff(self):
-		return self._graph_cache._base_retrieve, self.time
-
 	def _char_exists(self, character: CharName) -> bool:
-		retrieve, btt = self._char_exists_stuff
+		retrieve, btt = self._graph_cache._base_retrieve, self.time
 		args = (character, *btt)
 		retrieved = retrieve(args, store_hint=False)
 		return retrieved and not isinstance(retrieved, Exception)
 
 	def _node_exists(self, character: CharName, node: NodeName) -> bool:
-		retrieve, btt = self._node_exists_stuff
+		retrieve, btt = self._nodes_cache._base_retrieve, self.time
 		args = (character, node, *btt)
 		retrieved = retrieve(args, store_hint=False)
 		return retrieved and not isinstance(retrieved, Exception)
@@ -4106,12 +4096,12 @@ class Engine(AbstractEngine, BaseExecutor):
 		*,
 		now: Optional[Time] = None,
 	) -> None:
-		nbtt, exist_node, store = self._exist_node_stuff
 		if now:
 			branch, turn, tick = now
 		else:
-			branch, turn, tick = nbtt()
-		store(character, node, branch, turn, tick, exist)
+			branch, turn, tick = self._nbtt()
+		self._nodes_cache.store(character, node, branch, turn, tick, exist)
+		self.database.exist_node(character, node, branch, turn, tick, exist)
 		if exist:
 			self._nodes_rulebooks_cache.store(
 				character, node, branch, turn, tick, (character, node)
@@ -4119,12 +4109,11 @@ class Engine(AbstractEngine, BaseExecutor):
 			self.database.set_node_rulebook(
 				character, node, branch, turn, tick, (character, node)
 			)
-		exist_node(character, node, branch, turn, tick, exist)
 
 	def _edge_exists(
 		self, character: CharName, orig: NodeName, dest: NodeName
 	) -> bool:
-		retrieve, btt = self._edge_exists_stuff
+		retrieve, btt = self._edges_cache._base_retrieve, self.time
 		args = (character, orig, dest, *btt)
 		retrieved = retrieve(args, store_hint=False)
 		return retrieved is not None and not isinstance(retrieved, Exception)
@@ -4139,14 +4128,18 @@ class Engine(AbstractEngine, BaseExecutor):
 		*,
 		now: Optional[Time] = None,
 	) -> None:
-		nbtt, exist_edge, store = self._exist_edge_stuff
 		if now:
 			branch, turn, tick = now
 		else:
-			branch, turn, tick = nbtt()
-		store(character, orig, dest, branch, turn, tick, exist)
+			branch, turn, tick = self._nbtt()
+		self._edges_cache.store(
+			character, orig, dest, branch, turn, tick, exist
+		)
 		if not exist and (character, orig, dest) in self._edge_objs:
 			del self._edge_objs[character, orig, dest]
+		self.database.exist_edge(
+			character, orig, dest, branch, turn, tick, exist or False
+		)
 		if exist:
 			self._portals_rulebooks_cache.store(
 				character,
@@ -4166,7 +4159,6 @@ class Engine(AbstractEngine, BaseExecutor):
 				tick,
 				(character, orig, dest),
 			)
-		exist_edge(character, orig, dest, branch, turn, tick, exist or False)
 
 	def _build_loading_windows(
 		self,
