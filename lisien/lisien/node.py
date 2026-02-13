@@ -204,8 +204,7 @@ class DestsValues(ValuesView):
 	_mapping: "Dests"
 
 	def __contains__(self, item: "Portal") -> bool:
-		_, name = self._mapping._pn
-		return item.origin.name == name
+		return item.origin.name == self.node.name
 
 
 @define
@@ -220,22 +219,10 @@ class Dests(Mapping):
 	def engine(self):
 		return self.node.character.engine
 
-	@cached_property
-	def _pn(self):
-		return self.character.portal, self.node.name
-
-	@cached_property
-	def _ecnb(self):
-		return (
-			self.engine._edges_cache,
-			self.character.name,
-			self.node.name,
-			self.engine.time,
-		)
-
 	def __iter__(self) -> Iterator[NodeName]:
-		edges_cache, charname, name, btt = self._ecnb
-		for succ in edges_cache.iter_successors(charname, name, *btt):
+		for succ in self.engine._edges_cache.iter_successors(
+			self.character.name, self.node.name, *self.engine.time
+		):
 			if succ in self:
 				yield succ
 
@@ -246,8 +233,9 @@ class Dests(Mapping):
 		return n
 
 	def __contains__(self, item: KeyHint) -> bool:
-		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_successor(charname, name, item, *btt)
+		return self.engine._edges_cache.has_successor(
+			self.character.name, self.node.name, item, *self.engine.time
+		)
 
 	def __getitem__(self, item: KeyHint) -> "Portal":
 		portal, name = self._pn
@@ -280,26 +268,15 @@ class Origs(Mapping):
 	def engine(self):
 		return self.node.engine
 
-	@cached_property
-	def _pn(self):
-		return self.character.portal, self.node.name
-
-	@cached_property
-	def _ecnb(self):
-		return (
-			self.engine._edges_cache,
-			self.character.name,
-			self.node.name,
-			self.engine.time,
+	def __iter__(self) -> Iterator[NodeName]:
+		return self.engine._edges_cache.iter_predecessors(
+			self.character.name, self.node.name, *self.engine.time
 		)
 
-	def __iter__(self) -> Iterator[NodeName]:
-		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.iter_predecessors(charname, name, *btt)
-
 	def __contains__(self, item: KeyHint | NodeName) -> bool:
-		edges_cache, charname, name, btt = self._ecnb
-		return edges_cache.has_predecessor(charname, name, item, *btt)
+		return self.engine._edges_cache.has_predecessor(
+			self.character.name, self.node.name, item, *self.engine.time
+		)
 
 	def __len__(self) -> int:
 		n = 0
@@ -310,7 +287,7 @@ class Origs(Mapping):
 	def __getitem__(self, item: KeyHint) -> Edge:
 		if item not in self:
 			raise KeyError
-		portal, name = self._pn
+		portal, name = self.character.portal, self.node.name
 		return portal[item][name]
 
 	def values(self) -> OrigsValues:
@@ -331,49 +308,49 @@ class Portals(Set):
 	def engine(self):
 		return self.node.engine
 
-	@cached_property
-	def _pn(self):
-		return self.node.character.portal, self.node.name
-
-	@cached_property
-	def _pecnb(self):
-		engine = self.node.engine
-		character = self.node.character
-		return (
-			engine._get_edge,
-			engine._edges_cache,
-			character,
-			character.name,
-			self.node.name,
-			engine.time,
-		)
-
 	def __contains__(self, x: KeyHint | NodeName) -> bool:
-		_, edges_cache, _, charname, name, time = self._pecnb
+		node = self.node
+		character = node.character
+		engine = character.engine
+		edges_cache = engine._edges_cache
+		charname = character.name
+		name = node.name
+		time = engine.time
 		return edges_cache.has_predecessor(
 			charname, name, x, *time
 		) or edges_cache.has_successor(charname, name, x, *time)
 
 	def __len__(self) -> int:
-		_, edges_cache, _, charname, name, btt_f = self._pecnb
-		btt = btt_f()
+		node = self.node
+		character = node.character
+		engine = character.engine
+		edges_cache = engine._edges_cache
+		charname = character.name
+		name = node.name
+		time = engine.time
 		stuff = set()
-		for pred in edges_cache.iter_predecessors(charname, name, *btt):
-			if edges_cache.has_predecessor(charname, name, pred, *btt):
+		for pred in edges_cache.iter_predecessors(charname, name, *time):
+			if edges_cache.has_predecessor(charname, name, pred, *time):
 				stuff.add((pred, name))
-		for succ in edges_cache.iter_successors(charname, name, *btt):
-			if edges_cache.has_successor(charname, name, succ, *btt):
+		for succ in edges_cache.iter_successors(charname, name, *time):
+			if edges_cache.has_successor(charname, name, succ, *time):
 				stuff.add((name, succ))
 		return len(stuff)
 
 	def __iter__(self) -> Iterator["Portal"]:
-		get_edge, edges_cache, character, charname, name, btt_f = self._pecnb
-		btt = btt_f()
-		for dest in edges_cache.iter_successors(charname, name, *btt):
-			if edges_cache.has_successor(charname, name, dest, *btt):
+		node = self.node
+		character = node.character
+		engine = character.engine
+		charname = character.name
+		name = node.name
+		get_edge = engine._get_edge
+		edges_cache = engine._edges_cache
+		time = engine.time
+		for dest in edges_cache.iter_successors(charname, name, *time):
+			if edges_cache.has_successor(charname, name, dest, *time):
 				yield get_edge(character, name, dest)
-		for orig in edges_cache.iter_predecessors(charname, name, *btt):
-			if edges_cache.has_predecessor(charname, name, orig, *btt):
+		for orig in edges_cache.iter_predecessors(charname, name, *time):
+			if edges_cache.has_predecessor(charname, name, orig, *time):
 				yield get_edge(character, orig, name)
 
 
@@ -390,42 +367,40 @@ class NeighborMapping(Mapping):
 
 	node: Node
 
-	@cached_property
-	def _nn(self):
-		return (self.node.character.node, self.node.name)
-
-	@cached_property
-	def _ecnb(self):
-		return (
-			self.node.engine._edges_cache,
-			self.node.character.name,
-			self.node.name,
-			self.node.engine.time,
-		)
-
 	def __iter__(self) -> Iterator[NodeName]:
-		edges_cache, charname, name, btt = self._ecnb
+		node = self.node
+		name = node.name
+		engine = node.engine
+		edges_cache = engine._edges_cache
+		charname = node.character.name
+		time = engine.time
 		seen = set()
-		for succ in edges_cache.iter_successors(charname, name, *btt):
+		for succ in edges_cache.iter_successors(charname, name, *time):
 			yield succ
 			seen.add(succ)
-		for pred in edges_cache.iter_predecessors(charname, name, *btt):
+		for pred in edges_cache.iter_predecessors(charname, name, *time):
 			if pred in seen:
 				continue
 			yield pred
 			seen.add(pred)
 
 	def __contains__(self, item: KeyHint | NodeName) -> bool:
-		edges_cache, charname, name, btt = self._ecnb
+		node = self.node
+		engine = node.engine
+		character = node.character
+		charname = character.name
+		name = node.name
+		time = engine.time
+		edges_cache = engine._edges_cache
 		return edges_cache.has_predecessor(
-			charname, name, item, *btt()
-		) or edges_cache.has_successor(charname, name, item, *btt())
+			charname, name, item, *time
+		) or edges_cache.has_successor(charname, name, item, *time)
 
 	def __len__(self) -> int:
 		return len(set(iter(self)))
 
 	def __getitem__(self, item: KeyHint) -> Node:
-		node, name = self._nn
+		node, name = (self.node.character.node, self.node.name)
 		if item not in self:
 			raise KeyError(f"{item} is not a neighbor of {name}")
 		return node[item]

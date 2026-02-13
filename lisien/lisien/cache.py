@@ -308,52 +308,6 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	def _lock(self):
 		return RLock()
 
-	@cached_property
-	def _store_stuff(self):
-		db = self.engine
-		return (
-			self._lock,
-			self.parents,
-			self.branches,
-			self.keys,
-			getattr(self, "delete_plan", db.delete_plan),
-			db._time_plan,
-			db._plan_ticks,
-			self._iter_future_contradictions,
-			db._extend_branch,
-			self._store_journal,
-			self.time_entity,
-			self.keycache,
-			db,
-			self._update_keycache,
-		)
-
-	@cached_property
-	def _remove_stuff(self):
-		return (
-			self._lock,
-			self.time_entity,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self._remove_keycache,
-			self.keycache,
-		)
-
-	@cached_property
-	def _truncate_stuff(self):
-		return (
-			self._lock,
-			self.parents,
-			self.branches,
-			self.keys,
-			self.settings,
-			self.presettings,
-			self.keycache,
-		)
-
 	def _retrieve_for_journal(
 		self,
 		args,
@@ -362,12 +316,6 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		search: bool = False,
 	):
 		return self._base_retrieve(args, store_hint, retrieve_hint, search)
-
-	@cached_property
-	def _store_journal_stuff(
-		self,
-	):
-		return (self.settings, self.presettings, self._retrieve_for_journal)
 
 	def clear(self):
 		with self._lock:
@@ -941,26 +889,11 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		of the ends of branches and turns.
 
 		"""
-		(
-			lock,
-			self_parents,
-			self_branches,
-			self_keys,
-			delete_plan,
-			time_plan,
-			plan_ticks,
-			self_iter_future_contradictions,
-			db_extend_branch,
-			self_store_journal,
-			self_time_entity,
-			keycache,
-			db,
-			update_keycache,
-		) = self._store_stuff
+		delete_plan = getattr(self, "delete_plan", self.engine.delete_plan)
 		if planning is None:
-			planning = db._planning
+			planning = self.engine._planning
 		if forward is None:
-			forward = db._forward
+			forward = self.engine._forward
 		if contra is None:
 			contra = not loading
 		entity: _ENTITY
@@ -976,29 +909,29 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		entikey = (entity, key)
 		parentikey = parent + (entity, key)
 		contras: list[LinearTime]
-		with lock:
-			self_store_journal(*args)
+		with self._lock:
+			self._store_journal(*args)
 			if parent:
-				parentity = self_parents[parent][entity]
+				parentity = self.parents[parent][entity]
 				if key in parentity:
 					branches = parentity[key]
 					turns = branches[branch]
 				else:
-					branches = self_branches[parentikey] = self_keys[
+					branches = self.branches[parentikey] = self.keys[
 						parent + (entity,)
 					][key] = parentity[key]
 					turns = branches[branch]
 			else:
-				if entikey in self_branches:
-					branches = self_branches[entikey]
+				if entikey in self.branches:
+					branches = self.branches[entikey]
 					turns = branches[branch]
 				else:
-					branches = self_branches[entikey]
-					self_keys[entity,][key] = branches
+					branches = self.branches[entikey]
+					self.keys[entity,][key] = branches
 					turns = branches[branch]
 			if contra:
 				contras = list(
-					self_iter_future_contradictions(
+					self._iter_future_contradictions(
 						entity, key, turns, branch, turn, tick, value
 					)
 				)
@@ -1006,12 +939,17 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					self.shallowest = {}
 				for contra_turn, contra_tick in contras:
 					if (
-						branch,
-						contra_turn,
-						contra_tick,
-					) in time_plan:  # could've been deleted in this very loop
+						(
+							branch,
+							contra_turn,
+							contra_tick,
+						)
+						in self.engine._time_plan
+					):  # could've been deleted in this very loop
 						delete_plan(
-							time_plan[branch, contra_turn, contra_tick]
+							self.engine._time_plan[
+								branch, contra_turn, contra_tick
+							]
 						)
 			if planning:
 				if (
@@ -1024,41 +962,32 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 							tick, turn, branch
 						)
 					)
-				plan = time_plan[branch, turn, tick] = db._last_plan
-				ticks = plan_ticks[plan][branch][turn]
+				plan = self.engine._time_plan[branch, turn, tick] = (
+					self.engine._last_plan
+				)
+				ticks = self.engine._plan_ticks[plan][branch][turn]
 				ticks.append(tick)
-				plan_ticks[plan][branch][turn] = ticks
+				self.engine._plan_ticks[plan][branch][turn] = ticks
 			branches[branch] = turns
 			if not loading and not planning:
-				db_extend_branch(branch, turn, tick)
+				self.engine._extend_branch(branch, turn, tick)
 			self.shallowest[(*parent, entity, key, branch, turn, tick)] = value
 			turns.store_at(turn, tick, value)
-			self_time_entity[branch, turn, tick] = parent, entity, key
+			self.time_entity[branch, turn, tick] = parent, entity, key
 			if not loading:
-				update_keycache(*args, forward=forward)
+				self._update_keycache(*args, forward=forward)
 
 	def remove_branch(self, branch: str):
-		(
-			lock,
-			time_entity,
-			parents,
-			branches,
-			keys,
-			settings,
-			presettings,
-			remove_keycache,
-			keycache,
-		) = self._remove_stuff
 		todel = {
 			(branc, turn, tick, parent, entity, key)
 			for (
 				(branc, turn, tick),
 				(parent, entity, key),
-			) in time_entity.items()
+			) in self.time_entity.items()
 			if branc == branch
 		}
 		todel_shallow = {k for k in self.shallowest if k[-2] == branch}
-		with lock:
+		with self._lock:
 			for k in todel_shallow:
 				del self.shallowest[k]
 			for branc, turn, tick, parent, entity, key in todel:
@@ -1086,25 +1015,14 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		entity: _ENTITY,
 		key: _KEY,
 	):
-		(
-			_,
-			time_entity,
-			parents,
-			branches,
-			keys,
-			settings,
-			presettings,
-			remove_keycache,
-			keycache,
-		) = self._remove_stuff
 		try:
-			del time_entity[branch][turn][tick]
+			del self.time_entity[branch][turn][tick]
 		except KeyError:
 			pass
 		branchkey = parent + (entity, key)
 		keykey = parent + (entity,)
-		if parent in parents:
-			parentt = parents[parent]
+		if parent in self.parents:
+			parentt = self.parents[parent]
 			if entity in parentt:
 				entty = parentt[entity]
 				if key in entty:
@@ -1116,15 +1034,15 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 				if not entty:
 					del parentt[entity]
 			if not parentt:
-				del parents[parent]
-		if branchkey in branches:
-			entty = branches[branchkey]
+				del self.parents[parent]
+		if branchkey in self.branches:
+			entty = self.branches[branchkey]
 			if branch in entty:
 				del entty[branch]
 			if not entty:
-				del branches[branchkey]
-		if keykey in keys:
-			entty = keys[keykey]
+				del self.branches[branchkey]
+		if keykey in self.keys:
+			entty = self.keys[keykey]
 			if key in entty:
 				kee = entty[key]
 				if branch in kee:
@@ -1132,7 +1050,7 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 				if not kee:
 					del entty[key]
 			if not entty:
-				del keys[keykey]
+				del self.keys[keykey]
 
 	def discard(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		"""Delete all data from a specific tick, if present"""
@@ -1142,23 +1060,12 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 
 	def remove(self, branch: Branch, turn: Turn, tick: Tick) -> None:
 		"""Delete all data from a specific tick"""
-		(
-			lock,
-			time_entity,
-			parents,
-			branches,
-			keys,
-			settings,
-			presettings,
-			remove_keycache,
-			keycache,
-		) = self._remove_stuff
-		parent, entity, key = time_entity[branch, turn, tick]
+		parent, entity, key = self.time_entity[branch, turn, tick]
 		branchkey = parent + (entity, key)
 		keykey = parent + (entity,)
-		with lock:
-			if parent in parents:
-				parentt = parents[parent]
+		with self._lock:
+			if parent in self.parents:
+				parentt = self.parents[parent]
 				if entity in parentt:
 					entty = parentt[entity]
 					if key in entty:
@@ -1177,9 +1084,9 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					if not entty:
 						del parentt[entity]
 				if not parentt:
-					del parents[parent]
-			if branchkey in branches:
-				entty = branches[branchkey]
+					del self.parents[parent]
+			if branchkey in self.branches:
+				entty = self.branches[branchkey]
 				if branch in entty:
 					branhc = entty[branch]
 					if turn in branhc:
@@ -1191,9 +1098,9 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					if not branhc:
 						del entty[branch]
 				if not entty:
-					del branches[branchkey]
-			if keykey in keys:
-				entty = keys[keykey]
+					del self.branches[branchkey]
+			if keykey in self.keys:
+				entty = self.keys[keykey]
 				if key in entty:
 					kee = entty[key]
 					if branch in kee:
@@ -1209,9 +1116,9 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					if not kee:
 						del entty[key]
 				if not entty:
-					del keys[keykey]
-			if branch in settings:
-				branhc = settings[branch]
+					del self.keys[keykey]
+			if branch in self.settings:
+				branhc = self.settings[branch]
 				if turn in branhc:
 					trn = branhc[turn]
 					if tick in trn:
@@ -1219,9 +1126,9 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					if not trn:
 						del branhc[turn]
 				if not branhc:
-					del settings[branch]
-			if branch in presettings:
-				pbranhc = presettings[branch]
+					del self.settings[branch]
+			if branch in self.presettings:
+				pbranhc = self.presettings[branch]
 				if turn in pbranhc:
 					ptrn = pbranhc[turn]
 					if tick in ptrn:
@@ -1229,9 +1136,9 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 					if not ptrn:
 						del pbranhc[turn]
 				if not pbranhc:
-					del presettings[branch]
+					del self.presettings[branch]
 			self.shallowest = OrderedDict()
-			remove_keycache((*parent, entity, branch), turn, tick)
+			self._remove_keycache((*parent, entity, branch), turn, tick)
 
 	def _remove_keycache(
 		self,
@@ -1262,11 +1169,8 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		direction: Direction = Direction.FORWARD,
 	) -> None:
 		direction = Direction(direction)
-		(lock, parents, branches, keys, settings, presettings, keycache) = (
-			self._truncate_stuff
-		)
 
-		def truncate_branhc(branhc):
+		def truncate_branch(branhc):
 			if turn in branhc:
 				trn = branhc[turn]
 				trn.truncate(tick, direction)
@@ -1276,28 +1180,28 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 			else:
 				branhc.truncate(turn, direction)
 
-		with lock:
-			for entities in parents.values():
+		with self._lock:
+			for entities in self.parents.values():
 				for keys in entities.values():
 					for branches in keys.values():
 						if branch not in branches:
 							continue
-						truncate_branhc(branches[branch])
-			for branches in branches.values():
-				if branch not in branches:
+						truncate_branch(branches[branch])
+			for branches in self.branches.values():
+				if branch not in self.branches:
 					continue
-				truncate_branhc(branches[branch])
-			for keys in keys.values():
+				truncate_branch(self.branches[branch])
+			for keys in self.keys.values():
 				for branches in keys.values():
 					if branch not in branches:
 						continue
-					truncate_branhc(branches[branch])
-			truncate_branhc(settings[branch])
-			truncate_branhc(presettings[branch])
+					truncate_branch(branches[branch])
+			truncate_branch(self.settings[branch])
+			truncate_branch(self.presettings[branch])
 			self.shallowest = OrderedDict()
-			for entity_branch in keycache:
+			for entity_branch in self.keycache:
 				if entity_branch[-1] == branch:
-					truncate_branhc(keycache[entity_branch])
+					truncate_branch(self.keycache[entity_branch])
 
 	@staticmethod
 	def _iter_future_contradictions(
@@ -1342,18 +1246,17 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 	def _store_journal(self, *args):
 		# overridden in lisien.cache.InitializedCache
 		args: tuple[*_PARENT, _ENTITY, _KEY, Branch, Turn, Tick, _VALUE]
-		(settings, presettings, base_retrieve) = self._store_journal_stuff
-		entity: Key
-		key: Key
+		entity: _ENTITY
+		key: _KEY
 		branch: Branch
 		turn: Turn
 		tick: Tick
-		value: Value
+		value: _VALUE
 		entity, key, branch, turn, tick, value = args[-6:]
 		parent: tuple[*_PARENT] = args[:-6]
-		settings_turns = settings[branch]
-		presettings_turns = presettings[branch]
-		prev = base_retrieve(
+		settings_turns = self.settings[branch]
+		presettings_turns = self.presettings[branch]
+		prev = self._retrieve_for_journal(
 			(*parent, entity, key, branch, turn, tick), store_hint=False
 		)
 		if isinstance(prev, KeyError):
@@ -2189,24 +2092,6 @@ class EdgesCache(
 	def successors(self):
 		return self.parents
 
-	@cached_property
-	def _get_origcache_stuff(self):
-		return (
-			self.origcache,
-			self._origcache_lru,
-			self._get_keycachelike,
-			self.predecessors,
-			self._adds_dels_predecessors,
-		)
-
-	@cached_property
-	def _additional_store_stuff(self):
-		return (
-			self.engine,
-			self.predecessors,
-			self.successors,
-		)
-
 	def total_size(
 		self, handlers: Optional[dict] = None, verbose: bool = False
 	):
@@ -2406,17 +2291,10 @@ class EdgesCache(
 		forward: bool,
 	) -> OrderlyFrozenSet[NodeName]:
 		"""Return a set of origin nodes leading to ``dest``"""
-		(
-			origcache,
-			origcache_lru,
-			get_keycachelike,
-			predecessors,
-			adds_dels_sucpred,
-		) = self._get_origcache_stuff
-		return get_keycachelike(
-			origcache,
-			predecessors,
-			adds_dels_sucpred,
+		return self._get_keycachelike(
+			self.origcache,
+			self.predecessors,
+			self._adds_dels_predecessors,
 			(graph, dest),
 			branch,
 			turn,
@@ -2523,9 +2401,8 @@ class EdgesCache(
 	):
 		if contra is None:
 			contra = not loading
-		db, predecessors, successors = self._additional_store_stuff
 		if planning is None:
-			planning = db._planning
+			planning = self.engine._planning
 		self._store(
 			graph,
 			orig,
@@ -2539,14 +2416,14 @@ class EdgesCache(
 			loading=loading,
 			contra=contra,
 		)
-		for dest, branches in successors[graph,][orig].items():
+		for dest, branches in self.successors[graph,][orig].items():
 			try:
 				pred_ticks = branches[branch][turn]
 			except KeyError:
 				continue
 			if not pred_ticks.rev_gettable(tick):
 				continue
-			predecessors[graph,][dest][orig][branch].store_at(
+			self.predecessors[graph,][dest][orig][branch].store_at(
 				turn, tick, pred_ticks[tick]
 			)
 
