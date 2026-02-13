@@ -4546,6 +4546,8 @@ def root_type(t: type) -> type | tuple[type, ...]:
 		t = t.__value__
 	if t is Key or t is Value:
 		return t
+	elif t is Time:
+		return tuple
 	elif hasattr(t, "__supertype__"):
 		return root_type(t.__supertype__)
 	elif hasattr(t, "__origin__"):
