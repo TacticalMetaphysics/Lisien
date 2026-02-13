@@ -20,6 +20,7 @@ import builtins
 import inspect
 import operator
 import os
+import sys
 import typing
 import weakref
 from abc import ABC, abstractmethod
@@ -306,7 +307,7 @@ class Time(tuple[Branch, Turn, Tick]):
 			elif len(branch) == 3:
 				return tuple.__new__(cls, (*branch, None))
 			else:
-				raise TypeError(f"Wrong arity", branch)
+				raise TypeError("Wrong arity", branch)
 		return tuple.__new__(cls, (branch, turn, tick, engine))
 
 	@property
@@ -353,6 +354,43 @@ class Time(tuple[Branch, Turn, Tick]):
 			raise IndexError(i)
 		else:
 			raise KeyError(i)
+
+	def _me(self):
+		return (
+			super().__getitem__(0),
+			super().__getitem__(1),
+			super().__getitem__(2),
+		)
+
+	@overload
+	def __add__(self, value: tuple[_T_co, ...], /) -> tuple[_T_co, ...]: ...
+
+	@overload
+	def __add__(self, value: tuple[_T, ...], /) -> tuple[_T_co | _T, ...]: ...
+
+	def __add__(self, value, /):
+		return self._me().__add__(value)
+
+	def __eq__(self, value, /) -> bool:
+		return self._me() == value
+
+	def __ne__(self, value, /):
+		return self._me() != value
+
+	def __mul__(self, value, /):
+		return self._me().__mul__(value)
+
+	def __rmul__(self, value, /):
+		return self._me().__rmul__(value)
+
+	def count(self, value, /):
+		return self._me().count(value)
+
+	def index(self, value, start=0, stop=sys.maxsize, /):
+		return self._me().index(value, start, stop)
+
+	def __reversed__(self):
+		return self._me().__reversed__()
 
 	@wraps(Signal.connect)
 	def connect(
