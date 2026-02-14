@@ -97,16 +97,15 @@ class EngineProxyManager:
 					"EngineProxyManager can only do Sub.thread on Android"
 				)
 			self._start_osc(*args, **kwargs)
-		else:
-			match self.sub_mode:
-				case Sub.process:
-					self._start_subprocess(*args, **kwargs)
-				case Sub.thread:
-					self._start_subthread(*args, **kwargs)
-				case Sub.interpreter:
-					self._start_subinterpreter(*args, **kwargs)
-				case Sub.none:
-					raise NotImplementedError("Just use Engine")
+		match self.sub_mode:
+			case Sub.process:
+				self._start_subprocess(*args, **kwargs)
+			case Sub.thread:
+				self._start_subthread(*args, **kwargs)
+			case Sub.interpreter:
+				self._start_subinterpreter(*args, **kwargs)
+			case Sub.none:
+				raise NotImplementedError("Just use Engine")
 		if args and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", args[0], kwargs["prefix"]
