@@ -19,6 +19,7 @@ import os
 import shutil
 from collections import defaultdict
 from functools import cached_property, partial
+from pathlib import Path
 from threading import Thread
 from typing import Callable
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -153,11 +154,16 @@ class ElideApp(App):
 		return {}
 
 	def _get_games_path(self):
-		return os.path.join(self.prefix, self.games_dir)
+		return Path(self.prefix).joinpath(self.games_dir)
 
 	def _set_games_path(self, str_or_pair: str | tuple[str, str]):
 		if isinstance(str_or_pair, str):
 			a, b = os.path.split(str_or_pair)
+		elif isinstance(str_or_pair, Path):
+			if not str_or_pair.is_dir():
+				raise NotADirectoryError(str_or_pair)
+			a = str_or_pair.parent
+			b = str_or_pair.name
 		else:
 			a, b = str_or_pair
 		self.prefix, self.games_dir = a, b
