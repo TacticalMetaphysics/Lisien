@@ -309,11 +309,11 @@ class GameImporterModal(GamePickerModal):
 
 
 class GameLoaderModal(GamePickerModal):
-	path = StringProperty()
+	path = ObjectProperty()
 
 	def on_open(self, *_):
 		app = App.get_running_app()
-		self.path = str(app.games_path)
+		self.path = app.games_path
 
 	@triggered()
 	@logwrap(section="GameLoaderModal")
@@ -344,12 +344,14 @@ class GameLoaderModal(GamePickerModal):
 
 class GameList(RecycleView):
 	picker = ObjectProperty()
-	path = StringProperty()
+	path = ObjectProperty()
 	name = StringProperty()
 
-	def on_open(self, *_):
+	def on_parent(self, *_):
+		Logger.debug("GameList: on_parent")
 		app = App.get_running_app()
-		self.path = str(app.games_path)
+		self.path = app.games_path
+		Logger.debug(f"GameList: got path {self.path}")
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -371,6 +373,10 @@ class GameList(RecycleView):
 
 	@logwrap(section="GameList")
 	def regen(self, *_):
+		if not self.path:
+			Logger.debug("GameList: awaiting path")
+			Clock.schedule_once(self.regen, 0)
+			return
 		if not self.picker:
 			Logger.debug("GameList: awaiting picker")
 			Clock.schedule_once(self.regen, 0)
