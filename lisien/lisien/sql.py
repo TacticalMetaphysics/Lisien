@@ -251,6 +251,27 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 				return list(map(tuple, resp))
 			return resp
 
+		def _dispatch_instruction(self, *inst):
+			if inst and inst[0] == "select":
+				if len(inst) == 2:
+					return list(map(tuple, self.connection.execute(inst[1])))
+				elif len(inst) == 3:
+					return list(
+						map(tuple, self.connection.execute(inst[1], *inst[2]))
+					)
+				elif len(inst) == 4:
+					return list(
+						map(
+							tuple,
+							self.connection.execute(
+								inst[1], *inst[2], **inst[3]
+							),
+						)
+					)
+				else:
+					raise TypeError(inst)
+			return super()._dispatch_instruction(*inst)
+
 		def call(self, k, *largs, **kwargs):
 			statement = self.sql[k].compile(dialect=self.engine.dialect)
 			if hasattr(statement, "positiontup"):
