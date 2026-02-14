@@ -435,6 +435,149 @@ class EngineProxyManager:
 		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
+	def _preload(
+		self, prefix: Path | None, **kwargs
+	) -> tuple[
+		dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]],
+		dict[EternalKey, Value],
+	]:
+		branches_d: dict[Branch, tuple[Branch, Turn, Tick, Turn, Tick]] = {
+			"trunk": (None, 0, 0, 0, 0)
+		}
+		eternal_d: dict[EternalKey, Value] = {
+			EternalKey(Key("branch")): Value("trunk"),
+			EternalKey(Key("turn")): Value(0),
+			EternalKey(Key("tick")): Value(0),
+			EternalKey(Key("_lisien_schema_version")): Value(0),
+		}
+		if "database" in kwargs:
+			if isinstance(kwargs["database"], partial):
+				which_db = kwargs["database"].func.db_type
+			else:
+				which_db = kwargs["database"].db_type
+		elif "connect_string" in kwargs:
+			which_db = "sql"
+		elif prefix is None:
+			which_db = "python"
+		else:
+			try:
+				import parquetdb
+
+				which_db = "parquetdb"
+			except ImportError:
+				kwargs["connect_string"] = f"sqlite:///{prefix}/world.sqlite3"
+				which_db = "sql"
+
+		self.logger.debug(f"initializing a proxy with database: {which_db}")
+
+		if which_db == "sql":
+			from sqlalchemy import NullPool, create_engine, select
+			from sqlalchemy.exc import OperationalError
+
+			from ..sql import meta
+
+			connect_args = {}
+			if "connect_string" in kwargs:
+				connect_string = kwargs["connect_string"]
+				if "connect_args" in kwargs:
+					connect_args = kwargs["connect_args"]
+			elif "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				connect_string = kwargs["database"].keywords["connect_string"]
+				if "connect_args" in kwargs["database"].keywords:
+					connect_args = kwargs["database"].keywords["connect_args"]
+			elif prefix is not None:
+				connect_string = f"sqlite:///{prefix}/world.sqlite3"
+			else:
+				raise ValueError("Don't have a connect_string for SQL")
+			eng = create_engine(
+				connect_string,
+				poolclass=NullPool,
+				**connect_args,
+			)
+			branches_t = meta.tables["branches"]
+			branches_sel = select(
+				branches_t.c.branch,
+				branches_t.c.parent,
+				branches_t.c.parent_turn,
+				branches_t.c.parent_tick,
+				branches_t.c.end_turn,
+				branches_t.c.end_tick,
+			)
+			global_t = meta.tables["global"]
+			eternal_sel = select(global_t.c.key, global_t.c.value)
+			with eng.connect() as conn:
+				try:
+					branches_data = conn.execute(branches_sel).fetchall()
+				except OperationalError:
+					branches_data = []
+				for (
+					branch,
+					parent,
+					parent_turn,
+					parent_tick,
+					end_turn,
+					end_tick,
+				) in branches_data:
+					branches_d[branch] = (
+						parent,
+						parent_turn,
+						parent_tick,
+						end_turn,
+						end_tick,
+					)
+				try:
+					eternal_data = conn.execute(eternal_sel).fetchall()
+				except OperationalError:
+					eternal_data = []
+				for key, value in eternal_data:
+					eternal_d[key] = value
+		elif which_db == "python":
+			self.logger.warning(
+				"Running without a database. Lisien will be empty at start."
+			)
+		elif which_db == "parquetdb":
+			from parquetdb import ParquetDB
+
+			if "database" in kwargs and isinstance(
+				kwargs["database"], partial
+			):
+				pqdb_prefix = kwargs["database"].keywords["path"]
+			else:
+				pqdb_prefix = prefix.joinpath("world")
+
+			for d in (
+				ParquetDB(pqdb_prefix.joinpath("branches"))
+				.read(
+					columns=[
+						"branch",
+						"parent",
+						"parent_turn",
+						"parent_tick",
+						"end_turn",
+						"end_tick",
+					]
+				)
+				.to_pylist()
+			):
+				branches_d[d["branch"]] = (
+					d["parent"],
+					d["parent_turn"],
+					d["parent_tick"],
+					d["end_turn"],
+					d["end_tick"],
+				)
+			for d in (
+				ParquetDB(f"{pqdb_prefix}/global")
+				.read(columns=["key", "value"])
+				.to_pylist()
+			):
+				eternal_d[d["key"]] = d["value"]
+		else:
+			raise ValueError("Couldn't determine database type", which_db)
+		return branches_d, eternal_d
+
 	def _go_time(
 		self,
 	) -> tuple[
