@@ -411,25 +411,20 @@ class NewGameModal(ModalView):
 				if os.path.exists(path_we_need):
 					os.unlink(path_we_need)
 				os.makedirs(path_we_need)
-		games = [fn.removesuffix(".zip") for fn in os.listdir(app.games_dir)]
+		games = [fn.stem for fn in app.games_path.iterdir()]
 		if game_name in games:
 			self.ids.game_name.hint_text = "Name already taken"
 			return
-		prefix = Path(app.prefix)
-		game_archive_path = (
-			prefix.joinpath(app.games_dir)
-			.joinpath(game_name)
-			.with_suffix(".zip")
-		)
+		game_zip_path = app.games_path.joinpath(game_name).with_suffix(".zip")
 		can_start = False
 		try:
-			zipfile.ZipFile(game_archive_path, "w").close()
+			zipfile.ZipFile(game_zip_path, "w").close()
 			can_start = True
 		except Exception as ex:
 			self.ids.game_name.hint_text = repr(ex)
 		finally:
-			if os.path.isfile(game_archive_path):
-				os.remove(game_archive_path)
+			if game_zip_path.is_file():
+				game_zip_path.unlink()
 		if can_start and (
 			self.ids.worldstart.generator_type.lower() == "none"
 			or self.ids.worldstart.grid_config.validate()
