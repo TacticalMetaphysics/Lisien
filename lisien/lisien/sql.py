@@ -809,6 +809,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 						raise
 				except Exception as ex:
 					return ex
+			self.commit()
 			glob_d: dict[bytes, bytes] = dict(
 				self.call("global_dump").fetchall()
 			)
