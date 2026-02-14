@@ -406,13 +406,12 @@ class NewGameModal(ModalView):
 			self.ids.game_name.hint_text = "Must be nonempty"
 			return
 		app = App.get_running_app()
-		if os.path.isdir(app.games_dir):
-			games = [
-				fn.removesuffix(".zip") for fn in os.listdir(app.games_dir)
-			]
-		else:
-			os.makedirs(app.games_dir)
-			games = []
+		for path_we_need in [app.games_path, app.play_path]:
+			if not os.path.isdir(path_we_need):
+				if os.path.exists(path_we_need):
+					os.unlink(path_we_need)
+				os.makedirs(path_we_need)
+		games = [fn.removesuffix(".zip") for fn in os.listdir(app.games_dir)]
 		if game_name in games:
 			self.ids.game_name.hint_text = "Name already taken"
 			return
@@ -422,11 +421,9 @@ class NewGameModal(ModalView):
 			.joinpath(game_name)
 			.with_suffix(".zip")
 		)
-		game_dir_path = prefix.joinpath(game_name)
 		can_start = False
 		try:
 			zipfile.ZipFile(game_archive_path, "w").close()
-			os.makedirs(game_dir_path, exist_ok=True)
 			can_start = True
 		except Exception as ex:
 			self.ids.game_name.hint_text = repr(ex)
