@@ -92,10 +92,6 @@ class EngineProxyManager:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
 		if self.android:
-			if self.sub_mode != Sub.thread:
-				raise RuntimeError(
-					"EngineProxyManager can only do Sub.thread on Android"
-				)
 			self._start_osc(prefix, **kwargs)
 		else:
 			match self.sub_mode:
