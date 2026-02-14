@@ -27,7 +27,12 @@ def worker_subinterpreter(
 	trigger: dict | None,
 	prereq: dict | None,
 	action: dict | None,
+	sys_path: list[str] | None,
 ):
+	if sys_path is not None:
+		import sys
+
+		sys.path = sys_path
 	from lisien.proxy.routine import worker_subroutine
 
 	return worker_subroutine(
