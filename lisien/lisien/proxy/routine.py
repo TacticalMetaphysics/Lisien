@@ -281,13 +281,20 @@ def engine_subroutine(
 						**kwargs,
 					)
 					send_output(
-						"handle initialized de novo", engine_handle.get_btt()
+						"handle initialized de novo",
+						(
+							engine_handle.branches(),
+							engine_handle.eternal_copy(),
+						),
 					)
 				except BaseException as exc:
 					send_output_bytes(EngineFacade(None).pack(exc))
 					return 1
 			else:
-				send_output("handle initialized", engine_handle.get_btt())
+				send_output(
+					"handle initialized",
+					(engine_handle.branches(), engine_handle.eternal_copy()),
+				)
 			continue
 		unpacked = engine_handle.unpack(recvd)
 		_engine_subroutine_step(
