@@ -32,7 +32,11 @@ for fn in filenames:
 		)
 
 lisien_log = subprocess.run(
-	["adb", "shell", "run-as org.tacmeta.elide cat files/app/lisien.log"],
+	[
+		"adb",
+		"shell",
+		"run-as org.tacmeta.elide sh -c 'if [ -r files/app/lisien.log ]; then echo 1; fi;'",
+	],
 	stdout=subprocess.PIPE,
 ).stdout
 if lisien_log:
