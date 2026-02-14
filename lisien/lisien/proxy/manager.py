@@ -212,7 +212,6 @@ class EngineProxyManager:
 				poolclass=NullPool,
 				**connect_args,
 			)
-			conn = eng.connect()
 			branches_t = meta.tables["branches"]
 			branches_sel = select(
 				branches_t.c.branch,
@@ -222,7 +221,13 @@ class EngineProxyManager:
 				branches_t.c.end_turn,
 				branches_t.c.end_tick,
 			)
-			try:
+			global_t = meta.tables["global"]
+			eternal_sel = select(global_t.c.key, global_t.c.value)
+			with eng.connect() as conn:
+				try:
+					branches_data = conn.execute(branches_sel).fetchall()
+				except OperationalError:
+					branches_data = []
 				for (
 					branch,
 					parent,
@@ -230,7 +235,7 @@ class EngineProxyManager:
 					parent_tick,
 					end_turn,
 					end_tick,
-				) in conn.execute(branches_sel):
+				) in branches_data:
 					branches_d[branch] = (
 						parent,
 						parent_turn,
@@ -238,13 +243,12 @@ class EngineProxyManager:
 						end_turn,
 						end_tick,
 					)
-			except OperationalError:
-				pass
-			global_t = meta.tables["global"]
-			eternal_sel = select(global_t.c.key, global_t.c.value)
-			for key, value in conn.execute(eternal_sel):
-				eternal_d[key] = value
-			conn.close()
+				try:
+					eternal_data = conn.execute(eternal_sel).fetchall()
+				except OperationalError:
+					eternal_data = []
+				for key, value in eternal_data:
+					eternal_d[key] = value
 		elif which_db == "python":
 			self.logger.warning(
 				"Running without a database. Lisien will be empty at start."
