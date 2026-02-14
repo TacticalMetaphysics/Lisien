@@ -64,7 +64,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Executor</span> <span class="k">as</span> <span class="n">BaseExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Future</span><span class="p">,</span> <span class="n">ThreadPoolExecutor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">wait</span> <span class="k">as</span> <span class="n">futwait</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContextDecorator</span><span class="p">,</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">copy</span><span class="w"> </span><span class="kn">import</span> <span class="n">copy</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">hashlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">blake2b</span>
@@ -632,7 +632,7 @@
 			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connect_string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 				<span class="k">return</span> <span class="n">PythonDatabaseConnector</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
+				<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
 
 				<span class="k">return</span> <span class="n">SQLAlchemyDatabaseConnector</span><span class="p">(</span>
 					<span class="bp">self</span><span class="p">,</span>
@@ -641,7 +641,7 @@
 				<span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connect_string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-				<span class="kn">from</span><span class="w"> </span><span class="nn">.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
+				<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
 
 				<span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;world&quot;</span><span class="p">)</span>
 				<span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -651,7 +651,7 @@
 					<span class="n">path</span><span class="p">,</span>
 				<span class="p">)</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
+				<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
 
 				<span class="k">return</span> <span class="n">SQLAlchemyDatabaseConnector</span><span class="p">(</span>
 					<span class="bp">self</span><span class="p">,</span>
@@ -7465,7 +7465,7 @@
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span> <span class="s2">&quot;execute&quot;</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;turns_when only works with SQL for now&quot;</span><span class="p">)</span>
-		<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">meta</span>
+		<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">meta</span>
 
 		<span class="n">unpack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span>
 		<span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_branch_end</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
@@ -7721,7 +7721,7 @@
 				<span class="n">fake</span> <span class="o">=</span> <span class="n">EngineFacade</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 				<span class="n">prefix</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
 				<span class="k">try</span><span class="p">:</span>
-					<span class="kn">from</span><span class="w"> </span><span class="nn">.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
+					<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
 
 					<span class="n">pq_path</span> <span class="o">=</span> <span class="n">prefix</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="s2">&quot;world&quot;</span><span class="p">)</span>
 					<span class="n">pq_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -7733,7 +7733,7 @@
 						<span class="n">fake</span><span class="p">,</span> <span class="n">pq_path</span>
 					<span class="p">)</span>
 				<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-					<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
+					<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
 
 					<span class="n">import_database</span> <span class="o">=</span> <span class="n">database</span> <span class="o">=</span> <span class="n">SQLAlchemyDatabaseConnector</span><span class="p">(</span>
 						<span class="n">fake</span><span class="p">,</span>
@@ -8023,14 +8023,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.types">types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 

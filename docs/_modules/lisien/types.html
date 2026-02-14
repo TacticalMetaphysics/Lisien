@@ -1368,7 +1368,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Node.new_portal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.new_portal">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.character.Node.new_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">other</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">Node</span><span class="p">,</span>
@@ -1394,7 +1394,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">stats</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Node.new_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.new_thing">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.character.Node.new_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -1405,7 +1405,7 @@
 
 
 <div class="viewcode-block" id="Node.historical">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.historical">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.character.Node.historical">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Stat</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EntityStatAlias</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
@@ -3329,11 +3329,11 @@
 					<span class="n">connector</span> <span class="o">=</span> <span class="n">PythonDatabaseConnector</span>
 				<span class="k">return</span> <span class="n">connector</span>
 			<span class="k">elif</span> <span class="n">clsn</span> <span class="o">==</span> <span class="s2">&quot;SQLAlchemyDatabaseConnector&quot;</span><span class="p">:</span>
-				<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
+				<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
 
 				<span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">SQLAlchemyDatabaseConnector</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
 			<span class="k">elif</span> <span class="n">clsn</span> <span class="o">==</span> <span class="s2">&quot;ParquetDatabaseConnector&quot;</span><span class="p">:</span>
-				<span class="kn">from</span><span class="w"> </span><span class="nn">.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
+				<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
 
 				<span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="n">ParquetDatabaseConnector</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
 			<span class="k">else</span><span class="p">:</span>
@@ -3614,13 +3614,13 @@
 				<span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
 					<span class="n">ret</span><span class="p">[</span><span class="bp">cls</span><span class="p">]</span> <span class="o">=</span> <span class="n">pack_exception</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="kn">from</span><span class="w"> </span><span class="nn">.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
+			<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLAlchemyDatabaseConnector</span>
 
 			<span class="n">ret</span><span class="p">[</span><span class="n">SQLAlchemyDatabaseConnector</span><span class="p">]</span> <span class="o">=</span> <span class="n">pack_database_connector</span>
 		<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
 			<span class="k">pass</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="kn">from</span><span class="w"> </span><span class="nn">.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
+			<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.db.pqdb</span><span class="w"> </span><span class="kn">import</span> <span class="n">ParquetDatabaseConnector</span>
 
 			<span class="n">ret</span><span class="p">[</span><span class="n">ParquetDatabaseConnector</span><span class="p">]</span> <span class="o">=</span> <span class="n">pack_database_connector</span>
 		<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
@@ -5601,14 +5601,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.types">types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
