@@ -95,10 +95,7 @@ class EngineProxyManager:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
 		if self.android:
-			builder = OscMessageBuilder("/go")
-			builder.add_arg(prefix, builder.ARG_TYPE_STRING)
-			builder.add_arg(repr(kwargs), builder.ARG_TYPE_STRING)
-			self._client.send(builder.build())
+			self._start_subthread(prefix, **kwargs)
 		else:
 			match self.sub_mode:
 				case Sub.process:
@@ -330,155 +327,6 @@ class EngineProxyManager:
 		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
-	@android.validator
-	def _start_osc(self, _, android):
-		if not android:
-			self.logger.debug("Not on Android")
-			return
-		self.logger.info("Running on Android")
-		if hasattr(self, "_core_service"):
-			self.logger.info(
-				"EngineProxyManager: reusing existing OSC core service at %s",
-				self._core_service.server_address,
-			)
-			return
-		import random
-		from queue import SimpleQueue
-
-		from android import autoclass
-		from pythonosc.dispatcher import Dispatcher
-		from pythonosc.osc_tcp_server import ThreadingOSCTCPServer
-		from pythonosc.tcp_client import SimpleTCPClient
-
-		low_port = 32000
-		high_port = 65535
-		core_port_queue = SimpleQueue()
-		self._proxman_put_queue = SimpleQueue()
-		self._proxman_get_queue = SimpleQueue()
-		disp = Dispatcher()
-		disp.map(
-			"/core-report-port", lambda _, port: core_port_queue.put(port)
-		)
-		disp.map("/log", self._handle_log_record)
-		self._input_received = []
-		disp.map("/", self._receive_input)
-		for _ in range(128):
-			procman_port = random.randint(low_port, high_port)
-			try:
-				self._server = ThreadingOSCTCPServer(
-					("127.0.0.1", procman_port), disp
-				)
-				self._server_thread = Thread(target=self._server.serve_forever)
-				self._server_thread.start()
-				self.logger.debug(
-					"EngineProxyManager: started server at port %d",
-					procman_port,
-				)
-				break
-			except OSError:
-				pass
-		else:
-			sys.exit("couldn't get port for process manager")
-
-		mActivity = self._mActivity = autoclass(
-			"org.kivy.android.PythonActivity"
-		).mActivity
-		core_service = self._core_service = autoclass(
-			"org.tacmeta.elide.ServiceCore"
-		)
-		argument = repr(
-			[
-				low_port,
-				high_port,
-				procman_port,
-			]
-		)
-		try:
-			self.logger.debug("EngineProxyManager: starting core...")
-			core_service.start(mActivity, argument)
-		except Exception as ex:
-			self.logger.critical(repr(ex))
-			sys.exit(repr(ex))
-		core_port = core_port_queue.get()
-		self._client = SimpleTCPClient("127.0.0.1", core_port)
-		self.logger.info(
-			"EngineProxyManager: connected to lisien core over OSC at port %d",
-			core_port,
-		)
-
-	def _send_input_forever(self, input_queue):
-		from pythonosc.osc_message_builder import OscMessageBuilder
-
-		assert hasattr(self, "engine_proxy"), (
-			"EngineProxyManager tried to send input with no EngineProxy"
-		)
-		while True:
-			cmd = input_queue.get()
-			msg = zlib.compress(cmd)
-			chunks = len(msg) // 1024
-			if len(msg) % 1024:
-				chunks += 1
-			self.logger.debug(
-				f"EngineProxyManager: about to send a command to core in {chunks} chunks"
-			)
-			for n in range(chunks):
-				builder = OscMessageBuilder("/")
-				builder.add_arg(self._top_uid, OscMessageBuilder.ARG_TYPE_INT)
-				builder.add_arg(chunks, OscMessageBuilder.ARG_TYPE_INT)
-				if n == chunks:
-					builder.add_arg(
-						msg[n * 1024 :], OscMessageBuilder.ARG_TYPE_BLOB
-					)
-				else:
-					builder.add_arg(
-						msg[n * 1024 : (n + 1) * 1024],
-						OscMessageBuilder.ARG_TYPE_BLOB,
-					)
-				built = builder.build()
-				self._client.send(built)
-				self.logger.debug(
-					"EngineProxyManager: sent the %d-byte chunk %d of message %d to %s",
-					len(built.dgram),
-					n,
-					self._top_uid,
-					built.address,
-				)
-			self.logger.debug(
-				"EngineProxyManager: sent %d bytes",
-				len(msg),
-			)
-			if cmd == "close":
-				self.logger.debug("EngineProxyManager: closing input loop")
-				return
-
-	def _receive_input(self, _, uid: int, chunks: int, msg: bytes) -> None:
-		if uid != self._top_uid:
-			self.logger.error(
-				"EngineProxyManager: expected uid %d, got uid %d",
-				self._top_uid,
-				uid,
-			)
-		self.logger.debug(
-			"EngineProxyManager: received %d bytes of the %dth chunk out of %d for uid %d",
-			len(msg),
-			len(self._input_received),
-			chunks,
-			uid,
-		)
-		self._input_received.append(msg)
-		if len(self._input_received) == chunks:
-			recvd = zlib.decompress(b"".join(self._input_received))
-			self.logger.debug(
-				"EngineProxyManager: received a complete message, "
-				f"decompressed to {len(recvd)} bytes"
-			)
-			self.logger.debug(
-				f"EngineProxyManager: putting {recvd} into self._proxman_get_queue"
-			)
-			self._proxman_get_queue.put(recvd)
-			self._top_uid += 1
-			self._input_received = []
-
 	def _start_subthread(self, prefix: Path | None = None, **kwargs):
 		if hasattr(self, "_t"):
 			if not self.reuse:
@@ -607,13 +455,7 @@ class EngineProxyManager:
 		else:
 			unpack = EngineFacade(None).unpack
 		with self._round_trip_lock:
-			if self.android:
-				self.logger.debug(
-					"EngineProxyManager: waiting on _proxman_get_queue"
-				)
-				with self._proxman_recv_lock:
-					got = self._proxman_get_queue.get()
-			elif hasattr(self, "_proxman_put_queue"):
+			if hasattr(self, "_proxman_put_queue"):
 				with self._proxman_send_lock:
 					self._proxman_put_queue.put(b"go")
 				with self._proxman_recv_lock:
@@ -719,12 +561,6 @@ class EngineProxyManager:
 				strings=game_strings,
 				**game_source_code,
 			)
-			if self.android:
-				self._input_sender_thread = Thread(
-					target=self._send_input_forever,
-					args=[self._proxman_put_queue],
-				)
-				self._input_sender_thread.start()
 
 		return self.engine_proxy
 
