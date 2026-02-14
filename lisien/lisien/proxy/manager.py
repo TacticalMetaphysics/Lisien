@@ -242,11 +242,8 @@ class EngineProxyManager:
 				pass
 			global_t = meta.tables["global"]
 			eternal_sel = select(global_t.c.key, global_t.c.value)
-			try:
-				for key, value in conn.execute(eternal_sel):
-					eternal_d[key] = value
-			except OperationalError:
-				pass
+			for key, value in conn.execute(eternal_sel):
+				eternal_d[key] = value
 			conn.close()
 		elif which_db == "python":
 			self.logger.warning(
