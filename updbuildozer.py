@@ -16,6 +16,7 @@
 
 import os
 import shutil
+from pathlib import Path
 
 pardirs = []
 prefix = ".buildozer/android/platform/"
@@ -51,15 +52,18 @@ for plat in os.listdir(prefix):
 					os.path.join(pre, arch) for arch in os.listdir(pre)
 				)
 print("looking for built packages in", pardirs)
-for pardir in pardirs:
-	for package in os.listdir(pardir):
-		if package.lower() == "lisien":
-			abspath = os.path.join(pardir, package)
-			print("replacing", abspath, "with current lisien")
-			shutil.rmtree(abspath)
-			shutil.copytree("lisien/lisien", abspath)
-		elif package.lower() == "elide":
-			abspath = os.path.join(pardir, package)
-			print("replacing", abspath, "with current elide")
-			shutil.rmtree(abspath)
-			shutil.copytree("elide/elide", abspath)
+for pardir in map(Path, pardirs):
+	lisien_path = pardir.joinpath("lisien")
+	if lisien_path.exists():
+		print("removing", lisien_path)
+		shutil.rmtree(lisien_path)
+		assert not lisien_path.exists()
+		print("copying lisien to", lisien_path)
+		shutil.copytree("lisien/lisien", lisien_path)
+	elide_path = pardir.joinpath("elide")
+	if elide_path.exists():
+		print("removing", elide_path)
+		shutil.rmtree(elide_path)
+		assert not elide_path.exists()
+		print("copying elide to", elide_path)
+		shutil.copytree("elide/elide", elide_path)
