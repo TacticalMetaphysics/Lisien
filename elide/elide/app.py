@@ -389,6 +389,19 @@ class ElideApp(App):
 			from kivy.modules import inspector
 
 			inspector.create_inspector(Window, self.manager)
+		try:
+			import android
+
+			self.android = True
+		except ImportError:
+			self.android = False
+		Logger.debug(
+			"ElideApp: About to start EngineProxyManager with"
+			f" sub_mode {self.sub_mode}, android={self.android}, reuse=True"
+		)
+		self.procman = EngineProxyManager(
+			self.sub_mode, android=self.android, reuse=True
+		)
 		self.mainmenu = MainMenuScreen(toggle=self.toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
@@ -460,13 +473,9 @@ class ElideApp(App):
 		if path:
 			os.makedirs(path, exist_ok=True)
 		Logger.debug(
-			"ElideApp: About to start EngineProxyManager "
+			"ElideApp: About to call procman.start "
 			f"with path={path}, sub_mode={self.sub_mode}, kwargs={enkw}"
 		)
-		self.procman = EngineProxyManager(
-			sub_mode=self.sub_mode,
-		)
-		self.procman.android = self.android
 		if archive_path is None:
 			self.engine = engine = self.procman.start(path, **enkw)
 		else:
