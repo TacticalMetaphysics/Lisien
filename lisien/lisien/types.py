@@ -1206,7 +1206,7 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		)
 
 	def __len__(self):
-		branch, turn, tick = btt
+		branch, turn, tick = self.engine.time
 		return self.engine._graph_val_cache.count_keys(
 			self.character.name, branch, turn, tick
 		)
