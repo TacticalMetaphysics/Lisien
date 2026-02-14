@@ -741,7 +741,7 @@ class EngineProxy(AbstractEngine):
 		**kwargs,
 	) -> AbstractEngine:
 		raise TypeError(
-			"You want the ``load_archive`` method of ``EngineProcessManager`` instead"
+			"You want the ``load_archive`` method of ``EngineProxyManager`` instead"
 		)
 
 	def snap_keyframe(self) -> Keyframe:
