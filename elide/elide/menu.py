@@ -375,6 +375,8 @@ class GameList(RecycleView):
 			Logger.debug("GameList: awaiting picker")
 			Clock.schedule_once(self.regen, 0)
 			return
+		if not os.path.exists(self.path):
+			os.makedirs(self.path)
 		if not os.path.isdir(self.path):
 			Logger.error(
 				f"GameList: Can't list games at non-directory {self.path}"
