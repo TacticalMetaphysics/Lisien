@@ -700,6 +700,7 @@ class InterpreterWorker(Worker):
 			"trigger": None,
 			"prereq": None,
 			"action": None,
+			"sys_path": sys.path,
 		}
 		terp.call(
 			*terp_args, **terp_kwargs
