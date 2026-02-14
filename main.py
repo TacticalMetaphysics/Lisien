@@ -36,10 +36,11 @@ sys.path.extend([wd, wd + "/lisien", wd + "/elide"])
 
 if __name__ == "__main__":
 	freeze_support()
-	from kivy.logger import Logger
+	from logging import getLogger
 	from elide.app import ElideApp
 	from lisien.enum import Sub
 
+	Logger = getLogger("kivy")
 	Logger.setLevel(10)
 
 	app = ElideApp(
@@ -55,7 +56,6 @@ if __name__ == "__main__":
 	except BaseException as ex:
 		import traceback
 		from io import StringIO
-		from kivy.logger import Logger
 
 		bogus = StringIO()
 		traceback.print_exception(ex, file=bogus)
