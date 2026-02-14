@@ -23,7 +23,7 @@ source.include_exts = py,png,jpg,kv,atlas,ini,sqlite3
 #source.exclude_exts = spec
 
 # (list) List of directory to exclude (let empty to not exclude anything)
-source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide
+source.exclude_dirs = bin,.buildozer,.tox,build,dist,lisien,elide,lisien_windows
 
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
