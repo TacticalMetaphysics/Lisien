@@ -845,7 +845,9 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			self._inq.put(("select", stmt, args))
 			ret = self._outq.get()
 			self._outq.task_done()
-			return ret
+		if isinstance(ret, BaseException):
+			raise ret
+		return ret
 
 	def universal_get(
 		self, key: Key, branch: Branch, turn: Turn, tick: Tick
