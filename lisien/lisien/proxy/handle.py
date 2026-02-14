@@ -154,7 +154,7 @@ class EngineHandle:
 		if reuse_executor:
 			self._real._shutdown_executor = False
 		self._reuse_executor = reuse_executor
-		self.debug("started engine in a handle")
+		self.debug(f"started engine in a handle, kwargs={kwargs}")
 		self._executor = self._real.executor
 		self.pack = pack = self._real.pack
 
