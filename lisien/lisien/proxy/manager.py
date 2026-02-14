@@ -247,6 +247,7 @@ class EngineProxyManager:
 					eternal_d[key] = value
 			except OperationalError:
 				pass
+			conn.close()
 		elif which_db == "python":
 			self.logger.warning(
 				"Running without a database. Lisien will be empty at start."
