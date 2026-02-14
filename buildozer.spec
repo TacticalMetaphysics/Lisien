@@ -59,7 +59,7 @@ icon.filename = %(source.dir)s/elide_icon/Android/icon_512px.png
 orientation = landscape
 
 # (list) List of service to declare
-services =  core:_python_bundle/site-packages/lisien/android_service.py
+# services =  core:_python_bundle/site-packages/lisien/android_service.py
 
 #
 # OSX Specific
