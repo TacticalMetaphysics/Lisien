@@ -30,6 +30,7 @@ from zipfile import ZipFile
 
 import tblib
 from attrs import define, field
+from pythonosc.osc_message_builder import OscMessageBuilder
 
 from ..enum import Sub
 from ..facade import EngineFacade
@@ -70,7 +71,7 @@ class EngineProxyManager:
 
 	loglevel: int = logging.DEBUG
 	"""What level to log at"""
-	android: bool = False
+	android: bool = field(default=False)
 	"""Are we running on Android?"""
 	reuse: bool = field(default=False)
 	"""Whether to keep the subprocess running after closing the engine proxy.
@@ -84,7 +85,9 @@ class EngineProxyManager:
 	_proxman_send_lock: Lock = field(init=False, factory=Lock)
 	_proxman_recv_lock: Lock = field(init=False, factory=Lock)
 	_round_trip_lock: Lock = field(init=False, factory=Lock)
-	logger: logging.Logger = field(init=False)
+	logger: logging.Logger = field(
+		init=False, factory=partial(logging.getLogger, __name__)
+	)
 
 	def start(self, prefix: str | None = None, **kwargs):
 		self._config_logger(kwargs)
@@ -92,7 +95,10 @@ class EngineProxyManager:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
 		if self.android:
-			self._start_osc(prefix, **kwargs)
+			builder = OscMessageBuilder("/go")
+			builder.add_arg(prefix, builder.ARG_TYPE_STRING)
+			builder.add_arg(repr(kwargs), builder.ARG_TYPE_STRING)
+			self._client.send(builder.build())
 		else:
 			match self.sub_mode:
 				case Sub.process:
@@ -324,7 +330,12 @@ class EngineProxyManager:
 		self._log_thread = Thread(target=self._sync_log_forever)
 		self._log_thread.start()
 
-	def _start_osc(self, *args, **kwargs):
+	@android.validator
+	def _start_osc(self, _, android):
+		if not android:
+			self.logger.debug("Not on Android")
+			return
+		self.logger.info("Running on Android")
 		if hasattr(self, "_core_service"):
 			self.logger.info(
 				"EngineProxyManager: reusing existing OSC core service at %s",
@@ -380,8 +391,6 @@ class EngineProxyManager:
 				low_port,
 				high_port,
 				procman_port,
-				args,
-				kwargs,
 			]
 		)
 		try:
@@ -397,14 +406,14 @@ class EngineProxyManager:
 			core_port,
 		)
 
-	def _send_output_forever(self, output_queue):
+	def _send_input_forever(self, input_queue):
 		from pythonosc.osc_message_builder import OscMessageBuilder
 
 		assert hasattr(self, "engine_proxy"), (
 			"EngineProxyManager tried to send input with no EngineProxy"
 		)
 		while True:
-			cmd = output_queue.get()
+			cmd = input_queue.get()
 			msg = zlib.compress(cmd)
 			chunks = len(msg) // 1024
 			if len(msg) % 1024:
@@ -463,7 +472,10 @@ class EngineProxyManager:
 				"EngineProxyManager: received a complete message, "
 				f"decompressed to {len(recvd)} bytes"
 			)
-			self._proxman_put_queue.put(recvd)
+			self.logger.debug(
+				f"EngineProxyManager: putting {recvd} into self._proxman_get_queue"
+			)
+			self._proxman_get_queue.put(recvd)
 			self._top_uid += 1
 			self._input_received = []
 
@@ -595,7 +607,13 @@ class EngineProxyManager:
 		else:
 			unpack = EngineFacade(None).unpack
 		with self._round_trip_lock:
-			if hasattr(self, "_proxman_put_queue"):
+			if self.android:
+				self.logger.debug(
+					"EngineProxyManager: waiting on _proxman_get_queue"
+				)
+				with self._proxman_recv_lock:
+					got = self._proxman_get_queue.get()
+			elif hasattr(self, "_proxman_put_queue"):
 				with self._proxman_send_lock:
 					self._proxman_put_queue.put(b"go")
 				with self._proxman_recv_lock:
@@ -702,11 +720,11 @@ class EngineProxyManager:
 				**game_source_code,
 			)
 			if self.android:
-				self._output_sender_thread = Thread(
-					target=self._send_output_forever,
-					args=[self._proxman_get_queue],
+				self._input_sender_thread = Thread(
+					target=self._send_input_forever,
+					args=[self._proxman_put_queue],
 				)
-				self._output_sender_thread.start()
+				self._input_sender_thread.start()
 
 		return self.engine_proxy
 
@@ -813,7 +831,7 @@ class EngineProxyManager:
 			self.logger.debug(
 				"EngineProxyManager: joining input sender thread"
 			)
-			self._output_sender_thread.join()
+			self._input_sender_thread.join()
 			self.logger.debug("EngineProxyManager: joined input sender thread")
 			self.logger.debug("EngineProxyManager: stopping core service")
 			self._core_service.stop()

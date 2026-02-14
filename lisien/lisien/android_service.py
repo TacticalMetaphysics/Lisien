@@ -40,11 +40,43 @@ Logger.debug("core: imported libs")
 
 
 class CommandDispatcher:
-	def __init__(self, handle: EngineHandle, client: SimpleTCPClient):
-		self._handle = handle
+	def __init__(self, logger: Logger, client: SimpleTCPClient):
+		self.logger = logger
+		self._handle = None
 		self._client = client
 		self._parts = []
 		self._last_uid = 0
+
+	def go(self, _, prefix, kwargstr):
+		kwargs = literal_eval(kwargstr)
+		if self._handle is None:
+			self.logger.info(
+				f"Starting handle in core with prefix={prefix}, kwargs={kwargs}"
+			)
+			self._handle = EngineHandle(prefix, **kwargs)
+			response_tup = (
+				"handle initialized",
+				*self._handle.get_time(),
+				(self._handle.branches(), self._handle.eternal_copy()),
+			)
+
+		else:
+			self.logger.debug(
+				f"Restarting core with prefix={prefix}, kwargs={kwargs}"
+			)
+			self._handle.restart(prefix, **kwargs)
+			response_tup = (
+				"handle initialized; restarted",
+				*self._handle.get_time(),
+				(self._handle.branches(), self._handle.eternal_copy()),
+			)
+		builder = OscMessageBuilder("/")
+		builder.add_arg(self._last_uid, builder.ARG_TYPE_INT)
+		builder.add_arg(1, builder.ARG_TYPE_INT)
+		response_bytes = zlib.compress(self._handle.pack(response_tup))
+		builder.add_arg(response_bytes, builder.ARG_TYPE_BLOB)
+		self._client.send(builder.build())
+		Logger.debug("core: it's go time!")
 
 	def dispatch_command(self, _, uid: int, chunks: int, inst: bytes):
 		Logger.debug(
@@ -155,8 +187,6 @@ def core_server(
 	lowest_port: int,
 	highest_port: int,
 	replies_port: int,
-	args: list,
-	kwargs: dict,
 ):
 	dispatcher = Dispatcher()
 	for _ in range(128):
@@ -187,9 +217,7 @@ def core_server(
 	logger.addHandler(CoreLogHandler(pack, client, 0))
 
 	hand = EngineHandle(
-		*args,
 		logger=logger,
-		**kwargs,
 	)
 	hand.debug("started engine handle in core_server")
 
@@ -199,9 +227,10 @@ def core_server(
 		Logger.debug("core: shutdown called")
 		is_shutdown.set()
 
-	cmddisp = CommandDispatcher(hand, client)
+	cmddisp = CommandDispatcher(logger, client)
 
 	dispatcher.map("/", cmddisp.dispatch_command)
+	dispatcher.map("/go", cmddisp.go)
 	dispatcher.map("/shutdown", shutdown)
 	Logger.info(
 		"core: about to start server at port %d, sending replies to port %d",
@@ -214,8 +243,10 @@ def core_server(
 if __name__ == "__main__":
 	try:
 		Logger.info("Starting Lisien core service...")
-		args = literal_eval(os.environ["PYTHON_SERVICE_ARGUMENT"])
-		is_shutdown, serv = core_server(*args)
+		low_port, high_port, procman_port = literal_eval(
+			os.environ["PYTHON_SERVICE_ARGUMENT"]
+		)
+		is_shutdown, serv = core_server(low_port, high_port, procman_port)
 		thread = Thread(target=serv.serve_forever)
 		thread.start()
 		is_shutdown.wait()
