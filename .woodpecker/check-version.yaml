@@ -3,7 +3,7 @@ when:
 
 steps:
   - name: check_version
-    image: python:3.12
+    image: zacharyspector/elide:latest
     commands:
       - python check_version.py
     environment:
