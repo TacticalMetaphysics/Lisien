@@ -26,7 +26,6 @@ RUN set -eux; \
 		libwayland-dev \
 		libgles-dev \
 		winehq-stable \
-		openjdk-25-jdk-headless \
 		zip \
 		unzip \
 		python3-pip \
@@ -46,6 +45,19 @@ RUN set -eux; \
         dos2unix \
 	; \
 	apt-get dist-clean
+
+ENV OPENJDK_SHASUM=0022753d0cceecacdd3a795dd4cea2bd7ffdf9dc06e22ffd1be98411742fbb44
+ENV OPENJDK_URL_PREFIX=https://download.java.net/java/GA/jdk17.0.2/dfd4a8d0985749f896bed50d7138ee7f/8/GPL/
+ENV OPENJDK_FILENAME=openjdk-17.0.2_linux-x64_bin.tar.gz
+
+# download openjdk-17
+RUN <<EOF
+    set -eux
+    wget "$OPENJDK_URL_PREFIX$OPENJDK_FILENAME"
+    echo "$OPENJDK_SHASUM  $OPENJDK_FILENAME" | shasum -a 256 -c -
+    tar xf $OPENJDK_FILENAME
+    rm $OPENJDK_FILENAME
+EOF
 
 # download latest butler from itch
 RUN <<EOF
