@@ -520,8 +520,8 @@ class EngineProxyManager:
 				low_port,
 				high_port,
 				procman_port,
-				args or self._args,
-				kwargs | self._kwargs,
+				args,
+				kwargs,
 			]
 		)
 		try:
