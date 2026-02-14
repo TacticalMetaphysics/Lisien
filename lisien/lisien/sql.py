@@ -259,22 +259,16 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 					kwargs[param] for param in statement.positiontup
 				]
 				self.logger.debug(
-					f"SQLAlchemyConnectionHolder: calling {k}; {statement}  %  {repositioned}"
+					f"Looper: calling {k}; {statement}  %  {repositioned}"
 				)
 				ret: CursorResult = self.connection.execute(statement, kwargs)
-				self.logger.debug(
-					f"SQLAlchemyConnectionHolder: {k} got {ret.rowcount} rows"
-				)
+				self.logger.debug(f"Looper: {k} got {ret.rowcount} rows")
 				return ret
 			elif largs:
 				raise TypeError("{} is a DDL query, I think".format(k))
-			self.logger.debug(
-				f"SQLAlchemyConnectionHolder: calling {k}; {statement}"
-			)
+			self.logger.debug(f"Looper: calling {k}; {statement}")
 			ret: CursorResult = self.connection.execute(self.sql[k], kwargs)
-			self.logger.debug(
-				f"SQLAlchemyConnectionHolder: {k} got {ret.rowcount} rows"
-			)
+			self.logger.debug(f"Looper: {k} got {ret.rowcount} rows")
 			return ret
 
 		def call_many(self, name: str, largs: list[tuple | dict]):
