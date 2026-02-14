@@ -186,6 +186,8 @@ class EngineProxyManager:
 				kwargs["connect_string"] = f"sqlite:///{prefix}/world.sqlite3"
 				which_db = "sql"
 
+		self.logger.debug(f"initializing a proxy with database: {which_db}")
+
 		if which_db == "sql":
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
