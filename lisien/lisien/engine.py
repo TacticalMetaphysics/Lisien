@@ -1995,8 +1995,15 @@ class Engine(AbstractEngine, BaseExecutor):
 	def delete_plan(self, plan: Plan) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
-		:arg plan: integer ID of a plan, as given by
-				   ``with self.plan() as plan:``
+		:arg plan: integer ID of a plan.
+
+			As given by::
+
+				from lisien import Engine
+
+				with Engine() as engine:
+					with engine.plan() as plan:
+						...
 
 		"""
 		plan_ticks = self._plan_ticks[plan]
