@@ -27,6 +27,7 @@ else:
 
 if not os.path.exists("lisien_windows"):
 	sys.exit("Couldn't find the Elide Windows distribution")
+windist = os.path.abspath("lisien_windows")
 if "ITCH_TOKEN" in os.environ:
 	with open("butler_creds", "wt") as butler_creds:
 		butler_creds.write(os.environ["ITCH_TOKEN"])
