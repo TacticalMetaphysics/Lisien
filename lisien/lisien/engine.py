@@ -1883,12 +1883,15 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		Start a block of code like::
 
-			with orm.plan():
-				...
+			from lisien import Engine
+
+			with Engine() as engine:
+				with engine.plan() as plan:
+					...
 
 
-		and any changes you make to the world state within that block will be
-		'plans,' meaning that they are used as defaults. The world will
+		and any changes you make to the world state within the inner block will
+		be "plans," meaning that they are used as defaults. The world will
 		obey your plan unless you make changes to the same entities outside
 		the plan, in which case the world will obey those, and cancel any
 		future plan.
@@ -1902,6 +1905,9 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		With ``reset=True`` (the default), when the plan block closes,
 		the time will reset to when it began.
+
+		You can pass the ``plan`` into :meth:`delete_plan`, below, to cancel
+		all pending changes in the plan.
 
 		"""
 		if self._planning:
