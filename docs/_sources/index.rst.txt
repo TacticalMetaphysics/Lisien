@@ -7,6 +7,7 @@
 ####################################
  Welcome to Lisien's documentation!
 ####################################
+.. highlight:: python
 
 .. toctree::
    :maxdepth: 3

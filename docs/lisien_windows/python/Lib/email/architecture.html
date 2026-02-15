@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>email Package Architecture &#8212; Lisien 0.23.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../../_static/documentation_options.js?v=b4d3b1f5"></script>
+    <script src="../../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="email-package-architecture">
+<h1><a class="reference external" href="https://docs.python.org/3/library/email.html#module-email" title="(in Python v3.14)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">email</span></code></a> Package Architecture<a class="headerlink" href="#email-package-architecture" title="Link to this heading">¶</a></h1>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>The email package consists of three major components:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Model</dt><dd><p>An object structure that represents an email message, and provides an
+API for creating, querying, and modifying a message.</p>
+</dd>
+<dt>Parser</dt><dd><p>Takes a sequence of characters or bytes and produces a model of the
+email message represented by those characters or bytes.</p>
+</dd>
+<dt>Generator</dt><dd><p>Takes a model and turns it into a sequence of characters or bytes.  The
+sequence can either be intended for human consumption (a printable
+unicode string) or bytes suitable for transmission over the wire.  In
+the latter case all data is properly encoded using the content transfer
+encodings specified by the relevant RFCs.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Conceptually the package is organized around the model.  The model provides both
+“external” APIs intended for use by application programs using the library,
+and “internal” APIs intended for use by the Parser and Generator components.
+This division is intentionally a bit fuzzy; the API described by this
+documentation is all a public, stable API.  This allows for an application
+with special needs to implement its own parser and/or generator.</p>
+<p>In addition to the three major functional components, there is a third key
+component to the architecture:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Policy</dt><dd><p>An object that specifies various behavioral settings and carries
+implementations of various behavior-controlling methods.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>The Policy framework provides a simple and convenient way to control the
+behavior of the library, making it possible for the library to be used in a
+very flexible fashion while leveraging the common code required to parse,
+represent, and generate message-like objects.  For example, in addition to the
+default <span class="target" id="index-0"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc5322.html"><strong>RFC 5322</strong></a> email message policy, we also have a policy that manages
+HTTP headers in a fashion compliant with <span class="target" id="index-1"></span><a class="rfc reference external" href="https://datatracker.ietf.org/doc/html/rfc2616.html"><strong>RFC 2616</strong></a>.  Individual policy
+controls, such as the maximum line length produced by the generator, can also
+be controlled individually to meet specialized application requirements.</p>
+</section>
+<section id="the-model">
+<h2>The Model<a class="headerlink" href="#the-model" title="Link to this heading">¶</a></h2>
+<p>The message model is implemented by the <a class="reference external" href="https://docs.python.org/3/library/email.compat32-message.html#email.message.Message" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> class.
+The model divides a message into the two fundamental parts discussed by the
+RFC: the header section and the body.  The <cite>Message</cite> object acts as a
+pseudo-dictionary of named headers.  Its dictionary interface provides
+convenient access to individual headers by name.  However, all headers are kept
+internally in an ordered list, so that the information about the order of the
+headers in the original message is preserved.</p>
+<p>The <cite>Message</cite> object also has a <cite>payload</cite> that holds the body.  A <cite>payload</cite> can
+be one of two things: data, or a list of <cite>Message</cite> objects.  The latter is used
+to represent a multipart MIME message.  Lists can be nested arbitrarily deeply
+in order to represent the message, with all terminal leaves having non-list
+data payloads.</p>
+</section>
+<section id="message-lifecycle">
+<h2>Message Lifecycle<a class="headerlink" href="#message-lifecycle" title="Link to this heading">¶</a></h2>
+<p>The general lifecycle of a message is:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>Creation</dt><dd><p>A <cite>Message</cite> object can be created by a Parser, or it can be
+instantiated as an empty message by an application.</p>
+</dd>
+<dt>Manipulation</dt><dd><p>The application may examine one or more headers, and/or the
+payload, and it may modify one or more headers and/or
+the payload.  This may be done on the top level <cite>Message</cite>
+object, or on any sub-object.</p>
+</dd>
+<dt>Finalization</dt><dd><p>The Model is converted into a unicode or binary stream,
+or the model is discarded.</p>
+</dd>
+</dl>
+</div></blockquote>
+</section>
+<section id="header-policy-control-during-lifecycle">
+<h2>Header Policy Control During Lifecycle<a class="headerlink" href="#header-policy-control-during-lifecycle" title="Link to this heading">¶</a></h2>
+<p>One of the major controls exerted by the Policy is the management of headers
+during the <cite>Message</cite> lifecycle.  Most applications don’t need to be aware of
+this.</p>
+<p>A header enters the model in one of two ways: via a Parser, or by being set to
+a specific value by an application program after the Model already exists.
+Similarly, a header exits the model in one of two ways: by being serialized by
+a Generator, or by being retrieved from a Model by an application program.  The
+Policy object provides hooks for all four of these pathways.</p>
+<p>The model storage for headers is a list of (name, value) tuples.</p>
+<p>The Parser identifies headers during parsing, and passes them to the
+<a class="reference external" href="https://docs.python.org/3/library/email.policy.html#email.policy.Policy.header_source_parse" title="(in Python v3.14)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">header_source_parse()</span></code></a> method of the Policy.  The
+result of that method is the (name, value) tuple to be stored in the model.</p>
+<p>When an application program supplies a header value (for example, through the
+<cite>Message</cite> object <cite>__setitem__</cite> interface), the name and the value are passed to
+the <a class="reference external" href="https://docs.python.org/3/library/email.policy.html#email.policy.Policy.header_store_parse" title="(in Python v3.14)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">header_store_parse()</span></code></a> method of the Policy, which
+returns the (name, value) tuple to be stored in the model.</p>
+<p>When an application program retrieves a header (through any of the dict or list
+interfaces of <cite>Message</cite>), the name and value are passed to the
+<a class="reference external" href="https://docs.python.org/3/library/email.policy.html#email.policy.Policy.header_fetch_parse" title="(in Python v3.14)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">header_fetch_parse()</span></code></a> method of the Policy to
+obtain the value returned to the application.</p>
+<p>When a Generator requests a header during serialization, the name and value are
+passed to the <a class="reference external" href="https://docs.python.org/3/library/email.policy.html#email.policy.Policy.fold" title="(in Python v3.14)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fold()</span></code></a> method of the Policy, which
+returns a string containing line breaks in the appropriate places.  The
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">cte_type()</span></code> Policy control determines whether or
+not Content Transfer Encoding is performed on the data in the header.  There is
+also a <code class="xref py py-meth docutils literal notranslate"><span class="pre">binary_fold()</span></code> method for use by generators
+that produce binary output, which returns the folded header as binary data,
+possibly folded at different places than the corresponding string would be.</p>
+</section>
+<section id="handling-binary-data">
+<h2>Handling Binary Data<a class="headerlink" href="#handling-binary-data" title="Link to this heading">¶</a></h2>
+<p>In an ideal world all message data would conform to the RFCs, meaning that the
+parser could decode the message into the idealized unicode message that the
+sender originally wrote.  In the real world, the email package must also be
+able to deal with badly formatted messages, including messages containing
+non-ASCII characters that either have no indicated character set or are not
+valid characters in the indicated character set.</p>
+<p>Since email messages are <em>primarily</em> text data, and operations on message data
+are primarily text operations (except for binary payloads of course), the model
+stores all text data as unicode strings.  Un-decodable binary inside text
+data is handled by using the <cite>surrogateescape</cite> error handler of the ASCII
+codec.  As with the binary filenames the error handler was introduced to
+handle, this allows the email package to “carry” the binary data received
+during parsing along until the output stage, at which time it is regenerated
+in its original form.</p>
+<p>This carried binary data is almost entirely an implementation detail.  The one
+place where it is visible in the API is in the “internal” API.  A Parser must
+do the <cite>surrogateescape</cite> encoding of binary input data, and pass that data to
+the appropriate Policy method.  The “internal” interface used by the Generator
+to access header values preserves the <cite>surrogateescaped</cite> bytes.  All other
+interfaces convert the binary data either back into bytes or into a safe form
+(losing information in some cases).</p>
+</section>
+<section id="backward-compatibility">
+<h2>Backward Compatibility<a class="headerlink" href="#backward-compatibility" title="Link to this heading">¶</a></h2>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">Compat32</span></code> Policy provides backward
+compatibility with version 5.1 of the email package.  It does this via the
+following implementation of the four+1 Policy methods described above:</p>
+<dl class="simple">
+<dt>header_source_parse</dt><dd><p>Splits the first line on the colon to obtain the name, discards any spaces
+after the colon, and joins the remainder of the line with all of the
+remaining lines, preserving the linesep characters to obtain the value.
+Trailing carriage return and/or linefeed characters are stripped from the
+resulting value string.</p>
+</dd>
+<dt>header_store_parse</dt><dd><p>Returns the name and value exactly as received from the application.</p>
+</dd>
+<dt>header_fetch_parse</dt><dd><p>If the value contains any <cite>surrogateescaped</cite> binary data, return the value
+as a <a class="reference external" href="https://docs.python.org/3/library/email.header.html#email.header.Header" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Header</span></code></a> object, using the character set
+<cite>unknown-8bit</cite>.  Otherwise just returns the value.</p>
+</dd>
+<dt>fold</dt><dd><p>Uses <a class="reference external" href="https://docs.python.org/3/library/email.header.html#email.header.Header" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Header</span></code></a>’s folding to fold headers in the
+same way the email5.1 generator did.</p>
+</dd>
+<dt>binary_fold</dt><dd><p>Same as fold, but encodes to ‘ascii’.</p>
+</dd>
+</dl>
+</section>
+<section id="new-algorithm">
+<h2>New Algorithm<a class="headerlink" href="#new-algorithm" title="Link to this heading">¶</a></h2>
+<dl>
+<dt>header_source_parse</dt><dd><p>Same as legacy behavior.</p>
+</dd>
+<dt>header_store_parse</dt><dd><p>Same as legacy behavior.</p>
+</dd>
+<dt>header_fetch_parse</dt><dd><p>If the value is already a header object, returns it.  Otherwise, parses the
+value using the new parser, and returns the resulting object as the value.
+<cite>surrogateescaped</cite> bytes get turned into unicode unknown character code
+points.</p>
+</dd>
+<dt>fold</dt><dd><p>Uses the new header folding algorithm, respecting the policy settings.
+surrogateescaped bytes are encoded using the <code class="docutils literal notranslate"><span class="pre">unknown-8bit</span></code> charset for
+<code class="docutils literal notranslate"><span class="pre">cte_type=7bit</span></code> or <code class="docutils literal notranslate"><span class="pre">8bit</span></code>.  Returns a string.</p>
+<p>At some point there will also be a <code class="docutils literal notranslate"><span class="pre">cte_type=unicode</span></code>, and for that
+policy fold will serialize the idealized unicode message with RFC-like
+folding, converting any surrogateescaped bytes into the unicode
+unknown character glyph.</p>
+</dd>
+<dt>binary_fold</dt><dd><p>Uses the new header folding algorithm, respecting the policy settings.
+surrogateescaped bytes are encoded using the <cite>unknown-8bit</cite> charset for
+<code class="docutils literal notranslate"><span class="pre">cte_type=7bit</span></code>, and get turned back into bytes for <code class="docutils literal notranslate"><span class="pre">cte_type=8bit</span></code>.
+Returns bytes.</p>
+<p>At some point there will also be a <code class="docutils literal notranslate"><span class="pre">cte_type=unicode</span></code>, and for that
+policy binary_fold will serialize the message according to :rfc:<code class="docutils literal notranslate"><span class="pre">5335</span></code>.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">Lisien</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../elide/index.html">Elide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;Zachary Spector.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../../../../_sources/lisien_windows/python/Lib/email/architecture.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
