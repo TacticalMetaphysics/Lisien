@@ -44,9 +44,9 @@ saving and loading the game.
 The Lisien data model has been designed from the ground up to support
 debugging of complex simulations. It remembers everything that ever
 happened in the simulation, so that when something strange happens
-in a playtester's game, and they send you their save file, you can
-track down the cause, even if it happened long before the
-tester knew to look for it.
+in a tester's game, you can track down the cause, even if it happened
+long before they knew to look for it. They just have to send you their "save file"--
+which is, in fact, a recording of everything that happened when they played.
 
 # Features
 
@@ -85,7 +85,7 @@ Lisien is available [on PyPI](https://pypi.org/project/Lisien/), so
 code. If you want that, then in a command line, with [Python](https://python.org)
 (at least [version 3.12](https://www.python.org/downloads/latest/python3.12/)) already installed, run:
 
-```
+```sh
 python -m pip install --user --upgrade https://codeberg.org/clayote/Lisien/archive/main.zip
 ```
 
@@ -93,12 +93,12 @@ Run it again whenever you want the latest Lisien code.
 
 # Getting started
 
-You could now start the graphical frontend with ``python -m elide``,
+You could now start the graphical frontend with `python -m elide`,
 but this might not be very useful, as you don't have any world state
 to edit yet. You could laboriously assemble a gameworld by hand, but
 instead let's generate one, Parable of the Polygons by Nicky Case.
 
-Make a new Python script, let's say 'polygons.py', and write the
+Make a new Python script, let's say `polygons.py`, and write the
 following in it (or use the [example
 version](https://codeberg.org/clayote/Lisien/src/branch/main/Lisien/Lisien/examples/polygons.py)):
 
@@ -113,7 +113,7 @@ with Engine(clear=True) as eng:
 ```
 
 This starts a new game with its world state stored in the 'world' folder.
-Because of ``clear`` being ``True``, it will delete any
+Because of `clear` being `True`, it will delete any
 existing world state and game code each time it's run, which is often
 useful when you're getting started. It creates three characters, one
 of which, named 'physical', has a 20x20 grid in it.  The others are
@@ -148,15 +148,15 @@ paths to whatever graphics. The 'atlas://' in the front is only
 necessary if you're using graphics packed in the way that the default
 ones are; [read about
 atlases](https://kivy.org/doc/stable/api-kivy.atlas.html) if you like,
-or just use some .png files you have lying around.
+or just use `.png` files.
 
-The add_unit method of a character object marks a thing or place so
+The `add_unit` method of a character object marks a thing or place so
 that it's considered part of a character whose graph it is not
 in. This doesn't do anything yet, but we'll be using it to write our
 rules in a little while.
 
 Now we have our world, but nothing ever happens in it. Let's add the
-rules of the simulation:
+rules of the simulation to the `with` block:
 
 ```python
 	@eng.function
@@ -220,7 +220,7 @@ contain the same shape, and compares the result to a stat of the
 ``user``--the character of which this thing is a unit. When called
 in ``similar_neighbors`` and ``dissimilar_neighbors``, the stats in
 question are 'min_sameness' and 'max_sameness' respectively, so let's
-set those:
+set those at the end of the `with` block:
 
 ```python
 	sq.stat['min_sameness'] = 0.1
@@ -236,40 +236,57 @@ advantage of units.
 The argument `neighborhood=1` to `@phys.thing.rule` tells it that it only
 needs to check its triggers if something changed in either the location of
 the thing in question, or its neighbor places. `neighborhood=2` would include
-neighbors of those neighbors as well, and so on. You never really *need* this,
+neighbors of those neighbors as well, and so on. You never *need* this,
 but it makes this simulation go fast.
 
-Run ``python3 polygons.py`` to generate the simulation. To view it,
-run ``python3 -m elide`` in the same directory.  Just click the big
+Run `python3 polygons.py` to generate the simulation. To view it,
+run `python3 -m elide .` in the same directory.  Just click the big
 &gt; button and watch it for a little while. There's a control panel
-on the bottom of the screen that lets you go back in time, if you
-wish, and you can use that to browse different runs of the simulation
+at the bottom of the screen that lets you go back in time, if you
+wish. You can use that to browse different runs of the simulation
 with different starting conditions, or even stats and rules
 arbitrarily changing in the middle of a run.
 
-If you'd prefer to run the simulation without Elide, though, you can add this to your script:
+If you run `python3 -m elide` without the `.` or other directory at the end,
+you'll get a main menu with save, load, import, and export options. Games
+are saved and loaded to a "games" directory inside the current directory.
+To send a game to someone else, it's best to export it after quitting. This will make
+a file ending in `.lisien`, which may be imported with the "Import game" option in the main menu.
+Alternatively, you can import it in Python:
+
 ```python
-	for i in range(10):
-		eng.next_turn()
+from lisien import Engine
+
+with Engine.from_archive("polygons.lisien", "polygons/") as eng:
+    for turn in range(10):
+        print(turn)
+        eng.next_turn()
 ```
 
-Every change to the world will be saved in the database so that you
-can browse it in Elide at your leisure.  If you want to travel through
+The `engine.next_turn()` method is the usual way of running the simulation
+from a Python interpreter. If you want to travel through
 time programmatically, set the properties ``eng.branch`` (to a
 string), ``eng.turn``, and ``eng.tick`` (to integers).
 
-To prevent locking when running `next_turn()`, you might want to run Lisien in a subprocess. This is done by
-instantiating `Lisien.proxy.EngineProcessManager()`,
-getting a proxy to the engine from its `start()` method, and treating that proxy much as you would an actual Lisien
-engine, except that you can call `next_turn()` in a thread and then do something else in parallel. Call
-`EngineProcessManager.shutdown()` when it's time to quit the game.
+To prevent blocking when running `next_turn()`, you might want to run Lisien in a subprocess. This is done by
+instantiating `lisien.proxy.EngineProxyManager()`,
+calling its `start()` method, and treating the proxy it gives you like it's a Lisien
+engine. Now you can call `next_turn()` in a thread while doing something else in parallel. Call
+`EngineProxyManager.shutdown()` when it's time to quit the game.
 
 What next? If you wanted, you could set rules to be followed by only
 some of the shapes, like so:
 
 ```python
-	# this needs to replace any existing rule code you've written,
-	# it won't work so well together with eg. @phys.thing.rule
+import networkx as nx
+
+from lisien import Engine
+
+with Engine(clear=True) as eng:
+	phys = eng.new_character('physical', nx.grid_2d_graph(20, 20))
+	tri = eng.new_character('triangle')
+	sq = eng.new_character('square')
+
 	@tri.unit.rule(neighborhood=1)
 	def tri_relocate(poly):
 		"""Move to a random unoccupied place"""
@@ -303,19 +320,17 @@ much like them, whereas squares only relocate when they have too many
 triangle neighbors.
 
 When you have a set of rules that needs to apply to many
-entities, and you can't just make them all units, you can have the
-entities share a rulebook. This works:
+entities, you can have the entities share a rulebook. This works:
 
 ```python
 	sq.unit.rulebook = tri.unit.rulebook
 ```
 
-And would result in pretty much the same simulation as in the first
-place, with all the shapes following the same rules, but now you could
-have other things in ``phys``, and they wouldn't necessarily follow
-those rules.
+That would result in pretty much the same simulation as the first example,
+with all the shapes following the same rules, but you could
+have other things in ``phys``, following different rules.
 
-Or you could build a rulebook ahead-of-time and assign it to many
+You could build a rulebook ahead-of-time and assign it to many
 entities:
 
 ```python
@@ -353,9 +368,8 @@ Elide is meant to support repurposing its widgets to build a rudimentary graphic
 interface for a game. For an example of what that might look like, see
 [the Awareness sim](https://codeberg.org/clayote/Lisien/src/branch/main/elide/elide/examples/awareness.py).
 You may prefer to work with some other Python-based game engine, such as
-[Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need Elide--
-though you may find it useful to open Elide in your game folder when you're
-trying to track down a bug.
+[Pyglet](http://pyglet.org/) or [Ursina](https://www.ursinaengine.org/), in which case you don't really need Elide.
+You may find it useful to open Elide in your game folder when you're trying to track down a bug.
 
 
 # License Information
