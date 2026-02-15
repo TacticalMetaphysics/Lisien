@@ -149,6 +149,7 @@ class EngineProxyManager:
 		self.logger.handle(
 			self._undictify_logrec_traceback(pickle.loads(logrec_packed))
 		)
+
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):
 			level = {
@@ -473,7 +474,7 @@ class EngineProxyManager:
 			from sqlalchemy import NullPool, create_engine, select
 			from sqlalchemy.exc import OperationalError
 
-			from ..sql import meta
+			from ..db.sql import meta
 
 			connect_args = {}
 			if "connect_string" in kwargs:
