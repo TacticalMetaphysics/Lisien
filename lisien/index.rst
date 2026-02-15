@@ -148,14 +148,31 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
          Can also be used as a decorator on functions to make them into new rules, with the decorated function as
          their initial action.
 
-      .. py:method:: next_turn
+      .. py:method:: next_turn() -> tuple[list, DeltaDict]
 
          Make time move forward in the simulation.
 
          Stops when the turn has ended, or a rule returns something non-``None``.
 
          This is also a :class:`blinker.Signal`, so you can register functions to be
-         called when the simulation runs. Pass them to ``Engine.next_turn.connect(..)``.
+         called when the simulation runs. Pass them in like::
+
+            from lisien import Engine
+
+            def it_is_time(engine, branch, turn, tick):
+                print((branch, turn, tick))
+
+            with Engine() as engine:
+                engine.next_turn.connect(it_is_time)
+
+         Or decorate them::
+
+            from lisien import Engine
+
+            with Engine() as engine:
+                @engine.next_turn.connect
+                def it_is_time(engine, branch, turn, tick):
+                    print((branch, turn, tick))
 
          :return: a pair, of which item 0 is the returned value from a rule if applicable (default: ``[]``),
                  and item 1 is a delta describing changes to the simulation resulting from this call.
