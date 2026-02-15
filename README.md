@@ -12,24 +12,21 @@ Lisien is a tool for developing life simulation games.
 Life simulation games simulate the world in relatively high detail,
 but not in the sense that physics engines are concerned with --
 rather, each game in the genre has a different take on the mundane
-events that constitute everyday life for its purpose. Logistics and
-RPG elements tend to feature heavily in these games, but a lot of the
+events that constitute everyday life. Logistics and roleplaying
+elements tend to feature heavily in these games, but a lot of the
 appeal is in the parts that are not directly under player control.
 The game world feels like it continues to exist when you're not playing
-it, because so much of it seems to operate independently of you.
+it, because so much of it operates independently of you.
 
-Existing games that Lisien seeks to imitate include:
+Lisien can help you make games like:
 
-* The Sims
-* SimLife: The Genetic Playground (1992)
-* Redshirt
-* Rimworld
-* Princess Maker
-* Monster Rancher
-* Dwarf Fortress
-* Democracy
-* Crusader Kings
-* The King of Dragon Pass
+* [The Sims](https://www.ea.com/games/the-sims)
+* [SimLife: The Genetic Playground (1992)](https://collectionchamber.blogspot.com/p/simlife-genetic-playground.html)
+* [Rimworld](https://rimworldgame.com/)
+* [Dwarf Fortress](https://bay12games.com/dwarves/features.html)
+* [Princess Maker](https://en.wikipedia.org/wiki/Princess_Maker)
+* [Crusader Kings](https://www.paradoxinteractive.com/games/crusader-kings-iii/about)
+* [Six Ages](https://sixages.com/ride-like-the-wind/)
 * [Galimulator](https://snoddasmannen.itch.io/galimulator)
 * [Vilmonic](https://bludgeonsoft.itch.io/)
 * [TinyLife](https://ellpeck.itch.io/tiny-life)
