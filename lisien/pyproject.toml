@@ -11,6 +11,7 @@ packages = [
     "lisien.examples",
     "lisien.proxy",
     "lisien.server",
+    "lisien.db",
     "lisien.tests",
     "lisien.tests.data",
 ]
