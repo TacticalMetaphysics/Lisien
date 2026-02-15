@@ -12,6 +12,20 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Database connectors to persist Lisien's state to disk
+
+The base class, :class:`AbstractDatabaseConnector`, defines the API that
+database connectors need to use. Most databases should implement
+:class:`ThreadedDatabaseConnector`, which does background processing in a
+subthread.
+
+The connectors also have import/export code to save and load the whole
+database. One concrete class, :class:`PythonDatabaseConnector`, is provided
+for when that's all the persistence you want. The other,
+:class:`NullDatabaseConnector`, can't import, export, or persist anything at
+all; it's not much good for anything but tests.
+
+"""
 
 from __future__ import annotations
 
@@ -72,9 +86,9 @@ else:
 
 import lisien.types
 
-from .exc import KeyframeError
-from .facade import EngineFacade
-from .types import (
+from ..exc import KeyframeError
+from ..facade import EngineFacade
+from ..types import (
 	AbstractEngine,
 	ActionFuncName,
 	ActionRowType,
@@ -150,13 +164,13 @@ from .types import (
 	root_type,
 	sort_set,
 )
-from .util import ILLEGAL_CHARACTER_NAMES, garbage
-from .window import (
+from ..util import ILLEGAL_CHARACTER_NAMES, garbage
+from ..window import (
 	AssignmentTimeDict,
 	BranchingTimeListDict,
 	LinearTimeListDict,
 )
-from .wrap import DictWrapper, ListWrapper, SetWrapper
+from ..wrap import DictWrapper, ListWrapper, SetWrapper
 
 SCHEMAVER_B = b"\xb6_lisien_schema_version"
 SCHEMA_VERSION = 2

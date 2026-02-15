@@ -12,6 +12,13 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Executor classes, for Lisien's various forms of parallelism
+
+Lisien's workers are stateful--they each hold a shallow copy of the world state.
+These executors keep that copy synchronized with the current state of the game.
+
+"""
+
 from __future__ import annotations
 
 import os
@@ -60,25 +67,34 @@ if "LISIEN_KILL_SUBPROCESS" in os.environ:
 
 
 @define
-class Worker:
+class Worker(ABC):
+	"""Abstract class representing one worker in an :class:`Executor`
+
+	Implementations may represent a worker thread in the same interpreter,
+	a worker thread in a subinterpreter, or a worker process.
+
+	"""
+
 	last_update: Time
 	unpack: Callable[[bytes], Value]
 	lock: Lock = field(init=False, factory=Lock)
 
 	@abstractmethod
-	def send_input_bytes(self, input_bytes: bytes) -> None: ...
+	def send_input_bytes(self, input_bytes: bytes) -> None:
+		"""Send packed data to the worker"""
 
 	@abstractmethod
-	def get_output_bytes(self) -> bytes: ...
+	def get_output_bytes(self) -> bytes:
+		"""Get a reply from the worker"""
 
 	@abstractmethod
-	def shutdown(self) -> None: ...
+	def shutdown(self) -> None:
+		"""Stop running the worker"""
 
 	@classmethod
 	@abstractmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> Worker: ...
+	def from_executor(cls, executor: Executor) -> Worker:
+		"""The usual way of instantiating a :class:`Worker`"""
 
 	@staticmethod
 	def _sync_log_forever(
@@ -163,16 +179,20 @@ class _BaseLisienExecutor[WRKR: Worker](Executor, ABC):
 
 @define
 class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
-	"""Lisien's parallelism
+	"""Abstract class for Lisien's parallel execution
 
-	Starts workers in threads, processes, or interpreters.
+	Starts workers in threads, processes, or interpreters, depending on which
+	subclass you use.
 
-	Usually, you don't want to instantiate these directly -- :class:`Engine`
-	will do it for you -- but if you want to close an :class:`Engine` while
-	keeping its workers alive, and reuse them when next you start the game,
-	you can do that by holding onto the :class:`LisienExecutor`.
+	Usually, you don't want to instantiate these directly --
+	:class:`.Engine` will do it for you -- but if you want to
+	close an :class:`.Engine` while keeping its workers alive,
+	and reuse them when next you start the game, you can do that by creating
+	your own :class:`Executor`, passing it to :class:`.Engine`,
+	and holding onto it until the one engine's shut down, and it's time to
+	start the next.
 
-	These are stateful, and can only serve one :class:`Engine` at a time.
+	These are stateful, and can only serve one :class:`.Engine` at a time.
 
 	"""
 
@@ -295,18 +315,18 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 		self._futs_to_start.put(ret)
 		return ret
 
-	def _setup_workers(self, engine: AbstractEngine) -> None:
+	def _setup_workers(self) -> None:
 		self._worker_last_branches.clear()
-		self._worker_last_branches.update(engine._branches_d)
+		self._worker_last_branches.update(self.engine._branches_d)
 		self._worker_last_eternal.clear()
 		self._worker_last_eternal.update(self.eternal)
-		while len(self._workers) < engine.workers:
-			self._workers.append(self._make_worker(engine))
-		while len(self._workers) > engine.workers:
+		while len(self._workers) < self.engine.workers:
+			self._workers.append(self._make_worker())
+		while len(self._workers) > self.engine.workers:
 			self._workers.pop().shutdown()
 
 	@abstractmethod
-	def _make_worker(self, engine: AbstractEngine) -> WRKR: ...
+	def _make_worker(self) -> WRKR: ...
 
 	def _manage_futs(self):
 		self._stop_managing_futs = False
@@ -401,24 +421,20 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 			ret.append(retbytes)
 		return ret
 
-	def restart(self, keyframe_cb: Callable[[], bytes] | None = None):
+	def restart(self):
 		"""Overwrite all workers' state to match my attributes
 
 		For when the Lisien engine is done working with this executor,
 		and you want to reuse it for another Lisien engine, likely in
 		a unit test.
 
-		:param keyframe_cb: Function to get the initial payload. If omitted,
-		the workers will have only the state expressed in the engine's attributes.
-		Should be the :meth:`_get_worker_kf_payload` method of
-		:class:`lisien.Engine`.
-
 		"""
 		if self._fut_manager_thread.is_alive():
 			self._futs_to_start.put(b"shutdown")
 			self._fut_manager_thread.join()
 			self._fut_manager_thread = self._make_fut_manager_thread()
-		self._setup_workers(self.engine)
+		initial_payload = self.engine._get_worker_kf_payload()
+		self._setup_workers()
 		assert len(self._workers) == self.workers
 
 		from umsgpack import packb
@@ -436,10 +452,8 @@ class Executor[WRKR: Worker](_BaseLisienExecutor[WRKR], ABC):
 			),
 			msgpack_map_header(0),
 		)
-		if keyframe_cb:
-			initial_payload = keyframe_cb()
-			for i in range(self.workers):
-				self._send_worker_input_bytes(i, initial_payload)
+		for i in range(self.workers):
+			self._send_worker_input_bytes(i, initial_payload)
 		try:
 			self._fut_manager_thread.start()
 		except RuntimeError:
@@ -482,11 +496,8 @@ class ThreadWorker(Worker):
 				self.log_thread.join()
 
 	@classmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> ThreadWorker:
-		if engine is None:
-			engine = executor.engine
+	def from_executor(cls, executor: Executor) -> ThreadWorker:
+		engine = executor.engine
 		i = len(executor._workers)
 		inq = SimpleQueue()
 		outq = SimpleQueue()
@@ -529,8 +540,8 @@ class ThreadWorker(Worker):
 
 @define
 class ThreadExecutor(Executor[ThreadWorker]):
-	def _make_worker(self, engine: AbstractEngine) -> ThreadWorker:
-		return ThreadWorker.from_executor(self, engine)
+	def _make_worker(self) -> ThreadWorker:
+		return ThreadWorker.from_executor(self)
 
 
 @define
@@ -569,12 +580,9 @@ class ProcessWorker(Worker):
 			self.process.close()
 
 	@classmethod
-	def from_executor(
-		cls, executor: Executor, engine: AbstractEngine | None = None
-	) -> ProcessWorker:
+	def from_executor(cls, executor: Executor) -> ProcessWorker:
 		i = len(executor._workers)
-		if engine is None:
-			engine = executor.engine
+		engine = executor.engine
 		ctx = executor._mp_ctx
 		lock = Lock()
 		with lock:
@@ -624,8 +632,8 @@ class ProcessExecutor(Executor[ProcessWorker]):
 		init=False, factory=partial(get_context, "spawn")
 	)
 
-	def _make_worker(self, engine: AbstractEngine) -> ProcessWorker:
-		return ProcessWorker.from_executor(self, engine)
+	def _make_worker(self) -> ProcessWorker:
+		return ProcessWorker.from_executor(self)
 
 
 @define
@@ -669,10 +677,10 @@ class InterpreterWorker(Worker):
 	def from_executor(
 		cls,
 		executor: InterpreterExecutor,
-		engine: AbstractEngine | None = None,
 	) -> InterpreterWorker:
 		from concurrent.interpreters import create, create_queue
 
+		engine = executor.engine
 		i = len(executor._workers)
 		input = create_queue()
 		output = create_queue()
@@ -729,5 +737,5 @@ class InterpreterWorker(Worker):
 
 @define
 class InterpreterExecutor(Executor[InterpreterWorker]):
-	def _make_worker(self, engine: AbstractEngine) -> InterpreterWorker:
-		return InterpreterWorker.from_executor(self, engine)
+	def _make_worker(self) -> InterpreterWorker:
+		return InterpreterWorker.from_executor(self)

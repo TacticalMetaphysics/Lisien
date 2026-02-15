@@ -24,8 +24,8 @@ import pytest
 from ..db import AbstractDatabaseConnector, PythonDatabaseConnector
 from ..engine import Engine
 from ..facade import EngineFacade
-from ..pqdb import ParquetDatabaseConnector
-from ..sql import SQLAlchemyDatabaseConnector
+from lisien.db.pqdb import ParquetDatabaseConnector
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from .data import DATA_DIR
 
 

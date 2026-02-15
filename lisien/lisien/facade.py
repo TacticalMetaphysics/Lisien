@@ -12,6 +12,17 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""Low-overhead "working copies" of Lisien objects
+
+Under the hood, facades store patches to the underlying entity (if any).
+The changes in those patches won't be stored permanently unless you call
+the facade's ``apply()`` method.
+
+Facades should be constructed by calling the ``facade()`` method of any Lisien
+entity, or of a :class:`lisien.engine.Engine`.
+
+"""
+
 from __future__ import annotations
 
 import os

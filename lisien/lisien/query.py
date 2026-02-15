@@ -12,12 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Database access and query builder
-
-The main class here is :class:`QueryEngine`, which mostly just runs
-SQL on demand -- but, for the most common insert commands, it keeps
-a queue of data to insert, which is then serialized and inserted
-with a call to ``flush``.
+"""Query builder, for queries about the game's history
 
 Sometimes you want to know when some stat of a lisien entity had a particular
 value. To find out, construct a historical query and pass it to
@@ -27,7 +22,6 @@ value. To find out, construct a historical query and pass it to
 	that = physical.thing['that']
 	hist_loc = that.historical('location')
 	print(list(engine.turns_when(hist_loc == 'there')))
-
 
 You'll get the turns when ``that`` was ``there``.
 
