@@ -1113,7 +1113,7 @@ class Engine(AbstractEngine, BaseExecutor):
 			if executor.engine is not self:
 				executor.engine = self
 			executor.lock.acquire()
-			executor.restart(self._get_worker_kf_payload)
+			executor.restart()
 
 	cache_neighbors: int = field(default=1000)
 	"""Number of nodes to cache the neighbors of"""
