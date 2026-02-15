@@ -12,23 +12,32 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""The top level of the lisien world model, the Character.
+"""Lisien's special directed graph type, the Character
 
 Based on NetworkX DiGraph objects with various additions and
 conveniences.
 
-A Character is a graph that follows rules. Its rules may be assigned
-to run on only some portion of it. Each Character has a ``stat`` property that
-acts very much like a dictionary, in which you can store game-time-sensitive
-data for the rules to use.
+A :class:`lisien.character.Character` may well represent a fictional person,
+in which case the graph most likely represents a state machine, governing
+that person's behavior in the game. But anything node-graph-shaped
+may be a :class:`lisien.character.Character`, too; in particular, the map on
+which the game's fictional persons move and do things is itself a
+:class:`lisien.character.Character`, conventionally called ``"physical"`` when
+there's only one such map in a game. A game's fictional persons may have multiple
+representations in different :class:`lisien.character.Character` objects;
+apart from the physical map, you may have another
+:class:`lisien.character.Character` for the social graph, another for their
+family tree, and so on. So :class:`lisien.character.Character` provides
+"units," which are nodes in *any* :class:`lisien.character.Character` that
+are, somehow, a part of this one. This could mean they directly represent
+the same person, or, in a strategy game, units could be other people,
+or groups of people, who are under that person's command.
 
-You can designate some nodes in one Character as units of another,
-and then assign a rule to run on all of a Character's units. This is
-useful for the common case where someone in your game has a location
-in the physical world (here, a Character, called 'physical') but also
-has a behavior flowchart, or a skill tree, that isn't part of the
-physical world. In that case, the flowchart is the person's Character,
-and their node in the physical world is a unit of it.
+:class:`lisien.character.Character` lets you assign rules to its :attr:`unit`
+attribute, so that the rule will be evaluated for every unit of the
+:class:`lisien.character.Character`, whatever :class:`lisien.character.Character`
+that unit happens to be in. Nodes may be units of any number of
+:class:`lisien.character.Character`s, which are called their "leaders".
 
 """
 
