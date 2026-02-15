@@ -16,15 +16,15 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.engine
 
-   .. autoclass:: lisien.engine.Engine
+   .. autoclass:: Engine
 
-      .. autoproperty:: lisien.Engine.branch
+      .. autoproperty:: branch
 
       .. automethod:: is_ancestor_of
 
-      .. autoproperty:: lisien.Engine.turn
+      .. autoproperty:: turn
 
-      .. autoproperty:: lisien.Engine.tick
+      .. autoproperty:: tick
 
       .. py:property:: time
 
@@ -48,7 +48,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
         It will be passed the time object itself, as well as tuples of the
         previous time ``then`` and the current time ``now``.
-      .. py:property:: Engine.rule
+      .. py:property:: rule
 
         A mapping of all :class:`lisien.rule.Rule` objects that have been made.
 
@@ -65,7 +65,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         This prints ``<class 'lisien.rule.Rule'>``. You'll need to put the rule
         in a rulebook yourself.
 
-      .. py:property:: Engine.rulebook
+      .. py:property:: rulebook
 
         A mapping of :class:`lisien.rulebook.Rulebook` objects that exist.
 
@@ -80,7 +80,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         the names of rules as if they were the :class:`lisien.rule.Rule`
         by that name.
 
-      .. py:property:: Engine.eternal
+      .. py:property:: eternal
 
         A mapping of arbitrary data, not sensitive to changes in :attr:`time`.
 
@@ -108,29 +108,29 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
             go to tick 0 of turn 0 and set the engine's :attr:`trunk` attribute
             to the name of your new trunk.
         * ``"_lisien_schema_version"`` is an integer used to check compatibility.
-      .. py:property:: Engine.universal
+      .. py:property:: universal
 
          A mapping of arbitrary data that changes over :attr:`time`.
 
          The state of the randomizer is saved here under the key ``"rando_state"``.
          It's a bad idea to set that directly; instead, set :attr:`random_seed`.
 
-      .. py:property:: Engine.trigger
+      .. py:property:: trigger
 
          A mapping of, and decorator for, functions that might trigger a rule.
 
          Decorated functions get stored in the mapping as well as a file, so they can be
          loaded back in when the game is resumed.
 
-      .. py:property:: Engine.prereq
+      .. py:property:: prereq
 
          A mapping of, and decorator for, functions a rule might require to return True for it to run.
 
-      .. py:property:: Engine.action
+      .. py:property:: action
 
          A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.
 
-      .. py:property:: Engine.method
+      .. py:property:: method
 
          A mapping of, and decorator for, extension methods to be added to the engine object.
 
@@ -148,7 +148,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
          Can also be used as a decorator on functions to make them into new rules, with the decorated function as
          their initial action.
 
-      .. py:method:: Engine.next_turn
+      .. py:method:: next_turn
 
          Make time move forward in the simulation.
 
