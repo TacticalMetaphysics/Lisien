@@ -4,13 +4,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>elide.menu &#8212; Lisien 0.23.0 documentation</title>
+    <title>elide.menu &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=2753bf86"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -49,6 +49,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">zipfile</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">kivy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
@@ -312,7 +313,7 @@
 			<span class="p">)</span> <span class="k">as</span> <span class="n">eng</span><span class="p">:</span>
 				<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">app</span><span class="p">,</span> <span class="s2">&quot;_ss&quot;</span><span class="p">):</span>
 					<span class="n">eng</span><span class="o">.</span><span class="n">_shared_storage</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">_ss</span>
-				<span class="n">eng</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">game</span><span class="p">)</span>
+				<span class="n">eng</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="n">game</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">dismiss</span><span class="p">()</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;GameExporterModal&quot;</span><span class="p">)</span>
@@ -382,13 +383,13 @@
 <div class="viewcode-block" id="GameLoaderModal">
 <a class="viewcode-back" href="../../elide/index.html#elide.menu.GameLoaderModal">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GameLoaderModal</span><span class="p">(</span><span class="n">GamePickerModal</span><span class="p">):</span>
-	<span class="n">path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">path</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 <div class="viewcode-block" id="GameLoaderModal.on_open">
 <a class="viewcode-back" href="../../elide/index.html#elide.menu.GameLoaderModal.on_open">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">on_open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_path</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">games_path</span></div>
 
 
 	<span class="nd">@triggered</span><span class="p">()</span>
@@ -423,12 +424,14 @@
 <a class="viewcode-back" href="../../elide/index.html#elide.menu.GameList">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GameList</span><span class="p">(</span><span class="n">RecycleView</span><span class="p">):</span>
 	<span class="n">picker</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-	<span class="n">path</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
+	<span class="n">path</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">name</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">()</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">on_open</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">on_parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GameList: on_parent&quot;</span><span class="p">)</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_path</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">games_path</span>
+		<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;GameList: got path </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -450,10 +453,16 @@
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;GameList&quot;</span><span class="p">)</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">regen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GameList: awaiting path&quot;</span><span class="p">)</span>
+			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+			<span class="k">return</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">picker</span><span class="p">:</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;GameList: awaiting picker&quot;</span><span class="p">)</span>
 			<span class="n">Clock</span><span class="o">.</span><span class="n">schedule_once</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regen</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 			<span class="k">return</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
+			<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
 			<span class="n">Logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
 				<span class="sa">f</span><span class="s2">&quot;GameList: Can&#39;t list games at non-directory </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -488,28 +497,25 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">game_name</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="s2">&quot;Must be nonempty&quot;</span>
 			<span class="k">return</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
-		<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_dir</span><span class="p">):</span>
-			<span class="n">games</span> <span class="o">=</span> <span class="p">[</span>
-				<span class="n">fn</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">&quot;.zip&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_dir</span><span class="p">)</span>
-			<span class="p">]</span>
-		<span class="k">else</span><span class="p">:</span>
-			<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_dir</span><span class="p">)</span>
-			<span class="n">games</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">path_we_need</span> <span class="ow">in</span> <span class="p">[</span><span class="n">app</span><span class="o">.</span><span class="n">games_path</span><span class="p">,</span> <span class="n">app</span><span class="o">.</span><span class="n">play_path</span><span class="p">]:</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path_we_need</span><span class="p">):</span>
+				<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path_we_need</span><span class="p">):</span>
+					<span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">path_we_need</span><span class="p">)</span>
+				<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path_we_need</span><span class="p">)</span>
+		<span class="n">games</span> <span class="o">=</span> <span class="p">[</span><span class="n">fn</span><span class="o">.</span><span class="n">stem</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">app</span><span class="o">.</span><span class="n">games_path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">()]</span>
 		<span class="k">if</span> <span class="n">game_name</span> <span class="ow">in</span> <span class="n">games</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">game_name</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="s2">&quot;Name already taken&quot;</span>
 			<span class="k">return</span>
-		<span class="n">game_archive_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">games_dir</span><span class="p">,</span> <span class="n">game_name</span> <span class="o">+</span> <span class="s2">&quot;.zip&quot;</span><span class="p">)</span>
-		<span class="n">game_dir_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">game_name</span><span class="p">)</span>
+		<span class="n">game_zip_path</span> <span class="o">=</span> <span class="n">app</span><span class="o">.</span><span class="n">games_path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">game_name</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.zip&quot;</span><span class="p">)</span>
 		<span class="n">can_start</span> <span class="o">=</span> <span class="kc">False</span>
 		<span class="k">try</span><span class="p">:</span>
-			<span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">game_archive_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-			<span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">game_dir_path</span><span class="p">)</span>
+			<span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">game_zip_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 			<span class="n">can_start</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">game_name</span><span class="o">.</span><span class="n">hint_text</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
 		<span class="k">finally</span><span class="p">:</span>
-			<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">game_archive_path</span><span class="p">):</span>
-				<span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">game_archive_path</span><span class="p">)</span>
+			<span class="k">if</span> <span class="n">game_zip_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+				<span class="n">game_zip_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 		<span class="k">if</span> <span class="n">can_start</span> <span class="ow">and</span> <span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">worldstart</span><span class="o">.</span><span class="n">generator_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span>
 			<span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="o">.</span><span class="n">worldstart</span><span class="o">.</span><span class="n">grid_config</span><span class="o">.</span><span class="n">validate</span><span class="p">()</span>
@@ -688,13 +694,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
@@ -723,7 +724,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
