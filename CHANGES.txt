@@ -1,3 +1,16 @@
+== 0.23.3 | 2026-02-16 ==
+* Fixed the Android build by removing its service worker. Android's service
+  workers really aren't very good for parallelism, and seem to have gotten
+  even worse in recent updates. Thankfully, as of Python 3.14, we don't need
+  them anymore! Running Lisien in a thread, and its workers in subinterpreters,
+  works fine.
+* Moved the `db`, `sql` and `pqdb` submodules to the `db` package.
+* The `time` property of `Engine` acts much more like a normal tuple now.
+  It's hashable, and if you hold onto one, it doesn't change when you time
+  travel. You get a new copy each time you access it from `Engine`. You can
+  still register functions to be called when the time changes, using
+  `@engine.time.connect`, as before.
+
 == 0.23.2 | 2026-02-07 ==
 * Converted most of the codebase to `attrs`, which will make initialization
   easier to understand.

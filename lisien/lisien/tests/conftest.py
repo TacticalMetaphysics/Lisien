@@ -21,14 +21,14 @@ from functools import partial
 import pytest
 
 from lisien.db import NullDatabaseConnector, PythonDatabaseConnector
+from lisien.db.pqdb import ParquetDatabaseConnector
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from lisien.engine import Engine
 from lisien.proxy.handle import EngineHandle
 
 from ..enum import Sub
 from ..futures import InterpreterExecutor, ProcessExecutor, ThreadExecutor
-from lisien.db.pqdb import ParquetDatabaseConnector
 from ..proxy.manager import EngineProxyManager
-from lisien.db.sql import SQLAlchemyDatabaseConnector
 from . import data
 from .util import make_test_engine_facade
 

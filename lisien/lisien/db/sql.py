@@ -51,6 +51,7 @@ from sqlalchemy import (
 	Column,
 	ColumnElement,
 	Connection,
+	CursorResult,
 	Engine,
 	MetaData,
 	Select,
@@ -63,7 +64,6 @@ from sqlalchemy import (
 	null,
 	or_,
 	select,
-	CursorResult,
 )
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.sql.ddl import CreateTable
