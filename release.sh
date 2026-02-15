@@ -62,5 +62,5 @@ git commit -am "Release v${VERSION}"
 git tag -f "v${VERSION}"
 git push
 TWINE_USERNAME=$PYPI_USERNAME TWINE_PASSWORD=$PYPI_PASSWORD twine upload lisien/dist/* elide/dist/*
-TWINE_USERNAME=$CODEBERG_USERNAME TWINE_PASSWORD=$CODEBERG_PASSWORD twine upload --repository https://codeberg.org/api/packages/clayote/pypi lisien/dist/* elide/dist/*
+TWINE_USERNAME=$CODEBERG_USERNAME TWINE_PASSWORD=$CODEBERG_PASSWORD twine upload --repository-url https://codeberg.org/api/packages/clayote/pypi lisien/dist/* elide/dist/*
 python butler.py
