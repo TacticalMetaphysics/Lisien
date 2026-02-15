@@ -198,29 +198,6 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 ###########
  character
 ###########
-Lisien's special kind of directed graph.
-
-A :class:`lisien.character.Character` may well represent a fictional person,
-in which case the graph most likely represents a state machine, governing
-that person's behavior in the game. But anything node-graph-shaped
-may be a :class:`lisien.character.Character`, too; in particular, the map on
-which the game's fictional persons move and do things is itself a
-:class:`lisien.character.Character`, conventionally called ``"physical"`` when
-there's only one such map in a game. A game's fictional persons may have multiple
-representations in different :class:`lisien.character.Character` objects;
-apart from the physical map, you may have another
-:class:`lisien.character.Character` for the social graph, another for their
-family tree, and so on. So :class:`lisien.character.Character` provides
-"units," which are nodes in *any* :class:`lisien.character.Character` that
-are, somehow, a part of this one. This could mean they directly represent
-the same person, or, in a strategy game, units could be other people,
-or groups of people, who are under that person's command.
-
-:class:`lisien.character.Character` lets you assign rules to its :attr:`unit`
-attribute, so that the rule will be evaluated for every unit of the
-:class:`lisien.character.Character`, whatever :class:`lisien.character.Character`
-that unit happens to be in. Nodes may be units of any number of
-:class:`lisien.character.Character`s, which are called their "leaders".
 
 .. automodule:: lisien.character
 
