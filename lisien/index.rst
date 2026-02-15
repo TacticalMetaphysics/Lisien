@@ -260,7 +260,7 @@ that unit happens to be in. Nodes may be units of any number of
 
       .. py:property:: unit
 
-         A two-layermapping of this character's units in other characters.
+         A two-layer mapping of this character's units in other characters.
 
          Units are nodes in other characters that are in some sense part of this one. A common example in strategy
          games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
@@ -269,7 +269,7 @@ that unit happens to be in. Nodes may be units of any number of
          general's ``unit.rule`` subproperty.
 
          The outer layer is the name of the character. The inner layer is the name
-         of the unit, which may ebe a :class:`lisien.node.Place` or a
+         of the unit, which may be a :class:`lisien.node.Place` or a
          :class:`lisien.node.Thing`.
 
       .. py:property:: portal
