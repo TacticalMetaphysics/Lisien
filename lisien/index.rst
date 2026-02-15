@@ -425,17 +425,6 @@ These modules are used by :mod:`lisien.engine` or :mod:`lisien.proxy` somehow.
 You shouldn't need to know about them unless they're broken, or you want to
 extend Lisien's capabilities.
 
-#################
- android_service
-#################
-.. automodule:: lisien.android_service
-
-   .. autoclass:: CommandDispatcher
-
-   .. autoclass:: CoreLogHandler
-
-   .. autofunction:: core_server
-
 #######
  cache
 #######
