@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import inspect
 from functools import cached_property, partial
-from operator import itemgetter, call
+from operator import call, itemgetter
 from pathlib import Path
 from types import EllipsisType
 from typing import (

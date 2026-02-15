@@ -23,7 +23,7 @@ asyncio_default_fixture_loop_scope = "function"
 
 [project]
 name = "elide"
-version = "0.23.2"
+version = "0.23.3"
 authors = [
     { name = "Zachary Spector", email = "public@zacharyspector.com" },
 ]
@@ -41,7 +41,7 @@ classifiers = [
     "Intended Audience :: Developers",
 ]
 dependencies = [
-    "lisien==0.23.2",
+    "lisien==0.23.3",
     "kivy>=2.0.0",
     "kivy-deps.glew ; sys_platform == 'win32'",
     "kivy-deps.sdl2 ; sys_platform == 'win32'",

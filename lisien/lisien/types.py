@@ -87,7 +87,7 @@ from typing import (
 import networkx as nx
 from annotated_types import Ge, Le
 from attrs import Factory, define, field, validators
-from blinker import Signal, ANY
+from blinker import ANY, Signal
 from networkx import NetworkXError
 from tblib import Traceback
 from zict import LRU
