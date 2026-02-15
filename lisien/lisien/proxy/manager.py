@@ -149,7 +149,6 @@ class EngineProxyManager:
 		self.logger.handle(
 			self._undictify_logrec_traceback(pickle.loads(logrec_packed))
 		)
-
 	def log(self, level: str | int, msg: str):
 		if isinstance(level, str):
 			level = {

@@ -12,6 +12,27 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""The SQLAlchemy database connector, for SQLite
+
+`SQLite`_ is an easy, convenient database that's available nearly everywhere
+Python is. It's not the default database for Lisien, because the database file
+it produces usually takes up hundreds of megabytes for even small games, and
+takes a while to commit data. However, it's more resilient than ParquetDB. Its
+transaction model is good at recovering in case of crashes, even if those have
+nothing to do with Lisien, like if an Android device runs out of battery.
+
+Though only SQLite is specifically supported at the moment, this connector is
+implemented using `SQLAlchemy`_, which makes it extensible to other SQL-based
+databases in the future. Only `a schema definition`_ and
+`the SQL expression API`_ are used here.
+
+.. _SQLite: https://www.sqlite.org/about.html
+.. _SQLAlchemy: https://www.sqlalchemy.org/features.html
+.. _a schema definition: https://docs.sqlalchemy.org/en/20/core/schema.html
+.. _the SQL expression API: https://docs.sqlalchemy.org/en/20/core/expression_api.html
+
+"""
+
 from __future__ import annotations
 
 import inspect
@@ -47,8 +68,8 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.sql.ddl import CreateTable
 
-from . import types
-from .db import (
+from lisien import types
+from lisien.db import (
 	SCHEMA_VERSION_B,
 	SCHEMAVER_B,
 	Batch,
@@ -57,8 +78,8 @@ from .db import (
 	ThreadedDatabaseConnector,
 	mutexed,
 )
-from .exc import KeyframeError
-from .types import (
+from lisien.exc import KeyframeError
+from lisien.types import (
 	AbstractEngine,
 	ActionFuncName,
 	ActionRowType,

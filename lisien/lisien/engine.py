@@ -31,7 +31,7 @@ from collections import UserDict, defaultdict
 from concurrent.futures import Executor as BaseExecutor
 from concurrent.futures import Future, ThreadPoolExecutor
 from concurrent.futures import wait as futwait
-from contextlib import ContextDecorator, contextmanager
+from contextlib import contextmanager
 from copy import copy
 from functools import cached_property, partial, wraps
 from hashlib import blake2b
@@ -628,7 +628,7 @@ class Engine(AbstractEngine, BaseExecutor):
 			if self.connect_string is None:
 				return PythonDatabaseConnector(self)
 			else:
-				from .sql import SQLAlchemyDatabaseConnector
+				from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 				return SQLAlchemyDatabaseConnector(
 					self,
@@ -637,7 +637,7 @@ class Engine(AbstractEngine, BaseExecutor):
 				)
 		else:
 			if self.connect_string is None:
-				from .pqdb import ParquetDatabaseConnector
+				from lisien.db.pqdb import ParquetDatabaseConnector
 
 				path = self._prefix.joinpath("world")
 				path.mkdir(parents=True, exist_ok=True)
@@ -647,7 +647,7 @@ class Engine(AbstractEngine, BaseExecutor):
 					path,
 				)
 			else:
-				from .sql import SQLAlchemyDatabaseConnector
+				from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 				return SQLAlchemyDatabaseConnector(
 					self,
@@ -7381,7 +7381,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		"""
 		if not hasattr(self.database, "execute"):
 			raise NotImplementedError("turns_when only works with SQL for now")
-		from .sql import meta
+		from lisien.db.sql import meta
 
 		unpack = self.unpack
 		end = self._branch_end()[0] + 1
@@ -7633,7 +7633,7 @@ class Engine(AbstractEngine, BaseExecutor):
 				fake = EngineFacade(None)
 				prefix = Path(prefix)
 				try:
-					from .pqdb import ParquetDatabaseConnector
+					from lisien.db.pqdb import ParquetDatabaseConnector
 
 					pq_path = prefix.joinpath("world")
 					pq_path.mkdir(parents=True, exist_ok=True)
@@ -7645,7 +7645,7 @@ class Engine(AbstractEngine, BaseExecutor):
 						fake, pq_path
 					)
 				except ImportError:
-					from .sql import SQLAlchemyDatabaseConnector
+					from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 					import_database = database = SQLAlchemyDatabaseConnector(
 						fake,

@@ -3186,11 +3186,11 @@ class AbstractEngine(ABC):
 					connector = PythonDatabaseConnector
 				return connector
 			elif clsn == "SQLAlchemyDatabaseConnector":
-				from .sql import SQLAlchemyDatabaseConnector
+				from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 				return partial(SQLAlchemyDatabaseConnector, **data)
 			elif clsn == "ParquetDatabaseConnector":
-				from .pqdb import ParquetDatabaseConnector
+				from lisien.db.pqdb import ParquetDatabaseConnector
 
 				return partial(ParquetDatabaseConnector, **data)
 			else:
@@ -3471,13 +3471,13 @@ class AbstractEngine(ABC):
 				if inspect.isclass(cls) and issubclass(cls, Exception):
 					ret[cls] = pack_exception
 		try:
-			from .sql import SQLAlchemyDatabaseConnector
+			from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 			ret[SQLAlchemyDatabaseConnector] = pack_database_connector
 		except ImportError:
 			pass
 		try:
-			from .pqdb import ParquetDatabaseConnector
+			from lisien.db.pqdb import ParquetDatabaseConnector
 
 			ret[ParquetDatabaseConnector] = pack_database_connector
 		except ImportError:
@@ -4513,19 +4513,29 @@ class AbstractStringStore(MutableMapping[str, str], ABC):
 @define
 class AbstractFunctionStore[_K: str, _V: FunctionType | MethodType](ABC):
 	@abstractmethod
-	def save(self, reimport: bool = True) -> None: ...
+	def save(self, reimport: bool = True) -> None:
+		"""Write all my code to the file I represent."""
 
 	@abstractmethod
-	def reimport(self) -> None: ...
+	def reimport(self) -> None:
+		"""Load any changes to the code in my file."""
 
 	@abstractmethod
-	def iterplain(self) -> Iterator[tuple[str, str]]: ...
+	def iterplain(self) -> Iterator[tuple[str, str]]:
+		"""Iterate over pairs of the names of my functions and their code.
+
+		It's 'plain' in the sense that you get a string with the code in it,
+		rather than a function object or a code object.
+
+		"""
 
 	@abstractmethod
-	def store_source(self, v: str, name: _K | None = None) -> None: ...
+	def store_source(self, source: str, name: _K | None = None) -> None:
+		"""Store the source code, ``source``, of a function named ``name``"""
 
 	@abstractmethod
-	def get_source(self, name: _K) -> str: ...
+	def get_source(self, name: _K) -> str:
+		"""Return the source code, in a string, of a function named ``name``"""
 
 
 class StatAlias:
