@@ -395,7 +395,7 @@ def mutexed(
 class Batch(list):
 	"""A list of tuples to be serialized with a given function and sent to the database
 
-	Construct these with the :func:`batched` decorator.
+	Construct these with the :deco:`batched` decorator.
 
 	"""
 
