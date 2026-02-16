@@ -50,7 +50,7 @@ from operator import itemgetter, lt
 from os import PathLike
 from pathlib import Path
 from random import Random
-from threading import RLock, Thread
+from threading import RLock
 from types import FunctionType, MethodType, ModuleType
 from typing import (
 	IO,
