@@ -551,6 +551,23 @@ class Engine(AbstractEngine, BaseExecutor):
     passed this :class:`Engine`, and can access anything else it needs through
     it.
     
+    Stored methods need to take at least one argument, because the 
+    :class:`Engine` will be passed in as that initial argument. They'll 
+    appear in ``method.py`` as if they were normal functions, but that's not 
+    how they act when :class:`Engine` is running; they act like the standard 
+    :type:`types.MethodType` then.
+    
+    You can store a method by decorating it::
+    
+        from lisien import Engine
+        
+        with Engine() as engine:
+            @engine.method
+            def print_me(self):
+                print(self)
+            
+            engine.print_me()
+    
     """
 	trigger: ModuleType | TriggerStore = field(
 		kw_only=True,
