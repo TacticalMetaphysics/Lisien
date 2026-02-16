@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import os
 import sys
-import threading
 from abc import ABC, abstractmethod
 from concurrent.futures import Executor, Future
 from concurrent.futures import wait as futwait
