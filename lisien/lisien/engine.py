@@ -451,7 +451,13 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 @define
 class Engine(AbstractEngine, BaseExecutor):
-	"""Lisien, the Life Simulator Engine."""
+	"""Lisien, the Life Simulator Engine.
+
+	You can import this from the base :mod:`lisien` package, if you like::
+
+		from lisien import Engine
+
+	"""
 
 	is_proxy: ClassVar = False
 	_planning: bool = field(init=False, default=False)
