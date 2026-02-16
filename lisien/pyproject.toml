@@ -10,6 +10,7 @@ packages = [
     "lisien",
     "lisien.examples",
     "lisien.proxy",
+    "lisien.proxy.routine",
     "lisien.server",
     "lisien.db",
     "lisien.tests",

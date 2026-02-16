@@ -1279,9 +1279,9 @@ class FunctionStore[_K: str, _T: FunctionType | MethodType](
 		for name, idx in self._ast_idx.items():
 			yield name, ast.unparse(self._ast.body[idx])
 
-	def store_source(self, v: str, name: str | None = None) -> None:
+	def store_source(self, source: str, name: str | None = None) -> None:
 		self._need_save = True
-		outdented = dedent_source(v)
+		outdented = dedent_source(source)
 		mod = ast.parse(outdented)
 		expr = ast.Expr(mod)
 		if len(expr.value.body) != 1:

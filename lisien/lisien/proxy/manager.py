@@ -50,6 +50,10 @@ class EngineProxyManager:
 	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
+	You can import this from :mod:`lisien.proxy` for convenience::
+
+		from lisien.proxy import EngineProxyManager
+
 	"""
 
 	sub_mode: Sub = field(converter=Sub, default=Sub.thread)

@@ -635,8 +635,18 @@ class Rule:
 		self.triggers.append(self.engine.trigger.truth)
 
 
-class RuleBook(MutableSequence[Rule], Signal):
-	"""A list of rules to be followed for some Character, or a part of it"""
+class Rulebook(MutableSequence[Rule], Signal):
+	"""A list of rules to be followed by a Lisien entity
+
+	A :class:`Rulebook` is a list of :class:`Rule` objects. When a rulebook is
+	run by the rules engine, each :class:`Rule` within it is evaluated in
+	order.
+
+	For convenience, when inserting or appending rules to a :class:`Rulebook`,
+	you may use the name of the rule as if it was the rule itself. Accessing
+	items in a :class:`Rulebook` always gives :class:`Rule` objects.
+
+	"""
 
 	def _get_cache(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -670,6 +680,12 @@ class RuleBook(MutableSequence[Rule], Signal):
 
 	@property
 	def priority(self) -> RulebookPriority:
+		"""A floating point number to sort rulebooks with, default ``0.0``
+
+		Rulebooks with smaller ``priority`` get run earlier. Rulebooks with
+		equal priority will be ordered based on their names.
+
+		"""
 		return self._get_cache(*self.engine.time)[1]
 
 	@priority.setter
@@ -818,12 +834,12 @@ class RuleMapping(MutableMapping[RuleName, Rule], Signal):
 
 	"""
 
-	rulebook: RuleBook
+	rulebook: Rulebook
 
-	def __init__(self, engine: "Engine", rulebook: RuleBook | RulebookName):
+	def __init__(self, engine: "Engine", rulebook: Rulebook | RulebookName):
 		super().__init__()
 		self.engine = engine
-		if isinstance(rulebook, RuleBook):
+		if isinstance(rulebook, Rulebook):
 			self.rulebook = rulebook
 		else:
 			self.rulebook = self.engine.rulebook[rulebook]
@@ -924,8 +940,8 @@ class RulebookDescriptor:
 			return
 		return instance._get_rulebook()
 
-	def __set__(self, instance: RuleFollower, value: RuleBook | RulebookName):
-		if isinstance(value, RuleBook):
+	def __set__(self, instance: RuleFollower, value: Rulebook | RulebookName):
+		if isinstance(value, Rulebook):
 			instance._set_rulebook_name(value.name)
 		else:
 			instance._set_rulebook_name(value)
@@ -949,7 +965,7 @@ class RuleFollower(ABC):
 
 	rulebook = RulebookDescriptor()
 
-	def _get_rulebook(self) -> RuleBook:
+	def _get_rulebook(self) -> Rulebook:
 		return self.engine.rulebook[self._get_rulebook_name()]
 
 	def rules(self) -> ValuesView[Rule]:
@@ -976,7 +992,7 @@ class RuleFollower(ABC):
 		raise NotImplementedError("_set_rulebook_name")
 
 
-class AllRuleBooks(UserDict[RulebookName, RuleBook], Signal):
+class AllRuleBooks(UserDict[RulebookName, Rulebook], Signal):
 	def __init__(self, engine: "Engine"):
 		Signal.__init__(self)
 		self.engine = engine
@@ -990,24 +1006,24 @@ class AllRuleBooks(UserDict[RulebookName, RuleBook], Signal):
 			k, *self.engine.time
 		)
 
-	def __getitem__(self, k: RulebookName | KeyHint) -> RuleBook:
+	def __getitem__(self, k: RulebookName | KeyHint) -> Rulebook:
 		if not isinstance(k, Key):
 			raise TypeError("Invalid rulebook name", k)
 		k = RulebookName(k)
 		if k not in self.data:
-			self.data[k] = RuleBook(self.engine, k)
+			self.data[k] = Rulebook(self.engine, k)
 		return self.data[k]
 
 	def __setitem__(
 		self,
 		key: RulebookName | KeyHint,
-		value: RuleBook | list[Rule | RuleName],
+		value: Rulebook | list[Rule | RuleName],
 	):
 		if not isinstance(key, Key):
 			raise TypeError("Invalid rulebook name", key)
 		key = RulebookName(key)
 		if key not in self.data:
-			self.data[key] = RuleBook(self.engine, key)
+			self.data[key] = Rulebook(self.engine, key)
 		rb = self.data[key]
 		while len(rb) > 0:
 			del rb[0]

@@ -21,12 +21,11 @@ from functools import partial
 
 import pytest
 
-from lisien.db.pqdb import ParquetDatabaseConnector
-from lisien.db.sql import SQLAlchemyDatabaseConnector
-
 from ..db import AbstractDatabaseConnector, PythonDatabaseConnector
 from ..engine import Engine
 from ..facade import EngineFacade
+from lisien.db.pqdb import ParquetDatabaseConnector
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from .data import DATA_DIR
 
 

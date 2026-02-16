@@ -50,7 +50,7 @@ from operator import itemgetter, lt
 from os import PathLike
 from pathlib import Path
 from random import Random
-from threading import RLock, Thread
+from threading import RLock
 from types import FunctionType, MethodType, ModuleType
 from typing import (
 	IO,
@@ -451,7 +451,13 @@ class BookmarkMapping(AbstractBookmarkMapping, UserDict):
 
 @define
 class Engine(AbstractEngine, BaseExecutor):
-	"""Lisien, the Life Simulator Engine."""
+	"""Lisien, the Life Simulator Engine.
+
+	You can import this from the base :mod:`lisien` package, if you like::
+
+		from lisien import Engine
+
+	"""
 
 	is_proxy: ClassVar = False
 	_planning: bool = field(init=False, default=False)
@@ -550,6 +556,23 @@ class Engine(AbstractEngine, BaseExecutor):
     :attr:`method` is often the most convenient, since the function will be
     passed this :class:`Engine`, and can access anything else it needs through
     it.
+    
+    Stored methods need to take at least one argument, because the 
+    :class:`Engine` will be passed in as that initial argument. They'll 
+    appear in ``method.py`` as if they were normal functions, but that's not 
+    how they act when :class:`Engine` is running; they act like the standard 
+    :type:`types.MethodType` then.
+    
+    You can store a method by decorating it::
+    
+        from lisien import Engine
+        
+        with Engine() as engine:
+            @engine.method
+            def print_me(self):
+                print(self)
+            
+            engine.print_me()
     
     """
 	trigger: ModuleType | TriggerStore = field(
@@ -970,8 +993,23 @@ class Engine(AbstractEngine, BaseExecutor):
 		default=None,
 	)
 	"""Dictionary of strings to be used in the game; if absent, we'll use a 
-	:class:`lisien.collections.StringStore` to keep them in a JSON file in 
-	the ``prefix``."""
+	:class:`lisien.collections.StringStore` to keep them in JSON files in the
+	``string/`` subdirectory of our ``prefix``.
+	
+	If using :class:`.collections.StringStore`, you can switch languages
+	like this::
+		
+		from lisien import Engine
+		
+		with Engine() as engine:
+			assert engine.string.language == "eng"
+			engine.string["hello"] = "Hello, world!"
+			engine.string.language = "esp"
+			engine.string["hello"] = "¡Hola, mundo!"
+			engine.string.language = "eng"
+			assert engine.string["hello"] == "Hello, world!"
+	
+	"""
 	_trunk: str = field(kw_only=True, default="trunk")
 	"""The string name of the branch to start games from. Defaults to "trunk" 
 	if not set in some prior session. You should only change this if your 
@@ -1182,6 +1220,16 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@property
 	def branch(self) -> Branch:
+		"""The string name of the branch of the timestream we're on.
+
+		To start a new branch, set this property to a new branch name.
+		To switch to an existing branch, set this property to its name.
+
+		Lisien's timestream is a tree. Branches can split, but not merge. The
+		branch a branch split off from is its "parent". See :attr:`trunk`
+		for the case of branches with no parent.
+
+		"""
 		return self._obranch
 
 	@branch.setter
@@ -1234,6 +1282,20 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@property
 	def trunk(self):
+		"""The initial branch of this playthrough, which has no parent.
+
+		There may be many branches with no parent, each of which is a
+		"trunk". This represents the game being restarted from the beginning.
+		To make a new trunk, first set :attr:`turn` and :attr:`tick` to
+		``0``, then set :attr:`trunk` to a string that is not yet the name of
+		any branch.
+
+		Switching to an already existing trunk is better handled by setting
+		:attr:`branch` to the trunk's name. You can do that here, but there's
+		no benefit, and you can't do it at any game-time after the game's
+		start.
+
+		"""
 		return self.database.eternal["trunk"]
 
 	@trunk.setter
@@ -1883,12 +1945,15 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		Start a block of code like::
 
-			with orm.plan():
-				...
+			from lisien import Engine
+
+			with Engine() as engine:
+				with engine.plan() as plan:
+					...
 
 
-		and any changes you make to the world state within that block will be
-		'plans,' meaning that they are used as defaults. The world will
+		and any changes you make to the world state within the inner block will
+		be "plans," meaning that they are used as defaults. The world will
 		obey your plan unless you make changes to the same entities outside
 		the plan, in which case the world will obey those, and cancel any
 		future plan.
@@ -1902,6 +1967,9 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		With ``reset=True`` (the default), when the plan block closes,
 		the time will reset to when it began.
+
+		You can pass the ``plan`` into :meth:`delete_plan`, below, to cancel
+		all pending changes in the plan.
 
 		"""
 		if self._planning:
@@ -1989,8 +2057,15 @@ class Engine(AbstractEngine, BaseExecutor):
 	def delete_plan(self, plan: Plan) -> None:
 		"""Delete the portion of a plan that has yet to occur.
 
-		:arg plan: integer ID of a plan, as given by
-				   ``with self.plan() as plan:``
+		:arg plan: integer ID of a plan.
+
+			As given by::
+
+				from lisien import Engine
+
+				with Engine() as engine:
+					with engine.plan() as plan:
+						...
 
 		"""
 		plan_ticks = self._plan_ticks[plan]
@@ -7368,14 +7443,22 @@ class Engine(AbstractEngine, BaseExecutor):
 	) -> QueryResult | set:
 		"""Return the turns when the query held true
 
+		Sometimes you want to know when some stat of a lisien entity had a particular
+		value. To find out, construct a historical query and pass it to
+		``Engine.turns_when``, like this::
+
+			physical = engine.character['physical']
+			that = physical.thing['that']
+			hist_loc = that.historical('location')
+			print(list(engine.turns_when(hist_loc == 'there')))
+
+		You'll get the turns when ``that`` was ``there``.
+
+		Other comparison operators like ``>`` and ``<`` work as well.
+
 		Only the state of the world at the end of the turn is considered.
 		To include turns where the query held true at some tick, but
-		became false, set ``mid_turn=True``
-
-		:arg qry: a Query, likely constructed by comparing the result
-				  of a call to an entity's ``historical`` method with
-				  the output of ``self.alias(..)`` or another
-				  ``historical(..)``
+		became false, set ``mid_turn=True``.
 
 		"""
 		if not hasattr(self.database, "execute"):
