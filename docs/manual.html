@@ -227,12 +227,12 @@ tab of the Python editor.</p>
 <p>Lisien may be run in a separate process from Elide, or any other frontend you may write for it.
 To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
 their corresponding objects in the Lisien core.</p>
-<p>Use <code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.proxy.EngineProcessManager</span></code> to start Lisien in a subprocess and get a
+<p>Use <code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.proxy.EngineProxyManager</span></code> to start Lisien in a subprocess and get a
 proxy to the engine:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProcessManager</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProxyManager</span>
 
 
-<span class="n">manager</span> <span class="o">=</span> <span class="n">EngineProcessManager</span><span class="p">(</span><span class="s1">&#39;gamedir/&#39;</span><span class="p">)</span>
+<span class="n">manager</span> <span class="o">=</span> <span class="n">EngineProxyManager</span><span class="p">(</span><span class="s1">&#39;gamedir/&#39;</span><span class="p">)</span>
 <span class="n">engine_proxy</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">start</span><span class="p">(</span><span class="n">workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 
 <span class="c1"># do stuff here</span>
@@ -247,11 +247,11 @@ can pass a callback function to the relevant object’s <code class="docutils li
 at the relevant time. Here’s how you’d run some code whenever <code class="docutils literal notranslate"><span class="pre">next_turn</span></code> finishes running the rules engine:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProcessManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProxyManager</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">my_excellent_game</span><span class="w"> </span><span class="kn">import</span> <span class="n">display_menu</span><span class="p">,</span> <span class="n">apply_delta</span>
 
-<span class="n">manager</span> <span class="o">=</span> <span class="n">EngineProcessManager</span><span class="p">()</span>
+<span class="n">manager</span> <span class="o">=</span> <span class="n">EngineProxyManager</span><span class="p">()</span>
 <span class="n">engine_proxy</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
 
