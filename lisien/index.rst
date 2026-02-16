@@ -20,6 +20,8 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
       .. autoproperty:: branch
 
+    .. autoproperty:: trunk
+
       .. automethod:: is_ancestor_of
 
       .. autoproperty:: turn

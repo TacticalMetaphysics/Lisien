@@ -1182,6 +1182,16 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@property
 	def branch(self) -> Branch:
+		"""The string name of the branch of the timestream we're on.
+
+		To start a new branch, set this property to a new branch name.
+		To switch to an existing branch, set this property to its name.
+
+		Lisien's timestream is a tree. Branches can split, but not merge. The
+		branch a branch split off from is its "parent". See :attr:`trunk`
+		for the case of branches with no parent.
+
+		"""
 		return self._obranch
 
 	@branch.setter
@@ -1234,6 +1244,20 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@property
 	def trunk(self):
+		"""The initial branch of this playthrough, which has no parent.
+
+		There may be many branches with no parent, each of which is a
+		"trunk". This represents the game being restarted from the beginning.
+		To make a new trunk, first set :attr:`turn` and :attr:`tick` to
+		``0``, then set :attr:`trunk` to a string that is not yet the name of
+		any branch.
+
+		Switching to an already existing trunk is better handled by setting
+		:attr:`branch` to the trunk's name. You can do that here, but there's
+		no benefit, and you can't do it at any game-time after the game's
+		start.
+
+		"""
 		return self.database.eternal["trunk"]
 
 	@trunk.setter
