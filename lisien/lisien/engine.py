@@ -987,8 +987,23 @@ class Engine(AbstractEngine, BaseExecutor):
 		default=None,
 	)
 	"""Dictionary of strings to be used in the game; if absent, we'll use a 
-	:class:`lisien.collections.StringStore` to keep them in a JSON file in 
-	the ``prefix``."""
+	:class:`lisien.collections.StringStore` to keep them in JSON files in the
+	``string/`` subdirectory of our ``prefix``.
+	
+	If using :class:`.collections.StringStore`, you can switch languages
+	like this::
+		
+		from lisien import Engine
+		
+		with Engine() as engine:
+			assert engine.string.language == "eng"
+			engine.string["hello"] = "Hello, world!"
+			engine.string.language = "esp"
+			engine.string["hello"] = "¡Hola, mundo!"
+			engine.string.language = "eng"
+			assert engine.string["hello"] == "Hello, world!"
+	
+	"""
 	_trunk: str = field(kw_only=True, default="trunk")
 	"""The string name of the branch to start games from. Defaults to "trunk" 
 	if not set in some prior session. You should only change this if your 
