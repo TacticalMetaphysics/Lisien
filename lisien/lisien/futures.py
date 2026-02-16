@@ -43,7 +43,7 @@ from typing import TYPE_CHECKING, Callable, Literal
 from attrs import Factory, define, field
 
 from .proxy.routine import worker_subprocess, worker_subthread
-from .proxy.worker_subinterpreter import worker_subinterpreter
+from .proxy.routine.worker_subinterpreter import worker_subinterpreter
 from .types import AbstractEngine, Branch, EternalKey, Tick, Time, Turn, Value
 from .util import msgpack_array_header, msgpack_map_header, unpack_expected
 
