@@ -344,6 +344,11 @@ extend Lisien's capabilities.
 
 .. automodule:: lisien.db
     :members:
+    :exclude-members: Batch
+
+    .. autoclass:: Batch
+        :members:
+        :exclude-members: cached_properties, serializers
 
 -----
  sql
