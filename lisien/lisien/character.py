@@ -63,7 +63,7 @@ from .exc import WorldIntegrityError
 from .facade import CharacterFacade, EngineFacade
 from .node import Node, Place, Thing
 from .portal import Portal
-from .rule import RuleBook
+from .rule import Rulebook
 from .rule import RuleFollower as BaseRuleFollower
 from .rule import RuleMapping
 from .types import (
@@ -140,7 +140,7 @@ class CharRuleMapping(RuleMapping):
 	def __init__(
 		self,
 		character: Character,
-		rulebook: RuleBook,
+		rulebook: Rulebook,
 		booktyp: RulebookTypeStr,
 	):
 		"""Initialize as usual for the ``rulebook``, mostly.
