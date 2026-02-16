@@ -229,15 +229,15 @@ Lisien may be run in a separate process from Elide, or any other frontend you ma
 To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
 their corresponding objects in the Lisien core.
 
-Use :class:`lisien.proxy.EngineProcessManager` to start Lisien in a subprocess and get a
+Use :class:`lisien.proxy.EngineProxyManager` to start Lisien in a subprocess and get a
 proxy to the engine:
 
 .. code::
 
-    from lisien.proxy import EngineProcessManager
+    from lisien.proxy import EngineProxyManager
 
 
-    manager = EngineProcessManager('gamedir/')
+    manager = EngineProxyManager('gamedir/')
     engine_proxy = manager.start(workers=4)
 
     # do stuff here
@@ -256,11 +256,11 @@ at the relevant time. Here's how you'd run some code whenever ``next_turn`` fini
 
     from threading import Thread
 
-    from lisien.proxy import EngineProcessManager
+    from lisien.proxy import EngineProxyManager
 
     from my_excellent_game import display_menu, apply_delta
 
-    manager = EngineProcessManager()
+    manager = EngineProxyManager()
     engine_proxy = manager.start()
 
 
