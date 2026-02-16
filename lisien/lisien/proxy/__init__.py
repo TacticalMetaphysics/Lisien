@@ -18,7 +18,7 @@ Each proxy class is meant to emulate the equivalent lisien class,
 and any change you make to a proxy will be made in the corresponding
 entity in the lisien core.
 
-To use these, first instantiate an ``EngineProcessManager``, then
+To use these, first instantiate an ``EngineProxyManager``, then
 call its ``start`` method with the same arguments you'd give a real
 ``Engine``. You'll get an ``EngineProxy``, which acts like the underlying
 ``Engine`` for most purposes.
