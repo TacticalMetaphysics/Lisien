@@ -7437,14 +7437,22 @@ class Engine(AbstractEngine, BaseExecutor):
 	) -> QueryResult | set:
 		"""Return the turns when the query held true
 
+		Sometimes you want to know when some stat of a lisien entity had a particular
+		value. To find out, construct a historical query and pass it to
+		``Engine.turns_when``, like this::
+
+			physical = engine.character['physical']
+			that = physical.thing['that']
+			hist_loc = that.historical('location')
+			print(list(engine.turns_when(hist_loc == 'there')))
+
+		You'll get the turns when ``that`` was ``there``.
+
+		Other comparison operators like ``>`` and ``<`` work as well.
+
 		Only the state of the world at the end of the turn is considered.
 		To include turns where the query held true at some tick, but
-		became false, set ``mid_turn=True``
-
-		:arg qry: a Query, likely constructed by comparing the result
-				  of a call to an entity's ``historical`` method with
-				  the output of ``self.alias(..)`` or another
-				  ``historical(..)``
+		became false, set ``mid_turn=True``.
 
 		"""
 		if not hasattr(self.database, "execute"):
