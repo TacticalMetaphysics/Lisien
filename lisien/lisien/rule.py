@@ -636,7 +636,17 @@ class Rule:
 
 
 class Rulebook(MutableSequence[Rule], Signal):
-	"""A list of rules to be followed for some Character, or a part of it"""
+	"""A list of rules to be followed by a Lisien entity
+
+	A :class:`Rulebook` is a list of :class:`Rule` objects. When a rulebook is
+	run by the rules engine, each :class:`Rule` within it is evaluated in
+	order.
+
+	For convenience, when inserting or appending rules to a :class:`Rulebook`,
+	you may use the name of the rule as if it was the rule itself. Accessing
+	items in a :class:`Rulebook` always gives :class:`Rule` objects.
+
+	"""
 
 	def _get_cache(
 		self, branch: Branch, turn: Turn, tick: Tick
@@ -670,6 +680,12 @@ class Rulebook(MutableSequence[Rule], Signal):
 
 	@property
 	def priority(self) -> RulebookPriority:
+		"""A floating point number to sort rulebooks with, default ``0.0``
+
+		Rulebooks with smaller ``priority`` get run earlier. Rulebooks with
+		equal priority will be ordered based on their names.
+
+		"""
 		return self._get_cache(*self.engine.time)[1]
 
 	@priority.setter
