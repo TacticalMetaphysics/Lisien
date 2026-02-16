@@ -373,6 +373,41 @@ extend Lisien's capabilities.
     .. autoclass:: Worker
 
 #######
+ proxy
+#######
+
+-----
+ abc
+-----
+
+.. automodule:: lisien.proxy.abc
+    :members:
+
+-----------
+ character
+-----------
+
+.. automodule:: lisien.proxy.character
+    :members:
+
+--------
+ engine
+--------
+
+.. automodule:: lisien.proxy.engine
+    :members:
+
+---------
+ routine
+---------
+
+.. automodule:: lisien.proxy.routine
+    :members:
+
+.. automodule:: lisien.proxy.worker_subinterpreter
+    :members:
+
+#######
  query
 #######
 
