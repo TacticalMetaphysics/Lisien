@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lisien.futures &#8212; Lisien 0.23.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lisien.futures</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of Lisien, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">&quot;&quot;&quot;Executor classes, for Lisien&#39;s various forms of parallelism</span>
+
+<span class="sd">Lisien&#39;s workers are stateful--they each hold a shallow copy of the world state.</span>
+<span class="sd">These executors keep that copy synchronized with the current state of the game.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">Executor</span><span class="p">,</span> <span class="n">Future</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">wait</span> <span class="k">as</span> <span class="n">futwait</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span><span class="p">,</span> <span class="n">partial</span><span class="p">,</span> <span class="n">wraps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">LogRecord</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleQueue</span> <span class="k">as</span> <span class="n">MPSimpleQueue</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_context</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.connection</span><span class="w"> </span><span class="kn">import</span> <span class="n">Connection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">DefaultContext</span><span class="p">,</span> <span class="n">ForkContext</span><span class="p">,</span> <span class="n">SpawnContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing.process</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseProcess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">queue</span><span class="w"> </span><span class="kn">import</span> <span class="n">Empty</span><span class="p">,</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">SimpleQueue</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Lock</span><span class="p">,</span> <span class="n">Thread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Literal</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">Factory</span><span class="p">,</span> <span class="n">define</span><span class="p">,</span> <span class="n">field</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.proxy.routine</span><span class="w"> </span><span class="kn">import</span> <span class="n">worker_subprocess</span><span class="p">,</span> <span class="n">worker_subthread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.proxy.routine.worker_subinterpreter</span><span class="w"> </span><span class="kn">import</span> <span class="n">worker_subinterpreter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">AbstractEngine</span><span class="p">,</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">EternalKey</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="n">Time</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Value</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">msgpack_array_header</span><span class="p">,</span> <span class="n">msgpack_map_header</span><span class="p">,</span> <span class="n">unpack_expected</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+	<span class="k">try</span><span class="p">:</span>
+		<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.interpreters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Interpreter</span>
+	<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+		<span class="n">Interpreter</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="nb">object</span><span class="p">)</span>
+
+
+<span class="n">SUBPROCESS_TIMEOUT</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="k">if</span> <span class="s2">&quot;LISIEN_SUBPROCESS_TIMEOUT&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+	<span class="k">try</span><span class="p">:</span>
+		<span class="n">SUBPROCESS_TIMEOUT</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;LISIEN_SUBPROCESS_TIMEOUT&quot;</span><span class="p">])</span>
+	<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+		<span class="n">SUBPROCESS_TIMEOUT</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">KILL_SUBPROCESS</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">if</span> <span class="s2">&quot;LISIEN_KILL_SUBPROCESS&quot;</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">:</span>
+	<span class="n">KILL_SUBPROCESS</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;LISIEN_KILL_SUBPROCESS&quot;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="Worker">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Worker">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Worker</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract class representing one worker in an :class:`Executor`</span>
+
+<span class="sd">	Implementations may represent a worker thread in the same interpreter,</span>
+<span class="sd">	a worker thread in a subinterpreter, or a worker process.</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
+
+	<span class="n">last_update</span><span class="p">:</span> <span class="n">Time</span>
+	<span class="n">unpack</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">Value</span><span class="p">]</span>
+	<span class="n">lock</span><span class="p">:</span> <span class="n">Lock</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">Lock</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Worker.send_input_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Worker.send_input_bytes">[docs]</a>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">send_input_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Send packed data to the worker&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="Worker.get_output_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Worker.get_output_bytes">[docs]</a>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_output_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Get a reply from the worker&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="Worker.shutdown">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Worker.shutdown">[docs]</a>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Stop running the worker&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="Worker.from_executor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Worker.from_executor">[docs]</a>
+	<span class="nd">@classmethod</span>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">from_executor</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">:</span> <span class="n">Executor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Worker</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;The usual way of instantiating a :class:`Worker`&quot;&quot;&quot;</span></div>
+
+
+	<span class="nd">@staticmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_sync_log_forever</span><span class="p">(</span>
+		<span class="n">logger</span><span class="p">:</span> <span class="n">Logger</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">Queue</span><span class="p">[</span><span class="n">LogRecord</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">]]</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">while</span> <span class="p">(</span><span class="n">got</span> <span class="o">:=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">())</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">:</span>
+			<span class="n">logger</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="n">got</span><span class="p">)</span></div>
+
+
+
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_BaseLisienExecutor</span><span class="p">[</span><span class="n">WRKR</span><span class="p">:</span> <span class="n">Worker</span><span class="p">](</span><span class="n">Executor</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_prefix</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">logger</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Logger</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">logger</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">critical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">time</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Time</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">branch</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Branch</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">turn</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Turn</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">turn</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tick</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">eternal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EternalKey</span><span class="p">,</span> <span class="n">Value</span><span class="p">]:</span>
+		<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">eternal</span><span class="p">)</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">branches</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Branch</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Branch</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">]]:</span>
+		<span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">)</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">workers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">workers</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">random_seed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">random_seed</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">Value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">unpack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+	<span class="nd">@cached_property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_workers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">WRKR</span><span class="p">]:</span>
+		<span class="k">return</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="Executor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Executor">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Executor</span><span class="p">[</span><span class="n">WRKR</span><span class="p">:</span> <span class="n">Worker</span><span class="p">](</span><span class="n">_BaseLisienExecutor</span><span class="p">[</span><span class="n">WRKR</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract class for Lisien&#39;s parallel execution</span>
+
+<span class="sd">	Starts workers in threads, processes, or interpreters, depending on which</span>
+<span class="sd">	subclass you use.</span>
+
+<span class="sd">	Usually, you don&#39;t want to instantiate these directly --</span>
+<span class="sd">	:class:`.Engine` will do it for you -- but if you want to</span>
+<span class="sd">	close an :class:`.Engine` while keeping its workers alive,</span>
+<span class="sd">	and reuse them when next you start the game, you can do that by creating</span>
+<span class="sd">	your own :class:`Executor`, passing it to :class:`.Engine`,</span>
+<span class="sd">	and holding onto it until the one engine&#39;s shut down, and it&#39;s time to</span>
+<span class="sd">	start the next.</span>
+
+<span class="sd">	These are stateful, and can only serve one :class:`.Engine` at a time.</span>
+
+<span class="sd">	&quot;&quot;&quot;</span>
+
+	<span class="n">engine</span><span class="p">:</span> <span class="n">AbstractEngine</span> <span class="o">=</span> <span class="n">field</span><span class="p">()</span>
+
+	<span class="n">lock</span><span class="p">:</span> <span class="n">Lock</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">Lock</span><span class="p">)</span>
+	<span class="n">_top_uid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+	<span class="n">_uid_to_fut</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Future</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+	<span class="n">_worker_last_eternal</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">EternalKey</span><span class="p">,</span> <span class="n">Value</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+		<span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span>
+	<span class="p">)</span>
+	<span class="n">_worker_last_branches</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
+		<span class="n">Branch</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Branch</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">]</span>
+	<span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+	<span class="n">_stop_managing_futs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+	<span class="n">_futs_to_start</span><span class="p">:</span> <span class="n">SimpleQueue</span><span class="p">[</span><span class="n">Future</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+		<span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">SimpleQueue</span>
+	<span class="p">)</span>
+	<span class="n">_how_many_futs_running</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_make_fut_manager_thread</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_manage_futs</span><span class="p">)</span>
+
+	<span class="n">_fut_manager_thread</span><span class="p">:</span> <span class="n">Thread</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+		<span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Factory</span><span class="p">(</span><span class="n">_make_fut_manager_thread</span><span class="p">,</span> <span class="n">takes_self</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+	<span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_call_in_worker</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">uid</span><span class="p">,</span>
+		<span class="n">method</span><span class="p">,</span>
+		<span class="n">future</span><span class="p">:</span> <span class="n">Future</span><span class="p">,</span>
+		<span class="o">*</span><span class="n">args</span><span class="p">,</span>
+		<span class="n">update</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+	<span class="p">):</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="n">uid</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span>
+		<span class="n">uidbytes</span> <span class="o">=</span> <span class="n">uid</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+		<span class="n">argbytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">((</span><span class="n">method</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">))</span>
+		<span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="k">with</span> <span class="n">info</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">update</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_update_worker_process_state</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="s2">&quot;input_queue&quot;</span><span class="p">):</span>
+				<span class="n">info</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">uidbytes</span> <span class="o">+</span> <span class="n">argbytes</span><span class="p">)</span>
+				<span class="n">output_bytes</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">output_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">info</span><span class="o">.</span><span class="n">input_connection</span><span class="o">.</span><span class="n">send_bytes</span><span class="p">(</span><span class="n">uidbytes</span> <span class="o">+</span> <span class="n">argbytes</span><span class="p">)</span>
+				<span class="n">output_bytes</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">output_connection</span><span class="o">.</span><span class="n">recv_bytes</span><span class="p">()</span>
+		<span class="n">got_uid</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">output_bytes</span><span class="p">[:</span><span class="mi">8</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+		<span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">output_bytes</span><span class="p">[</span><span class="mi">8</span><span class="p">:])</span>
+		<span class="k">assert</span> <span class="n">got_uid</span> <span class="o">==</span> <span class="n">uid</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_how_many_futs_running</span> <span class="o">-=</span> <span class="mi">1</span>
+		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+			<span class="n">future</span><span class="o">.</span><span class="n">set_exception</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">future</span><span class="o">.</span><span class="n">set_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_update_worker_process_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">lock</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+		<span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="n">branch_from</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">,</span> <span class="n">tick_from</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">last_update</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">branch_from</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="n">old_eternal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_eternal</span>
+		<span class="n">new_eternal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_eternal</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eternal</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+		<span class="n">eternal_delta</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="n">k</span><span class="p">:</span> <span class="n">new_eternal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">old_eternal</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">|</span> <span class="n">new_eternal</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+			<span class="k">if</span> <span class="n">old_eternal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span> <span class="o">!=</span> <span class="n">new_eternal</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+		<span class="p">}</span>
+		<span class="k">if</span> <span class="n">branch_from</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">:</span>
+			<span class="n">delt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_branch_delta</span><span class="p">(</span>
+				<span class="n">branch_from</span><span class="p">,</span> <span class="n">turn_from</span><span class="p">,</span> <span class="n">tick_from</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tick</span>
+			<span class="p">)</span>
+			<span class="n">delt</span><span class="p">[</span><span class="s2">&quot;eternal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">eternal_delta</span>
+			<span class="n">argbytes</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span>
+				<span class="p">(</span>
+					<span class="s2">&quot;_upd&quot;</span><span class="p">,</span>
+					<span class="p">(</span>
+						<span class="kc">None</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span>
+						<span class="bp">self</span><span class="o">.</span><span class="n">tick</span><span class="p">,</span>
+						<span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">delt</span><span class="p">),</span>
+					<span class="p">),</span>
+					<span class="p">{},</span>
+				<span class="p">)</span>
+			<span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">argbytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_worker_kf_payload</span><span class="p">()</span>
+		<span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="s2">&quot;input_connection&quot;</span><span class="p">):</span>
+			<span class="n">put</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">input_connection</span><span class="o">.</span><span class="n">send_bytes</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">put</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span>
+		<span class="k">if</span> <span class="n">lock</span><span class="p">:</span>
+			<span class="k">with</span> <span class="n">info</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+				<span class="n">put</span><span class="p">(</span><span class="n">argbytes</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">put</span><span class="p">(</span><span class="n">argbytes</span><span class="p">)</span>
+		<span class="n">info</span><span class="o">.</span><span class="n">last_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated worker </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">last_update</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_uid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_top_uid</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_top_uid</span> <span class="o">+=</span> <span class="mi">1</span>
+		<span class="k">return</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="Executor.submit">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Executor.submit">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">submit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">,</span> <span class="o">/</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Future</span><span class="p">:</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="n">Future</span><span class="p">()</span>
+		<span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_uid</span><span class="p">()</span>
+		<span class="n">ret</span><span class="o">.</span><span class="n">_t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+			<span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_call_in_worker</span><span class="p">,</span>
+			<span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">uid</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">ret</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">),</span>
+			<span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="n">ret</span><span class="o">.</span><span class="n">uid</span> <span class="o">=</span> <span class="n">uid</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_futs_to_start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">ret</span></div>
+
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_setup_workers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_branches</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_branches</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_branches_d</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_eternal</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_last_eternal</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eternal</span><span class="p">)</span>
+		<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">workers</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_make_worker</span><span class="p">())</span>
+		<span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">workers</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_make_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">WRKR</span><span class="p">:</span> <span class="o">...</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_manage_futs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_stop_managing_futs</span> <span class="o">=</span> <span class="kc">False</span>
+		<span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_managing_futs</span><span class="p">:</span>
+			<span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_how_many_futs_running</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">:</span>
+				<span class="k">try</span><span class="p">:</span>
+					<span class="n">fut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_futs_to_start</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+					<span class="k">if</span> <span class="n">fut</span> <span class="o">==</span> <span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">:</span>
+						<span class="k">return</span>
+				<span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+					<span class="k">break</span>
+				<span class="k">if</span> <span class="ow">not</span> <span class="n">fut</span><span class="o">.</span><span class="n">running</span><span class="p">()</span> <span class="ow">and</span> <span class="n">fut</span><span class="o">.</span><span class="n">set_running_or_notify_cancel</span><span class="p">():</span>
+					<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fut</span><span class="p">,</span> <span class="s2">&quot;_t&quot;</span><span class="p">):</span>
+						<span class="n">fut</span><span class="o">.</span><span class="n">_t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+					<span class="k">else</span><span class="p">:</span>
+						<span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No thread to start&quot;</span><span class="p">,</span> <span class="n">fut</span><span class="p">)</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">_how_many_futs_running</span> <span class="o">+=</span> <span class="mi">1</span>
+			<span class="n">sleep</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Executor.shutdown">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Executor.shutdown">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">wait</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">cancel_futures</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">cancel_futures</span><span class="p">:</span>
+			<span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+				<span class="n">fut</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">wait</span><span class="p">:</span>
+			<span class="n">futwait</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+		<span class="k">for</span> <span class="n">fut</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+			<span class="n">fut</span><span class="o">.</span><span class="n">_t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_uid_to_fut</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_stop_managing_futs</span> <span class="o">=</span> <span class="kc">True</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_stop_sync_log</span> <span class="o">=</span> <span class="kc">True</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_futs_to_start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_fut_manager_thread</span><span class="p">()</span>
+		<span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span></div>
+
+
+	<span class="nd">@contextmanager</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">all_worker_locks_ctx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">for</span> <span class="n">worker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">:</span>
+			<span class="n">worker</span><span class="o">.</span><span class="n">lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+		<span class="k">yield</span>
+		<span class="k">for</span> <span class="n">worker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">:</span>
+			<span class="n">worker</span><span class="o">.</span><span class="n">lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_send_worker_input_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">send_input_bytes</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_worker_output_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_output_bytes</span><span class="p">()</span>
+
+	<span class="nd">@staticmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_all_worker_locks_dec</span><span class="p">(</span><span class="n">fn</span><span class="p">):</span>
+		<span class="nd">@wraps</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span>
+		<span class="k">def</span><span class="w"> </span><span class="nf">call_with_all_worker_locks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+			<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_worker_locks_ctx</span><span class="p">():</span>
+				<span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+		<span class="k">return</span> <span class="n">call_with_all_worker_locks</span>
+
+	<span class="nd">@_all_worker_locks_dec</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">call_every_worker</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">methodbytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+		<span class="n">argbytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+		<span class="n">kwargbytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]:</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">uids</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">workers</span>
+		<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+			<span class="n">uid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_uid</span><span class="p">()</span>
+			<span class="n">uids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uid</span><span class="p">)</span>
+			<span class="n">uidbytes</span> <span class="o">=</span> <span class="n">uid</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+			<span class="n">i</span> <span class="o">=</span> <span class="n">uid</span> <span class="o">%</span> <span class="n">n</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_send_worker_input_bytes</span><span class="p">(</span>
+				<span class="n">i</span><span class="p">,</span>
+				<span class="n">uidbytes</span>
+				<span class="o">+</span> <span class="n">msgpack_array_header</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+				<span class="o">+</span> <span class="n">methodbytes</span>
+				<span class="o">+</span> <span class="n">argbytes</span>
+				<span class="o">+</span> <span class="n">kwargbytes</span><span class="p">,</span>
+			<span class="p">)</span>
+		<span class="k">for</span> <span class="n">uid</span> <span class="ow">in</span> <span class="n">uids</span><span class="p">:</span>
+			<span class="n">i</span> <span class="o">=</span> <span class="n">uid</span> <span class="o">%</span> <span class="n">n</span>
+			<span class="n">outbytes</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_worker_output_bytes</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+			<span class="n">got_uid</span> <span class="o">=</span> <span class="nb">int</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">outbytes</span><span class="p">[:</span><span class="mi">8</span><span class="p">],</span> <span class="s2">&quot;little&quot;</span><span class="p">)</span>
+			<span class="k">assert</span> <span class="n">got_uid</span> <span class="o">==</span> <span class="n">uid</span>
+			<span class="n">retbytes</span> <span class="o">=</span> <span class="n">outbytes</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span>
+			<span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retbytes</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="Executor.restart">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.Executor.restart">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Overwrite all workers&#39; state to match my attributes</span>
+
+<span class="sd">		For when the Lisien engine is done working with this executor,</span>
+<span class="sd">		and you want to reuse it for another Lisien engine, likely in</span>
+<span class="sd">		a unit test.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_futs_to_start</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_fut_manager_thread</span><span class="p">()</span>
+		<span class="n">initial_payload</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_worker_kf_payload</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_setup_workers</span><span class="p">()</span>
+		<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">workers</span>
+
+		<span class="kn">from</span><span class="w"> </span><span class="nn">umsgpack</span><span class="w"> </span><span class="kn">import</span> <span class="n">packb</span>
+
+		<span class="bp">self</span><span class="o">.</span><span class="n">call_every_worker</span><span class="p">(</span>
+			<span class="n">packb</span><span class="p">(</span><span class="s2">&quot;_restart&quot;</span><span class="p">),</span>
+			<span class="n">packb</span><span class="p">(</span>
+				<span class="p">(</span>
+					<span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">),</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">time</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">eternal</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">branches</span><span class="p">,</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+				<span class="p">)</span>
+			<span class="p">),</span>
+			<span class="n">msgpack_map_header</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+		<span class="p">)</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_send_worker_input_bytes</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">initial_payload</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+		<span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_fut_manager_thread</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_fut_manager_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ThreadWorker">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadWorker">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ThreadWorker</span><span class="p">(</span><span class="n">Worker</span><span class="p">):</span>
+	<span class="n">last_update</span><span class="p">:</span> <span class="n">Time</span>
+	<span class="n">unpack</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">Value</span><span class="p">]</span>
+	<span class="n">input_queue</span><span class="p">:</span> <span class="n">SimpleQueue</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span>
+	<span class="n">output_queue</span><span class="p">:</span> <span class="n">SimpleQueue</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span>
+	<span class="n">worker_thread</span><span class="p">:</span> <span class="n">Thread</span>
+	<span class="n">log_queue</span><span class="p">:</span> <span class="n">SimpleQueue</span><span class="p">[</span><span class="n">LogRecord</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">]]</span>
+	<span class="n">log_thread</span><span class="p">:</span> <span class="n">Thread</span>
+	<span class="n">lock</span><span class="p">:</span> <span class="n">Lock</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">Lock</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ThreadWorker.send_input_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadWorker.send_input_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">send_input_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ThreadWorker.get_output_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadWorker.get_output_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_output_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ThreadWorker.shutdown">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadWorker.shutdown">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">got</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">15.0</span><span class="p">)</span>
+			<span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+				<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;No response to worker shutdown&quot;</span><span class="p">)</span>
+			<span class="n">unpack_expected</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span> <span class="n">got</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;done&quot;</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">worker_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="mf">15.0</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
+					<span class="s2">&quot;Worker thread didn&#39;t terminate&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_thread</span>
+				<span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ThreadWorker.from_executor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadWorker.from_executor">[docs]</a>
+	<span class="nd">@classmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">from_executor</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">:</span> <span class="n">Executor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThreadWorker</span><span class="p">:</span>
+		<span class="n">engine</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">engine</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span>
+		<span class="n">inq</span> <span class="o">=</span> <span class="n">SimpleQueue</span><span class="p">()</span>
+		<span class="n">outq</span> <span class="o">=</span> <span class="n">SimpleQueue</span><span class="p">()</span>
+		<span class="n">logq</span> <span class="o">=</span> <span class="n">SimpleQueue</span><span class="p">()</span>
+		<span class="n">logthread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+			<span class="n">target</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_sync_log_forever</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span> <span class="n">logq</span><span class="p">)</span>
+		<span class="p">)</span>
+		<span class="n">thred</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+			<span class="n">target</span><span class="o">=</span><span class="n">worker_subthread</span><span class="p">,</span>
+			<span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;lisien worker </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+			<span class="n">args</span><span class="o">=</span><span class="p">(</span>
+				<span class="n">i</span><span class="p">,</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">_prefix</span><span class="p">,</span>
+				<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_branches</span><span class="p">,</span>
+				<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_eternal</span><span class="p">,</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+				<span class="n">inq</span><span class="p">,</span>
+				<span class="n">outq</span><span class="p">,</span>
+				<span class="n">logq</span><span class="p">,</span>
+			<span class="p">),</span>
+		<span class="p">)</span>
+		<span class="n">logthread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+		<span class="n">thred</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+		<span class="n">inq</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;echoImReady&quot;</span><span class="p">)</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">echoed</span> <span class="o">=</span> <span class="n">outq</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+		<span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;No echo from worker thread&quot;</span><span class="p">)</span>
+		<span class="n">unpack_expected</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span> <span class="n">echoed</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;ImReady&quot;</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+			<span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">tick</span><span class="p">),</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span>
+			<span class="n">inq</span><span class="p">,</span>
+			<span class="n">outq</span><span class="p">,</span>
+			<span class="n">thred</span><span class="p">,</span>
+			<span class="n">logq</span><span class="p">,</span>
+			<span class="n">logthread</span><span class="p">,</span>
+		<span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ThreadExecutor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ThreadExecutor">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ThreadExecutor</span><span class="p">(</span><span class="n">Executor</span><span class="p">[</span><span class="n">ThreadWorker</span><span class="p">]):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_make_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThreadWorker</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">ThreadWorker</span><span class="o">.</span><span class="n">from_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ProcessWorker">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessWorker">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessWorker</span><span class="p">(</span><span class="n">Worker</span><span class="p">):</span>
+	<span class="n">last_update</span><span class="p">:</span> <span class="n">Time</span>
+	<span class="n">unpack</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">Value</span><span class="p">]</span>
+	<span class="n">process</span><span class="p">:</span> <span class="n">BaseProcess</span>
+	<span class="n">input_connection</span><span class="p">:</span> <span class="n">Connection</span>
+	<span class="n">output_connection</span><span class="p">:</span> <span class="n">Connection</span>
+	<span class="n">log_queue</span><span class="p">:</span> <span class="n">MPSimpleQueue</span><span class="p">[</span><span class="n">LogRecord</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">]]</span>
+	<span class="n">log_thread</span><span class="p">:</span> <span class="n">Thread</span>
+
+<div class="viewcode-block" id="ProcessWorker.send_input_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessWorker.send_input_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">send_input_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">input_connection</span><span class="o">.</span><span class="n">send_bytes</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ProcessWorker.get_output_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessWorker.get_output_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_output_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_connection</span><span class="o">.</span><span class="n">recv_bytes</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ProcessWorker.shutdown">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessWorker.shutdown">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">input_connection</span><span class="o">.</span><span class="n">send_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_connection</span><span class="o">.</span><span class="n">poll</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+				<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;No response to shutdown&quot;</span><span class="p">)</span>
+			<span class="n">unpack_expected</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_connection</span><span class="o">.</span><span class="n">recv_bytes</span><span class="p">(),</span> <span class="sa">b</span><span class="s2">&quot;done&quot;</span>
+			<span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">kill</span><span class="p">()</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+				<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+					<span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="ProcessWorker.from_executor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessWorker.from_executor">[docs]</a>
+	<span class="nd">@classmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">from_executor</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">executor</span><span class="p">:</span> <span class="n">Executor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessWorker</span><span class="p">:</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span>
+		<span class="n">engine</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">engine</span>
+		<span class="n">ctx</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">_mp_ctx</span>
+		<span class="n">lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+		<span class="k">with</span> <span class="n">lock</span><span class="p">:</span>
+			<span class="n">inpipe_there</span><span class="p">,</span> <span class="n">inpipe_here</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pipe</span><span class="p">(</span><span class="n">duplex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+			<span class="n">outpipe_here</span><span class="p">,</span> <span class="n">outpipe_there</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pipe</span><span class="p">(</span><span class="n">duplex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+			<span class="n">logq</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">SimpleQueue</span><span class="p">()</span>
+			<span class="n">logthread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+				<span class="n">target</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_sync_log_forever</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span> <span class="n">logq</span><span class="p">)</span>
+			<span class="p">)</span>
+			<span class="n">proc</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span>
+				<span class="n">target</span><span class="o">=</span><span class="n">worker_subprocess</span><span class="p">,</span>
+				<span class="n">args</span><span class="o">=</span><span class="p">(</span>
+					<span class="n">i</span><span class="p">,</span>
+					<span class="n">engine</span><span class="o">.</span><span class="n">_prefix</span><span class="p">,</span>
+					<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_branches</span><span class="p">,</span>
+					<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_eternal</span><span class="p">,</span>
+					<span class="n">engine</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+					<span class="n">inpipe_there</span><span class="p">,</span>
+					<span class="n">outpipe_there</span><span class="p">,</span>
+					<span class="n">logq</span><span class="p">,</span>
+				<span class="p">),</span>
+			<span class="p">)</span>
+			<span class="n">logthread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+			<span class="n">proc</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+			<span class="n">inpipe_here</span><span class="o">.</span><span class="n">send_bytes</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;echoImReady&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="ow">not</span> <span class="n">outpipe_here</span><span class="o">.</span><span class="n">poll</span><span class="p">(</span><span class="mf">15.0</span><span class="p">):</span>
+				<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span>
+					<span class="sa">f</span><span class="s2">&quot;Couldn&#39;t connect to worker process </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in 5s&quot;</span>
+				<span class="p">)</span>
+			<span class="n">unpack_expected</span><span class="p">(</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span> <span class="n">outpipe_here</span><span class="o">.</span><span class="n">recv_bytes</span><span class="p">(),</span> <span class="sa">b</span><span class="s2">&quot;ImReady&quot;</span>
+			<span class="p">)</span>
+			<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+				<span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">tick</span><span class="p">),</span>
+				<span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span>
+				<span class="n">proc</span><span class="p">,</span>
+				<span class="n">inpipe_here</span><span class="p">,</span>
+				<span class="n">outpipe_here</span><span class="p">,</span>
+				<span class="n">logq</span><span class="p">,</span>
+				<span class="n">logthread</span><span class="p">,</span>
+			<span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ProcessExecutor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.ProcessExecutor">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessExecutor</span><span class="p">(</span><span class="n">Executor</span><span class="p">[</span><span class="n">ProcessWorker</span><span class="p">]):</span>
+	<span class="n">_mp_ctx</span><span class="p">:</span> <span class="n">ForkContext</span> <span class="o">|</span> <span class="n">SpawnContext</span> <span class="o">|</span> <span class="n">DefaultContext</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+		<span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">get_context</span><span class="p">,</span> <span class="s2">&quot;spawn&quot;</span><span class="p">)</span>
+	<span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_make_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProcessWorker</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">ProcessWorker</span><span class="o">.</span><span class="n">from_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="InterpreterWorker">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterWorker">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InterpreterWorker</span><span class="p">(</span><span class="n">Worker</span><span class="p">):</span>
+	<span class="n">last_update</span><span class="p">:</span> <span class="n">Time</span>
+	<span class="n">unpack</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">bytes</span><span class="p">],</span> <span class="n">Value</span><span class="p">]</span>
+	<span class="n">interpreter</span><span class="p">:</span> <span class="n">Interpreter</span>
+	<span class="n">thread</span><span class="p">:</span> <span class="n">Thread</span>
+	<span class="n">input_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span>
+	<span class="n">output_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">[</span><span class="nb">bytes</span><span class="p">]</span>
+	<span class="n">log_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">[</span><span class="n">LogRecord</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">]]</span>
+	<span class="n">log_thread</span><span class="p">:</span> <span class="n">Thread</span>
+
+<div class="viewcode-block" id="InterpreterWorker.send_input_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterWorker.send_input_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">send_input_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_bytes</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">input_bytes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InterpreterWorker.get_output_bytes">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterWorker.get_output_bytes">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">get_output_bytes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="InterpreterWorker.shutdown">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterWorker.shutdown">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">input_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">echoed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+			<span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+				<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;Worker terp didn&#39;t shut down&quot;</span><span class="p">,</span> <span class="n">echoed</span><span class="p">)</span>
+			<span class="n">unpack_expected</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span> <span class="n">echoed</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;done&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+				<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+					<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;Worker thread didn&#39;t join&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+				<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+					<span class="k">raise</span> <span class="ne">TimeoutError</span><span class="p">(</span><span class="s2">&quot;Worker log thread didn&#39;t join&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">is_running</span><span class="p">():</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="InterpreterWorker.from_executor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterWorker.from_executor">[docs]</a>
+	<span class="nd">@classmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">from_executor</span><span class="p">(</span>
+		<span class="bp">cls</span><span class="p">,</span>
+		<span class="n">executor</span><span class="p">:</span> <span class="n">InterpreterExecutor</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterpreterWorker</span><span class="p">:</span>
+		<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.interpreters</span><span class="w"> </span><span class="kn">import</span> <span class="n">create</span><span class="p">,</span> <span class="n">create_queue</span>
+
+		<span class="n">engine</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">engine</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">_workers</span><span class="p">)</span>
+		<span class="nb">input</span> <span class="o">=</span> <span class="n">create_queue</span><span class="p">()</span>
+		<span class="n">output</span> <span class="o">=</span> <span class="n">create_queue</span><span class="p">()</span>
+		<span class="n">logq</span> <span class="o">=</span> <span class="n">create_queue</span><span class="p">()</span>
+		<span class="n">terp</span> <span class="o">=</span> <span class="n">create</span><span class="p">()</span>
+		<span class="n">logthread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+			<span class="n">target</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_sync_log_forever</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">executor</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span> <span class="n">logq</span><span class="p">)</span>
+		<span class="p">)</span>
+		<span class="n">logthread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+		<span class="nb">input</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;shutdown&quot;</span><span class="p">)</span>
+		<span class="n">terp_args</span> <span class="o">=</span> <span class="p">(</span>
+			<span class="n">worker_subinterpreter</span><span class="p">,</span>
+			<span class="n">i</span><span class="p">,</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">_prefix</span><span class="p">,</span>
+			<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_branches</span><span class="p">,</span>
+			<span class="n">executor</span><span class="o">.</span><span class="n">_worker_last_eternal</span><span class="p">,</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+			<span class="nb">input</span><span class="p">,</span>
+			<span class="n">output</span><span class="p">,</span>
+			<span class="n">logq</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="n">terp_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+			<span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+			<span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+			<span class="s2">&quot;trigger&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+			<span class="s2">&quot;prereq&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+			<span class="s2">&quot;action&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+			<span class="s2">&quot;sys_path&quot;</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+		<span class="p">}</span>
+		<span class="n">terp</span><span class="o">.</span><span class="n">call</span><span class="p">(</span>
+			<span class="o">*</span><span class="n">terp_args</span><span class="p">,</span> <span class="o">**</span><span class="n">terp_kwargs</span>
+		<span class="p">)</span>  <span class="c1"># check that we can run the subthread</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">echoed</span> <span class="o">:=</span> <span class="n">output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;done&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+				<span class="sa">f</span><span class="s2">&quot;Got garbled output from worker terp </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">echoed</span>
+			<span class="p">)</span>
+		<span class="n">workthread</span> <span class="o">=</span> <span class="n">terp</span><span class="o">.</span><span class="n">call_in_thread</span><span class="p">(</span><span class="o">*</span><span class="n">terp_args</span><span class="p">,</span> <span class="o">**</span><span class="n">terp_kwargs</span><span class="p">)</span>
+		<span class="nb">input</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;echoImReady&quot;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="p">(</span><span class="n">echoed</span> <span class="o">:=</span> <span class="n">output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span> <span class="o">!=</span> <span class="sa">b</span><span class="s2">&quot;ImReady&quot;</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+				<span class="sa">f</span><span class="s2">&quot;Got garbled output from worker terp </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">echoed</span>
+			<span class="p">)</span>
+		<span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+			<span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">branch</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">turn</span><span class="p">,</span> <span class="n">engine</span><span class="o">.</span><span class="n">tick</span><span class="p">),</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">unpack</span><span class="p">,</span>
+			<span class="n">terp</span><span class="p">,</span>
+			<span class="n">workthread</span><span class="p">,</span>
+			<span class="nb">input</span><span class="p">,</span>
+			<span class="n">output</span><span class="p">,</span>
+			<span class="n">logq</span><span class="p">,</span>
+			<span class="n">logthread</span><span class="p">,</span>
+		<span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InterpreterExecutor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.futures.InterpreterExecutor">[docs]</a>
+<span class="nd">@define</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InterpreterExecutor</span><span class="p">(</span><span class="n">Executor</span><span class="p">[</span><span class="n">InterpreterWorker</span><span class="p">]):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_make_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InterpreterWorker</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">InterpreterWorker</span><span class="o">.</span><span class="n">from_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">Lisien</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;Zachary Spector.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

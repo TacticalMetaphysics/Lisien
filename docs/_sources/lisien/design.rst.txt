@@ -84,7 +84,7 @@ variable is as follows:
    diverged, and try looking up the value at that time, in that branch. Recurse
    as long as the branch has a parent and we haven't found a value yet.
 
-#. If the branch has no parent -- that is, if it's a "main" branch --
+#. If the branch has no parent -- that is, if it's a "trunk" branch --
    the value was never set, and a ``KeyError`` should be raised.
 
 Keycaches
@@ -115,8 +115,8 @@ keyframe and everything after it.
 Upon startup, Lisien looks for the "current time," which is a triple of
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it's stored in the ``engine.eternal`` keys
-``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the main branch
-(``"trunk"``, unless the user has switched to a different main branch),
+``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the trunk branch
+(``"trunk"``, unless the user has switched to a different trunk branch),
 ``0``, and ``0`` respectively. To decide what to load, Lisien looks for
 the closest keyframe at or before the current time, and the keyframe
 after that, if any. Lisien then loads the earlier keyframe and all facts
