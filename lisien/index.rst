@@ -343,12 +343,25 @@ extend Lisien's capabilities.
 ####
 
 .. automodule:: lisien.db
-    :members:
-    :exclude-members: Batch
+    :exclude-members: Batch, batched
+
+    .. autodecorator:: batched
 
     .. autoclass:: Batch
         :members:
         :exclude-members: cached_properties, serializers
+
+        .. py:attribute:: cached_properties
+            :type: dict[str, functools.cached_property]
+
+            A dictionary mapping table names to their
+            :class:`functools.cached_property` objects.
+
+        .. py:attribute:: serializers
+            :type: dict[str, Callable]
+
+            A dictionary mapping table names to their serializer functions,
+            decorated with :deco:`lisien.db.batched`
 
 -----
  sql
