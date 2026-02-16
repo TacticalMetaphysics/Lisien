@@ -333,9 +333,7 @@ extend Lisien's capabilities.
 #############
 
 .. automodule:: lisien.collections
-
-    .. autoclass:: EngineHandle
-        :members:
+    :members:
 
 ####
  db
