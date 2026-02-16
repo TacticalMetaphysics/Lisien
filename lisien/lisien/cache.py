@@ -15,7 +15,7 @@
 """Versioned in-memory data stores that Lisien data is kept in, once it's loaded.
 
 This module is where we keep the code for storage and retrieval of both
-individual values and keyframes. It makes heavy use of the :mod:`window`
+individual values and keyframes. It makes heavy use of the :mod:`.window`
 module for the underlying data structures.
 
 """
