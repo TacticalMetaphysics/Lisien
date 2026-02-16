@@ -174,105 +174,73 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.character
 
-   .. autoclass:: Character
+    .. autoclass:: Character
+        :members:
+        :exclude-members: stat, place, thing, node, unit, portal, preportal
 
-      .. py:property:: stat
+        .. py:property:: stat
 
-         A mapping of game-time-sensitive data.
+            A mapping of game-time-sensitive data.
 
-      .. py:property:: place
+        .. py:property:: place
 
-         A mapping of :class:`lisien.node.Place` objects in this :class:`Character`.
-         :class:`lisien.node.Thing` objects may be located in these.
+            A mapping of :class:`lisien.node.Place` objects in this :class:`Character`.
+            :class:`lisien.node.Thing` objects may be located in these.
 
-         This mapping has a ``rule`` method for applying new rules to every
-         :class:`Place` here, and a ``rulebook`` property for assigning premade
-         rulebooks.
+            This mapping has a ``rule`` method for applying new rules to every
+            :class:`Place` here, and a ``rulebook`` property for assigning premade
+            rulebooks.
 
-      .. py:property:: thing
+        .. py:property:: thing
 
-         A mapping of :class:`lisien.node.Thing` objects in this :class:`Character`,
-         representing the type of node that can be located in another node--either
-         a :class:`lisien.node.Place` or a :class:`lisien.node.Thing`.
+            A mapping of :class:`lisien.node.Thing` objects in this :class:`Character`,
+            representing the type of node that can be located in another node--either
+            a :class:`lisien.node.Place` or a :class:`lisien.node.Thing`.
 
-         This mapping a ``rule`` method for applying new rules to every
-         :class:`Thing` here, and a ``rulebook`` property for
-         assigning premade rulebooks.
+            This mapping a ``rule`` method for applying new rules to every
+            :class:`Thing` here, and a ``rulebook`` property for
+            assigning premade rulebooks.
 
-      .. py:property:: node
+        .. py:property:: node
 
-         A mapping of :class:`lisien.node.Thing` and :class:`lisien.node.Place`
-         objects in this :class:`Character`.
+            A mapping of :class:`lisien.node.Thing` and :class:`lisien.node.Place`
+            objects in this :class:`Character`.
 
-         This mapping has a ``rule`` method for applying new rules to every
-         :class:`Node` here, and a ``rulebook`` property for
-         assigning premade rulebooks.
+            This mapping has a ``rule`` method for applying new rules to every
+            :class:`Node` here, and a ``rulebook`` property for
+            assigning premade rulebooks.
 
-      .. py:property:: unit
+        .. py:property:: unit
 
-         A two-layer mapping of this character's units in other characters.
+            A two-layer mapping of this character's units in other characters.
 
-         Units are nodes in other characters that are in some sense part of this one. A common example in strategy
-         games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
-         state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
-         general's :class:`Character`, are still under their command, and therefore follow rules defined on the
-         general's ``unit.rule`` subproperty.
+            Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+            games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
+            state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
+            general's :class:`Character`, are still under their command, and therefore follow rules defined on the
+            general's ``unit.rule`` subproperty.
 
-         The outer layer is the name of the character. The inner layer is the name
-         of the unit, which may be a :class:`lisien.node.Place` or a
-         :class:`lisien.node.Thing`.
+            The outer layer is the name of the character. The inner layer is the name
+            of the unit, which may be a :class:`lisien.node.Place` or a
+            :class:`lisien.node.Thing`.
 
-      .. py:property:: portal
+        .. py:property:: portal
 
-         A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by origin and destination
+            A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by origin and destination
 
-         Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
-         assigning premade rulebooks.
+            Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+            assigning premade rulebooks.
 
-         Aliases:  ``adj``, ``edge``, ``succ``
+            Aliases:  ``adj``, ``edge``, ``succ``
 
-      .. py:property:: preportal
+        .. py:property:: preportal
 
-         A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by destination and origin
+            A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by destination and origin
 
-         Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
-         assigning premade rulebooks.
+            Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
+            assigning premade rulebooks.
 
-         Alias: ``pred``
-
-      .. automethod:: add_portal
-
-      .. automethod:: new_portal
-
-      .. automethod:: add_portals_from
-
-      .. automethod:: add_thing
-
-      .. automethod:: new_thing
-
-      .. automethod:: add_things_from
-
-      .. automethod:: add_place
-
-      .. automethod:: add_places_from
-
-      .. automethod:: new_place
-
-      .. automethod:: historical
-
-      .. automethod:: place2thing
-
-      .. automethod:: portals
-
-      .. automethod:: remove_portal
-
-      .. automethod:: remove_unit
-
-      .. automethod:: thing2place
-
-      .. automethod:: units
-
-      .. automethod:: facade
+            Alias: ``pred``
 
 ######
  node
@@ -280,41 +248,14 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.node
 
-   .. autoclass:: lisien.node.Node
+    .. autoclass:: lisien.node.Node
+        :members:
 
-      .. autoproperty:: leader
+    .. autoclass:: Place
+        :members:
 
-      .. autoproperty:: portal
-
-      .. autoproperty:: preportal
-
-      .. autoproperty:: content
-
-      .. automethod:: contents
-
-      .. automethod:: successors
-
-      .. automethod:: predecessors
-
-      .. automethod:: shortest_path
-
-      .. automethod:: shortest_path_length
-
-      .. automethod:: path_exists
-
-      .. automethod:: new_portal
-
-      .. automethod:: new_thing
-
-      .. automethod:: historical
-
-      .. automethod:: delete
-
-   .. autoclass:: Place
-      :members:
-
-   .. autoclass:: Thing
-      :members:
+    .. autoclass:: Thing
+        :members:
 
 ########
  portal
@@ -322,29 +263,25 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.portal
 
-   .. autoclass:: Portal
+    .. autoclass:: Portal
+        :members:
+        :exclude-members: origin, destination, character, engine
 
-      .. py:attribute:: origin
+        .. py:attribute:: origin
 
-         The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads out from
+            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads out from
 
-      .. py:attribute:: destination
+        .. py:attribute:: destination
 
-         The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads into
+            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads into
 
-      .. py:property:: character
+        .. py:property:: character
 
-         The :class:`lisien.character.Character` that this is in
+            The :class:`lisien.character.Character` that this is in
 
-      .. py:property:: engine
+        .. py:property:: engine
 
-         The :class:`lisien.engine.Engine` that this is in
-
-      .. autoproperty:: reciprocal
-
-      .. automethod:: historical
-
-      .. automethod:: delete
+            The :class:`lisien.engine.Engine` that this is in
 
 ######
  rule
@@ -364,6 +301,16 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.facade
 
+#######
+ proxy
+#######
+
+.. automodule:: lisien.proxy.manager
+    :members:
+
+.. automodule:: lisien.proxy.handle
+    :members:
+
 ===========
  Internals
 ===========
@@ -377,8 +324,7 @@ extend Lisien's capabilities.
 #######
 
 .. automodule:: lisien.cache
-
-    .. autoclass:: Cache
+    :members:
 
 #############
  collections
@@ -386,29 +332,15 @@ extend Lisien's capabilities.
 
 .. automodule:: lisien.collections
 
-    .. autoclass:: StringStore
-
-    .. autoclass:: FunctionStore
+    .. autoclass:: EngineHandle
+        :members:
 
 ####
  db
 ####
 
 .. automodule:: lisien.db
-
-    .. autoclass:: AbstractDatabaseConnector
-
-        .. automethod:: load_xml
-
-        .. automethod:: to_xml
-
-        .. automethod:: write_xml
-
-    .. autoclass:: ThreadedDatabaseConnector
-
-    .. autoclass:: PythonDatabaseConnector
-
-    .. autoclass:: NullDatabaseConnector
+    :members:
 
 -----
  sql
@@ -431,13 +363,43 @@ extend Lisien's capabilities.
 #########
 
 .. automodule:: lisien.futures
+    :members:
+    :exclude-members: Executor, Worker
 
     .. autoclass:: Executor
 
     .. autoclass:: Worker
 
 #######
+ query
+#######
+
+.. automodule:: lisien.query
+    :members:
+
+#######
  types
 #######
 
 .. automodule:: lisien.types
+    :members:
+
+######
+ util
+######
+
+.. automodule:: lisien.util
+    :members:
+
+########
+ window
+########
+
+.. automodule:: lisien.window
+    :members:
+
+######
+ wrap
+######
+.. automodule:: lisien.wrap
+    :members:
