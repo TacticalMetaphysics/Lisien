@@ -33,7 +33,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         A tuple-like object holding the *current* ``branch, turn, tick`` --
         which may not be the same as when last you accessed ``time``.
 
-        To register a function ``time_passes`` when the time changes, pass
+        To register a function ``time_passes`` to be called when the time changes, pass
         it to ``time.connect``::
 
             engine.time.connect(time_passes)
