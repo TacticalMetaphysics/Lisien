@@ -358,12 +358,6 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
     .. autoclass:: Rulebook
         :members:
 
-#######
- query
-#######
-
-.. automodule:: lisien.query
-
 ########
  facade
 ########
