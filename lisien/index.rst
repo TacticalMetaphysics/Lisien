@@ -139,6 +139,12 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         A module of, and decorator for, extension methods to be added to an
         :class:`Engine` object.
 
+        Decorated functions need to take at least one argument, because the
+        :class:`Engine` will be passed in as that initial argument. They'll
+        appear in ``method.py`` as if they were normal functions, but that's
+        not how they act when :class:`Engine` is running; they act like
+        the standard :type:`types.MethodType` then.
+
     .. py:property:: function
 
         A module of, and decorator for, generic functions.
