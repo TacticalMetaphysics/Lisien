@@ -405,7 +405,7 @@ extend Lisien's capabilities.
 .. automodule:: lisien.proxy.routine
     :members:
 
-.. automodule:: lisien.proxy.worker_subinterpreter
+.. automodule:: lisien.proxy.routine.worker_subinterpreter
     :members:
 
 #######
