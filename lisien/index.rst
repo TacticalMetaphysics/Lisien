@@ -352,8 +352,11 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.rule
 
-   .. autoclass:: Rule
-      :members:
+    .. autoclass:: Rule
+        :members:
+
+    .. autoclass:: Rulebook
+        :members:
 
 #######
  query
