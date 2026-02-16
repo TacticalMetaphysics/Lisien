@@ -69,7 +69,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
     .. py:property:: rulebook
 
-        A mapping of :class:`lisien.rulebook.Rulebook` objects that exist.
+        A mapping of :class:`lisien.rule.Rulebook` objects that exist.
 
         Rulebooks must be assigned to entities' ``rulebook`` property before
         they will run, but each entity gets its own rulebook by default.
@@ -78,7 +78,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
         Rules created with an entity's ``@rule`` decorator go on the end of
         the entity's rulebook. You can reorder that rulebook the same way as
         a Python list, or put :class:`lisien.rule.Rule` objects in it yourself.
-        For convenience, :class:`lisien.rulebook.Rulebook` will interpret
+        For convenience, :class:`lisien.rule.Rulebook` will interpret
         the names of rules as if they were the :class:`lisien.rule.Rule`
         by that name.
 
