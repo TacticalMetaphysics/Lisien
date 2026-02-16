@@ -114,7 +114,7 @@ if TYPE_CHECKING:
 	from .facade import EngineFacade
 	from .node import Thing
 	from .portal import Portal
-	from .rule import Rule, RuleBook
+	from .rule import Rule, Rulebook
 
 
 type KeyHint = (
@@ -2891,7 +2891,7 @@ class AbstractEngine(ABC):
 	@abstractmethod
 	def rulebook(
 		self,
-	) -> MutableMapping[KeyHint | RulebookName, "RuleBook"]: ...
+	) -> MutableMapping[KeyHint | RulebookName, "Rulebook"]: ...
 
 	@property
 	@abstractmethod
