@@ -119,29 +119,33 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
     .. py:property:: trigger
 
-         A mapping of, and decorator for, functions that might trigger a rule.
+        A module of, and decorator for, functions that might trigger a rule.
 
-         Decorated functions get stored in the mapping as well as a file, so they can be
-         loaded back in when the game is resumed.
+        Decorated functions get stored in the module, so they can be
+        loaded back in when the game is resumed.
 
     .. py:property:: prereq
 
-         A mapping of, and decorator for, functions a rule might require to return True for it to run.
+        A module of, and decorator for, functions a rule might require to return
+        True for it to run.
 
     .. py:property:: action
 
-         A mapping of, and decorator for, functions that might manipulate the world state as a result of a rule running.
+        A module of, and decorator for, functions that might manipulate the
+        world state as a result of a rule running.
 
     .. py:property:: method
 
-         A mapping of, and decorator for, extension methods to be added to the engine object.
+        A module of, and decorator for, extension methods to be added to an
+        :class:`Engine` object.
 
-    .. py:property:: Engine.function
+    .. py:property:: function
 
-         A mapping of, and decorator for, generic functions.
+        A module of, and decorator for, generic functions.
 
-         Only functions stored in one of these attributes can be used by Lisien's
-         workers. :attr:`function` will do, if none of the others make sense.
+        Only functions stored in one of these attributes can be used for
+        parallel processing. :attr:`function` will do, if none of the others
+        make sense.
 
     .. py:property:: rule
 
