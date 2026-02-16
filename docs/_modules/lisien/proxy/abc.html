@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lisien.proxy.abc &#8212; Lisien 0.23.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lisien.proxy.abc</h1><div class="highlight"><pre>
+<span></span><span class="c1"># This file is part of Lisien, a framework for life simulation games.</span>
+<span class="c1"># Copyright (c) Zachary Spector, public@zacharyspector.com</span>
+<span class="c1">#</span>
+<span class="c1"># This program is free software: you can redistribute it and/or modify</span>
+<span class="c1"># it under the terms of the GNU Affero General Public License as published by</span>
+<span class="c1"># the Free Software Foundation, version 3.</span>
+<span class="c1">#</span>
+<span class="c1"># This program is distributed in the hope that it will be useful,</span>
+<span class="c1"># but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="c1"># MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the</span>
+<span class="c1"># GNU Affero General Public License for more details.</span>
+<span class="c1">#</span>
+<span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
+<span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+	<span class="n">TYPE_CHECKING</span><span class="p">,</span>
+	<span class="n">ClassVar</span><span class="p">,</span>
+	<span class="n">Iterator</span><span class="p">,</span>
+	<span class="n">Literal</span><span class="p">,</span>
+	<span class="n">MutableMapping</span><span class="p">,</span>
+	<span class="n">MutableSequence</span><span class="p">,</span>
+	<span class="n">Optional</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">define</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">blinker</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..types</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+	<span class="n">AttrSignal</span><span class="p">,</span>
+	<span class="n">FuncName</span><span class="p">,</span>
+	<span class="n">Key</span><span class="p">,</span>
+	<span class="n">KeyHint</span><span class="p">,</span>
+	<span class="n">RulebookName</span><span class="p">,</span>
+	<span class="n">RulebookPriority</span><span class="p">,</span>
+	<span class="n">RuleName</span><span class="p">,</span>
+	<span class="n">RuleNeighborhood</span><span class="p">,</span>
+	<span class="n">Value</span><span class="p">,</span>
+	<span class="n">ValueHint</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..wrap</span><span class="w"> </span><span class="kn">import</span> <span class="n">DictWrapper</span><span class="p">,</span> <span class="n">ListWrapper</span><span class="p">,</span> <span class="n">SetWrapper</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+	<span class="kn">from</span><span class="w"> </span><span class="nn">.character</span><span class="w"> </span><span class="kn">import</span> <span class="n">CharacterProxy</span><span class="p">,</span> <span class="n">PlaceProxy</span><span class="p">,</span> <span class="n">PortalProxy</span><span class="p">,</span> <span class="n">ThingProxy</span>
+	<span class="kn">from</span><span class="w"> </span><span class="nn">.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProxy</span><span class="p">,</span> <span class="n">FuncStoreProxy</span><span class="p">,</span> <span class="n">RuleMapProxyDescriptor</span>
+
+
+<div class="viewcode-block" id="CachingProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.CachingProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CachingProxy</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract class for proxies to Lisien entities or mappings thereof&quot;&quot;&quot;</span>
+
+	<span class="nd">@property</span>
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_worker_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such key: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_get_munge</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+<div class="viewcode-block" id="CachingProxy.setdefault">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.CachingProxy.setdefault">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">setdefault</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">ValueHint</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such key&quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+			<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span>
+			<span class="k">return</span> <span class="n">Value</span><span class="p">(</span><span class="n">default</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
+
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">ValueHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_set_item</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">Value</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_set_munge</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">Value</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such key: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_del_item</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_apply_delta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;_apply_delta&quot;</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache_get_munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">v</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache_set_munge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">return</span> <span class="n">v</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_set_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Abstract method&quot;</span><span class="p">)</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_del_item</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Abstract method&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="CachingEntityProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.CachingEntityProxy">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CachingEntityProxy</span><span class="p">(</span><span class="n">CachingProxy</span><span class="p">,</span> <span class="n">AttrSignal</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Abstract class for proxy objects representing Lisien entities&quot;&quot;&quot;</span>
+
+	<span class="n">character</span><span class="p">:</span> <span class="n">CharacterProxy</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">engine</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache_get_munge</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="n">Key</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">Value</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DictWrapper</span> <span class="o">|</span> <span class="n">ListWrapper</span> <span class="o">|</span> <span class="n">SetWrapper</span> <span class="o">|</span> <span class="n">Value</span><span class="p">:</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">DictWrapper</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">ListWrapper</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">SetWrapper</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">v</span></div>
+
+
+
+<div class="viewcode-block" id="FuncListProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.FuncListProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FuncListProxy</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">rule_proxy</span><span class="p">:</span> <span class="n">RuleProxy</span><span class="p">,</span>
+		<span class="n">key</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;triggers&quot;</span><span class="p">,</span> <span class="s2">&quot;prereqs&quot;</span><span class="p">,</span> <span class="s2">&quot;actions&quot;</span><span class="p">],</span>
+	<span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">rule_proxy</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="p">()))</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="p">()))</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">][</span><span class="n">item</span><span class="p">]</span>
+
+<div class="viewcode-block" id="FuncListProxy.index">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.FuncListProxy.index">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">FuncProxy</span><span class="p">,</span>
+		<span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+		<span class="n">stop</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="o">...</span> <span class="o">=</span> <span class="o">...</span><span class="p">,</span>
+	<span class="p">):</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_store</span><span class="p">(),</span> <span class="n">value</span><span class="p">)</span>
+		<span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;start&quot;</span><span class="p">:</span> <span class="n">start</span><span class="p">}</span>
+		<span class="k">if</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="o">...</span><span class="p">:</span>
+			<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;stop&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stop</span>
+		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_handle_send</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="sa">f</span><span class="s2">&quot;set_rule_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+			<span class="o">**</span><span class="p">{</span>
+				<span class="s2">&quot;rule&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+				<span class="s2">&quot;branching&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_nominate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">]),</span>
+			<span class="p">},</span>
+		<span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_store</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FuncStoreProxy</span><span class="p">:</span>
+		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">FuncProxy</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_store</span><span class="p">(),</span> <span class="n">value</span><span class="p">)</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+		<span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_handle_send</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_handle_send</span><span class="p">()</span>
+
+<div class="viewcode-block" id="FuncListProxy.insert">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.FuncListProxy.insert">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">FuncProxy</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_store</span><span class="p">(),</span> <span class="n">value</span><span class="p">)</span>
+		<span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_store</span><span class="p">(),</span> <span class="n">value</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+			<span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_store</span><span class="p">(),</span> <span class="n">value</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_handle_send</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FuncListProxyDescriptor</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_key</span> <span class="o">=</span> <span class="n">key</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+		<span class="n">attname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="si">}</span><span class="s2">_proxy&quot;</span>
+		<span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">):</span>
+			<span class="nb">setattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">,</span> <span class="n">FuncListProxy</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">))</span>
+		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">attname</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+		<span class="n">to_set</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+				<span class="n">to_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+			<span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+				<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Need FuncListProxy or str, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">to_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+					<span class="nb">getattr</span><span class="p">(</span>
+						<span class="nb">getattr</span><span class="p">(</span><span class="n">instance</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">&quot;s&quot;</span><span class="p">)),</span>
+						<span class="n">v</span><span class="p">,</span>
+					<span class="p">)</span>
+				<span class="p">)</span>
+		<span class="n">instance</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_set</span>
+		<span class="bp">self</span><span class="o">.</span><span class="fm">__get__</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span><span class="o">.</span><span class="n">_handle_send</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="RuleProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RuleProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleProxy</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+	<span class="n">triggers</span> <span class="o">=</span> <span class="n">FuncListProxyDescriptor</span><span class="p">(</span><span class="s2">&quot;triggers&quot;</span><span class="p">)</span>
+	<span class="n">prereqs</span> <span class="o">=</span> <span class="n">FuncListProxyDescriptor</span><span class="p">(</span><span class="s2">&quot;prereqs&quot;</span><span class="p">)</span>
+	<span class="n">actions</span> <span class="o">=</span> <span class="n">FuncListProxyDescriptor</span><span class="p">(</span><span class="s2">&quot;actions&quot;</span><span class="p">)</span>
+
+	<span class="nd">@staticmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_nominate</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">whatever</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">whatever</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">):</span>
+				<span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">whatever</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+			<span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">whatever</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">):</span>
+				<span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">whatever</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">whatever</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="n">whatever</span>
+				<span class="n">ret</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">whatever</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">ret</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rules_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleNeighborhood</span><span class="p">:</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhood_cache</span><span class="p">:</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhood_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s2">&quot;get_rule_neighborhood&quot;</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+			<span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhood_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+	<span class="nd">@neighborhood</span><span class="o">.</span><span class="n">setter</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">neighborhood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleNeighborhood</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="s2">&quot;set_rule_neighborhood&quot;</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">neighborhood</span><span class="o">=</span><span class="n">v</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_neighborhood_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trigger</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="n">FuncProxy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FuncProxy</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trigger</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">trigger</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">trigger</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="p">,</span> <span class="n">trigger</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">prereq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prereq</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="n">FuncProxy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FuncProxy</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">prereqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prereq</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prereq</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">prereq</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">prereq</span><span class="p">,</span> <span class="n">prereq</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">callable</span> <span class="o">|</span> <span class="n">FuncProxy</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FuncProxy</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">action</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">action</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">EngineProxy</span><span class="p">,</span> <span class="n">rulename</span><span class="p">:</span> <span class="n">RuleName</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">rulename</span>
+		<span class="k">if</span> <span class="n">rulename</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">engine</span><span class="o">.</span><span class="n">_rules_cache</span><span class="p">:</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s2">&quot;new_empty_rule&quot;</span><span class="p">,</span> <span class="n">rule</span><span class="o">=</span><span class="n">rulename</span><span class="p">)</span>
+			<span class="n">engine</span><span class="o">.</span><span class="n">_rules_cache</span><span class="p">[</span><span class="n">rulename</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span></div>
+
+
+
+<div class="viewcode-block" id="RuleBookProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RuleBookProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleBookProxy</span><span class="p">(</span><span class="n">MutableSequence</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]:</span>
+		<span class="n">no_rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">zero_prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">no_rules</span><span class="p">,</span> <span class="n">zero_prio</span><span class="p">)</span>
+		<span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookPriority</span><span class="p">:</span>
+		<span class="n">no_rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">zero_prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">no_rules</span><span class="p">,</span> <span class="n">zero_prio</span><span class="p">)</span>
+		<span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_worker_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">EngineProxy</span><span class="p">,</span> <span class="n">bookname</span><span class="p">:</span> <span class="n">RulebookName</span><span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span> <span class="o">=</span> <span class="n">engine</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">bookname</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">_rule_obj_cache</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">RulebookName</span><span class="p">]:</span>
+		<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleProxy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+			<span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+		<span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleProxy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleProxy</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">RuleProxy</span><span class="p">):</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">_name</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;set_rulebook_rule&quot;</span><span class="p">,</span>
+			<span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+			<span class="n">rule</span><span class="o">=</span><span class="n">v</span><span class="p">,</span>
+			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;del_rulebook_rule&quot;</span><span class="p">,</span>
+			<span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RuleBookProxy.insert">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RuleBookProxy.insert">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleProxy</span> <span class="o">|</span> <span class="nb">str</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">RuleProxy</span><span class="p">):</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">_name</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;ins_rulebook_rule&quot;</span><span class="p">,</span>
+			<span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+			<span class="n">rule</span><span class="o">=</span><span class="n">v</span><span class="p">,</span>
+			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="n">j</span><span class="p">])</span></div>
+</div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleFollowerProxyDescriptor</span><span class="p">:</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__set__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="n">val</span><span class="p">:</span> <span class="n">RuleBookProxy</span> <span class="o">|</span> <span class="n">RuleMapProxy</span><span class="p">):</span>
+		<span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">RuleBookProxy</span><span class="p">):</span>
+			<span class="n">rb</span> <span class="o">=</span> <span class="n">val</span>
+			<span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">RuleMapProxy</span><span class="p">):</span>
+			<span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">:</span>
+				<span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">[</span><span class="n">val</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleBookProxy</span><span class="p">(</span>
+					<span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
+				<span class="p">)</span>
+				<span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
+		<span class="n">inst</span><span class="o">.</span><span class="n">_set_rulebook_name</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="s2">&quot;send&quot;</span><span class="p">):</span>
+			<span class="n">inst</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">inst</span><span class="p">,</span> <span class="n">rulebook</span><span class="o">=</span><span class="n">val</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="RulebookProxyDescriptor">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RulebookProxyDescriptor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RulebookProxyDescriptor</span><span class="p">(</span><span class="n">RuleFollowerProxyDescriptor</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Descriptor that makes the corresponding RuleBookProxy if needed&quot;&quot;&quot;</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">,</span> <span class="bp">cls</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">inst</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span> <span class="bp">self</span>
+		<span class="k">return</span> <span class="n">inst</span><span class="o">.</span><span class="n">_get_rulebook_proxy</span><span class="p">()</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleMapProxyDescriptor</span><span class="p">(</span><span class="n">RuleFollowerProxyDescriptor</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="fm">__get__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instance</span><span class="p">,</span> <span class="n">owner</span><span class="p">):</span>
+		<span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span> <span class="bp">self</span>
+		<span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s2">&quot;_rule_map_proxy&quot;</span><span class="p">):</span>
+			<span class="k">return</span> <span class="n">instance</span><span class="o">.</span><span class="n">_rule_map_proxy</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">name</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">_get_rulebook_name</span><span class="p">()</span>
+			<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+				<span class="n">name</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">_get_default_rulebook_name</span><span class="p">()</span>
+			<span class="n">proxy</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">_rule_map_proxy</span> <span class="o">=</span> <span class="n">RuleMapProxy</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">proxy</span>
+
+
+<div class="viewcode-block" id="RuleFollowerProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RuleFollowerProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleFollowerProxy</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+	<span class="n">rule</span><span class="p">:</span> <span class="n">ClassVar</span> <span class="o">=</span> <span class="n">RuleMapProxyDescriptor</span><span class="p">()</span>
+	<span class="n">rulebook</span><span class="p">:</span> <span class="n">ClassVar</span> <span class="o">=</span> <span class="n">RulebookProxyDescriptor</span><span class="p">()</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_default_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookName</span><span class="p">:</span>
+		<span class="k">pass</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookName</span><span class="p">:</span>
+		<span class="k">pass</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_worker_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_get_rulebook_proxy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleBookProxy</span><span class="p">:</span>
+		<span class="k">try</span><span class="p">:</span>
+			<span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_rulebook_name</span><span class="p">()</span>
+		<span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+			<span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_default_rulebook_name</span><span class="p">()</span>
+		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebook_obj_cache</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebook_obj_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleBookProxy</span><span class="p">(</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">name</span>
+			<span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebook_obj_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+	<span class="nd">@abstractmethod</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rb</span><span class="p">:</span> <span class="n">RulebookName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="k">pass</span></div>
+
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FuncProxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+	<span class="vm">__slots__</span> <span class="o">=</span> <span class="s2">&quot;store&quot;</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">store</span><span class="p">:</span> <span class="n">FuncStoreProxy</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">FuncName</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">store</span> <span class="o">=</span> <span class="n">store</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">func</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Value</span><span class="p">,</span>
+		<span class="n">cb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Value</span><span class="p">],</span>
+	<span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="s2">&quot;call_stored_function&quot;</span><span class="p">,</span>
+			<span class="n">store</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">_store</span><span class="p">,</span>
+			<span class="n">func</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">_store</span> <span class="o">==</span> <span class="s2">&quot;method&quot;</span> <span class="k">else</span> <span class="n">args</span><span class="p">,</span>
+			<span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+			<span class="n">cb</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_upd_and_cb</span><span class="p">,</span> <span class="n">cb</span><span class="o">=</span><span class="n">cb</span><span class="p">),</span>
+		<span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">store</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="RuleMapProxy">
+<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.abc.RuleMapProxy">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RuleMapProxy</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">Signal</span><span class="p">):</span>
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]:</span>
+		<span class="n">no_rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">zero_prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">no_rules</span><span class="p">,</span> <span class="n">zero_prio</span><span class="p">)</span>
+		<span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RulebookPriority</span><span class="p">:</span>
+		<span class="n">no_rules</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">zero_prio</span> <span class="o">=</span> <span class="n">RulebookPriority</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">no_rules</span><span class="p">,</span> <span class="n">zero_prio</span><span class="p">)</span>
+		<span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+
+	<span class="nd">@priority</span><span class="o">.</span><span class="n">setter</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="s2">&quot;set_rulebook_priority&quot;</span><span class="p">,</span> <span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="n">v</span>
+		<span class="p">)</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">:</span>
+			<span class="n">rules</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">rules</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">([],</span> <span class="n">v</span><span class="p">)</span>
+
+	<span class="nd">@property</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">engine</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EngineProxy</span><span class="p">:</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">engine</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="nf">_worker_check</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">entity</span><span class="p">:</span> <span class="n">CharacterProxy</span> <span class="o">|</span> <span class="n">ThingProxy</span> <span class="o">|</span> <span class="n">PlaceProxy</span> <span class="o">|</span> <span class="n">PortalProxy</span><span class="p">,</span>
+		<span class="n">rulebook_name</span><span class="p">:</span> <span class="n">RulebookName</span><span class="p">,</span>
+	<span class="p">):</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">entity</span> <span class="o">=</span> <span class="n">entity</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">rulebook_name</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span> <span class="o">=</span> <span class="n">entity</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_obj_cache</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">RuleName</span><span class="p">]:</span>
+		<span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+		<span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">callable</span> <span class="o">|</span> <span class="n">FuncProxy</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+		<span class="n">always</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+		<span class="n">neighborhood</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">RuleNeighborhood</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">callable</span> <span class="o">|</span> <span class="n">RuleProxy</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">action</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">always</span><span class="o">=</span><span class="n">always</span><span class="p">,</span> <span class="n">neighborhood</span><span class="o">=</span><span class="n">neighborhood</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">FuncProxy</span><span class="p">):</span>
+			<span class="n">rule_name</span> <span class="o">=</span> <span class="n">RuleName</span><span class="p">(</span><span class="n">action</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+			<span class="bp">self</span><span class="p">[</span><span class="n">rule_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">action</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+				<span class="n">action</span> <span class="o">=</span> <span class="n">action</span><span class="o">.</span><span class="vm">__name__</span>
+			<span class="bp">self</span><span class="p">[</span><span class="n">action</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">action</span><span class="p">]</span>
+		<span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">action</span><span class="p">]</span>
+		<span class="k">if</span> <span class="n">neighborhood</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">ret</span><span class="o">.</span><span class="n">neighborhood</span> <span class="o">=</span> <span class="n">neighborhood</span>
+		<span class="k">if</span> <span class="n">always</span><span class="p">:</span>
+			<span class="n">ret</span><span class="o">.</span><span class="n">triggers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">trigger</span><span class="o">.</span><span class="n">truth</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">ret</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RuleProxy</span><span class="p">:</span>
+		<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">:</span>
+				<span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleProxy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_proxy_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+		<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Rule not assigned to rulebook&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">RuleProxy</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">FuncProxy</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">:</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span><span class="s2">&quot;new_empty_rulebook&quot;</span><span class="p">,</span> <span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rulebooks_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">([],</span> <span class="mf">0.0</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="o">.</span><span class="n">_set_rulebook_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">RuleProxy</span><span class="p">):</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">_name</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_obj_cache</span><span class="p">:</span>
+				<span class="n">rp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_obj_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">RuleProxy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">rp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_rule_obj_cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+			<span class="n">rp</span><span class="o">.</span><span class="n">actions</span> <span class="o">=</span> <span class="n">v</span>
+			<span class="n">v</span> <span class="o">=</span> <span class="n">k</span>
+		<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+			<span class="k">return</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;set_rulebook_rule&quot;</span><span class="p">,</span>
+			<span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+			<span class="n">rule</span><span class="o">=</span><span class="n">v</span><span class="p">,</span>
+			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">v</span><span class="p">)</span>
+
+	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
+		<span class="n">i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">RuleName</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+		<span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Rule not set in rulebook&quot;</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
+			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;del_rulebook_rule&quot;</span><span class="p">,</span>
+			<span class="n">rulebook</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+			<span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">,</span>
+			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+		<span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Lisien</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../elide/index.html">Elide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;Zachary Spector.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

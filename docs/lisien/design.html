@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Design &#8212; Lisien 0.23.2 documentation</title>
+    <title>Design &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
-    <script src="../_static/documentation_options.js?v=b4d3b1f5"></script>
+    <script src="../_static/documentation_options.js?v=10ab35ec"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -74,7 +74,7 @@ same branch. When looking up data for use in simulation code, a
 different data structure is used.</p>
 <p><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.window.TurnDict</span></code> holds a variable’s value for
 each turn in a pair of stacks, which in turn hold the basic
-<code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.window.WindowDict</span></code>, a pair of stacks kept in
+<a class="reference internal" href="index.html#lisien.window.WindowDict" title="lisien.window.WindowDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.window.WindowDict</span></code></a>, a pair of stacks kept in
 order, tracking changes in a variable each tick. Popping from one stack
 and appending to the other is the default way to look up the value at a
 given time. As values are stored in pairs, with their tick as the
@@ -99,7 +99,7 @@ from the keyframe, raising <code class="docutils literal notranslate"><span clas
 branch, look up the branch’s parent and the time at which the branches
 diverged, and try looking up the value at that time, in that branch. Recurse
 as long as the branch has a parent and we haven’t found a value yet.</p></li>
-<li><p>If the branch has no parent – that is, if it’s a “main” branch –
+<li><p>If the branch has no parent – that is, if it’s a “trunk” branch –
 the value was never set, and a <code class="docutils literal notranslate"><span class="pre">KeyError</span></code> should be raised.</p></li>
 </ol>
 <section id="keycaches">
@@ -126,8 +126,8 @@ keyframe and everything after it.</p>
 <p>Upon startup, Lisien looks for the “current time,” which is a triple of
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it’s stored in the <code class="docutils literal notranslate"><span class="pre">engine.eternal</span></code> keys
-<code class="docutils literal notranslate"><span class="pre">&quot;branch&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;tick&quot;</span></code>, defaulting to the main branch
-(<code class="docutils literal notranslate"><span class="pre">&quot;trunk&quot;</span></code>, unless the user has switched to a different main branch),
+<code class="docutils literal notranslate"><span class="pre">&quot;branch&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;tick&quot;</span></code>, defaulting to the trunk branch
+(<code class="docutils literal notranslate"><span class="pre">&quot;trunk&quot;</span></code>, unless the user has switched to a different trunk branch),
 <code class="docutils literal notranslate"><span class="pre">0</span></code>, and <code class="docutils literal notranslate"><span class="pre">0</span></code> respectively. To decide what to load, Lisien looks for
 the closest keyframe at or before the current time, and the keyframe
 after that, if any. Lisien then loads the earlier keyframe and all facts
