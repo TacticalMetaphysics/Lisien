@@ -361,6 +361,20 @@ extend Lisien's capabilities.
 
     .. autoclass:: ParquetDatabaseConnector
 
+######
+ enum
+######
+
+.. automodule:: lisien.enum
+    :members:
+
+#####
+ exc
+#####
+
+.. automodule:: lisien.exc
+    :members:
+
 #########
  futures
 #########
