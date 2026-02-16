@@ -310,8 +310,11 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
     .. automodule:: lisien.proxy.manager
         :members:
 
-    .. automodule:: lisien.proxy.handle
-        :members:
+--------
+ handle
+--------
+.. automodule:: lisien.proxy.handle
+    :members:
 
 ===========
  Internals
