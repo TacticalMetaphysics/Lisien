@@ -123,6 +123,11 @@ class ParquetDatabaseConnector(ThreadedDatabaseConnector):
 	db_type: ClassVar = "parquetdb"
 	engine: AbstractEngine
 	path: Path = field(converter=Path)
+	"""The directory that all the database tables are in
+	
+	We'll put subdirectories full of Parquet files here.
+	
+	"""
 
 	def pack(
 		self,

@@ -19,7 +19,6 @@ ordinary method calls.
 
 from __future__ import annotations
 
-import threading
 from importlib import import_module
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING, Handler, Logger
 from re import match

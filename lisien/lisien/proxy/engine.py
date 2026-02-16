@@ -44,7 +44,6 @@ from typing import (
 
 import networkx as nx
 from attrs import Converter, define, field
-from blinker import Signal
 
 try:
 	import msgpack

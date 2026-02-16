@@ -22,6 +22,7 @@ from lisien.db.sql import SQLAlchemyDatabaseConnector
 
 from .. import Engine
 from ..query import windows_intersection
+from lisien.db.sql import SQLAlchemyDatabaseConnector
 from .data import DATA_DIR
 
 pytestmark = [pytest.mark.slow, pytest.mark.big]

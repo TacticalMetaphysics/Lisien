@@ -14,18 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Query builder, for queries about the game's history
 
-Sometimes you want to know when some stat of a lisien entity had a particular
-value. To find out, construct a historical query and pass it to
-``Engine.turns_when``, like this::
-
-	physical = engine.character['physical']
-	that = physical.thing['that']
-	hist_loc = that.historical('location')
-	print(list(engine.turns_when(hist_loc == 'there')))
-
-You'll get the turns when ``that`` was ``there``.
-
-Other comparison operators like ``>`` and ``<`` work as well.
+See :meth:`lisien.engine.Engine.turns_when` for usage instructions.
 
 """
 

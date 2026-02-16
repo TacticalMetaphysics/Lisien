@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 	from queue import Queue
 
 from lisien.exc import OutOfTimelineError
-from lisien.proxy import EngineHandle
+from lisien.proxy.handle import EngineHandle
 from lisien.proxy.engine import EngineProxy, WorkerLogHandler, _finish_packing
 
 
