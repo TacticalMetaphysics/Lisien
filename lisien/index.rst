@@ -119,41 +119,15 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
          The state of the randomizer is saved here under the key ``"rando_state"``.
          It's a bad idea to set that directly; instead, set :attr:`random_seed`.
 
-    .. py:property:: trigger
+    .. autoattribute:: trigger
 
-        A module of, and decorator for, functions that might trigger a rule.
+    .. autoattribute:: prereq
 
-        Decorated functions get stored in the module, so they can be
-        loaded back in when the game is resumed.
+    .. autoattribute:: action
 
-    .. py:property:: prereq
+    .. autoattribute:: method
 
-        A module of, and decorator for, functions a rule might require to return
-        True for it to run.
-
-    .. py:property:: action
-
-        A module of, and decorator for, functions that might manipulate the
-        world state as a result of a rule running.
-
-    .. py:property:: method
-
-        A module of, and decorator for, extension methods to be added to an
-        :class:`Engine` object.
-
-        Decorated functions need to take at least one argument, because the
-        :class:`Engine` will be passed in as that initial argument. They'll
-        appear in ``method.py`` as if they were normal functions, but that's
-        not how they act when :class:`Engine` is running; they act like
-        the standard :type:`types.MethodType` then.
-
-    .. py:property:: function
-
-        A module of, and decorator for, generic functions.
-
-        Only functions stored in one of these attributes can be used for
-        parallel processing. :attr:`function` will do, if none of the others
-        make sense.
+    .. autoattribute:: function
 
     .. py:property:: rule
 
