@@ -17,6 +17,8 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 .. automodule:: lisien.engine
 
    .. autoclass:: Engine
+    :members:
+    :exclude-members: RulesTodoType, branch, turn, tick, is_ancestor_of, thing_cls, portal_cls, place_cls, new_character, add_character, get_delta
 
     .. autoproperty:: branch
 
@@ -191,38 +193,6 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
                  See the following method, :meth:`get_delta`, for a description of the delta format.
 
     .. automethod:: get_delta
-
-    .. automethod:: advancing
-
-    .. automethod:: batch
-
-    .. automethod:: plan
-
-    .. automethod:: delete_plan
-
-    .. automethod:: snap_keyframe
-
-    .. automethod:: new_character
-
-    .. automethod:: add_character
-
-    .. automethod:: del_character
-
-    .. automethod:: turns_when
-
-    .. automethod:: apply_choices
-
-    .. automethod:: flush
-
-    .. automethod:: commit
-
-    .. automethod:: close
-
-    .. automethod:: unload
-
-    .. automethod:: export
-
-    .. automethod:: from_archive
 
 ###########
  character
