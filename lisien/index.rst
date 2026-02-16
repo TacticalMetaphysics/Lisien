@@ -353,6 +353,10 @@ extend Lisien's capabilities.
 
     .. autoclass:: SQLAlchemyDatabaseConnector
 
+        .. autoattribute:: connect_string
+
+        .. autoattribute:: connect_args
+
 ------
  pqdb
 ------
@@ -360,6 +364,8 @@ extend Lisien's capabilities.
 .. automodule:: lisien.db.pqdb
 
     .. autoclass:: ParquetDatabaseConnector
+
+        .. autoattribute:: path
 
 ######
  enum
@@ -384,8 +390,10 @@ extend Lisien's capabilities.
     :exclude-members: Executor, Worker
 
     .. autoclass:: Executor
+        :members:
 
     .. autoclass:: Worker
+        :members:
 
 #######
  proxy
