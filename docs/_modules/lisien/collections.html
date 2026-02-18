@@ -4,13 +4,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>lisien.collections &#8212; Lisien 0.23.2 documentation</title>
+    <title>lisien.collections &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
-    <script src="../../_static/documentation_options.js?v=b4d3b1f5"></script>
-    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
-    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -110,6 +110,8 @@
 <span class="n">REC_SEP</span> <span class="o">=</span> <span class="nb">chr</span><span class="p">(</span><span class="mh">0x241E</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="LanguageDescriptor">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.LanguageDescriptor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LanguageDescriptor</span><span class="p">(</span><span class="n">AbstractLanguageDescriptor</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_get_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">:</span> <span class="n">StringStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">inst</span><span class="o">.</span><span class="n">_current_language</span>
@@ -122,9 +124,12 @@
 				<span class="ow">and</span> <span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">eternal</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">lang</span>
 			<span class="p">):</span>
 				<span class="n">inst</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">eternal</span><span class="p">[</span><span class="s2">&quot;language&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lang</span>
-			<span class="n">inst</span><span class="o">.</span><span class="n">_current_language</span> <span class="o">=</span> <span class="n">lang</span>
+			<span class="n">inst</span><span class="o">.</span><span class="n">_current_language</span> <span class="o">=</span> <span class="n">lang</span></div>
 
 
+
+<div class="viewcode-block" id="TamperEvidentDict">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.TamperEvidentDict">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TamperEvidentDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="nb">dict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 	<span class="n">tampered</span><span class="p">:</span> <span class="nb">bool</span>
 
@@ -138,9 +143,12 @@
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">_K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">tampered</span> <span class="o">=</span> <span class="kc">True</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
 
 
+
+<div class="viewcode-block" id="ChangeTrackingDict">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.ChangeTrackingDict">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ChangeTrackingDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">UserDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 	<span class="n">changed</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
@@ -160,9 +168,12 @@
 		<span class="n">ret</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">changed</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">ret</span>
 
+<div class="viewcode-block" id="ChangeTrackingDict.clear">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.ChangeTrackingDict.clear">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">_K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">changed</span> <span class="ow">or</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span>
@@ -188,7 +199,8 @@
 			<span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
 				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
 
 
 <div class="viewcode-block" id="StringStore">
@@ -301,6 +313,8 @@
 		<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_languages</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_current_language</span><span class="p">][</span><span class="n">k</span><span class="p">]</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
+<div class="viewcode-block" id="StringStore.lang_items">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.StringStore.lang_items">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">lang_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lang</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Yield pairs of (id, string) for the given language.&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="p">(</span>
@@ -310,7 +324,8 @@
 		<span class="p">):</span>
 			<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="n">lang</span> <span class="o">+</span> <span class="s2">&quot;.json&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">inf</span><span class="p">:</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">_languages</span><span class="p">[</span><span class="n">lang</span><span class="p">]</span> <span class="o">=</span> <span class="n">TamperEvidentDict</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">inf</span><span class="p">))</span>
-		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_languages</span><span class="p">[</span><span class="n">lang</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_language</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_languages</span><span class="p">[</span><span class="n">lang</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_language</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reimport</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prefix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -352,6 +367,8 @@
 
 
 
+<div class="viewcode-block" id="CodeHasher">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CodeHasher">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CodeHasher</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">NodeVisitor</span><span class="p">):</span>
 	<span class="c1"># What if users want to subclass Place or whatever, and use type</span>
@@ -376,10 +393,13 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">_blake2b</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_updated</span> <span class="o">=</span> <span class="kc">True</span>
 
+<div class="viewcode-block" id="CodeHasher.visit">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CodeHasher.visit">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">visit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indent</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indent</span><span class="p">)</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">node</span><span class="p">)</span></div>
+
 
 	<span class="nd">@contextmanager</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extra</span><span class="p">:</span> <span class="nb">bytes</span> <span class="o">=</span> <span class="sa">b</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
@@ -574,6 +594,8 @@
 					<span class="bp">self</span><span class="o">.</span><span class="n">hash_expr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;, &quot;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="CodeHasher.interleave">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CodeHasher.interleave">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">interleave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inter</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">seq</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Call f on each item in seq, calling inter() in between.&quot;&quot;&quot;</span>
 		<span class="n">seq</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>
@@ -584,7 +606,8 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 				<span class="n">inter</span><span class="p">()</span>
-				<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+				<span class="n">f</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">visit_Import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot;import &quot;</span><span class="p">)</span>
@@ -836,6 +859,8 @@
 				<span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="sa">b</span><span class="s2">&quot; | &quot;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">traverse</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">patterns</span>
 			<span class="p">)</span>
 
+<div class="viewcode-block" id="CodeHasher.visit_FunctionType">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CodeHasher.visit_FunctionType">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">visit_FunctionType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Since this is a function signature, rather than a real function, ignore it</span>
 
@@ -843,7 +868,8 @@
 <span class="sd">		a game. Empty signatures don&#39;t matter.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
-		<span class="k">pass</span>
+		<span class="k">pass</span></div>
+
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">visit_Expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">fill</span><span class="p">()</span>
@@ -1126,7 +1152,8 @@
 	<span class="k">def</span><span class="w"> </span><span class="nf">b64digest</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 		<span class="n">digest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
 		<span class="n">encoded</span> <span class="o">=</span> <span class="n">base64</span><span class="o">.</span><span class="n">standard_b64encode</span><span class="p">(</span><span class="n">digest</span><span class="p">)</span>
-		<span class="k">return</span> <span class="n">encoded</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">encoded</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span></div>
+
 
 
 <div class="viewcode-block" id="FunctionStore">
@@ -1278,6 +1305,8 @@
 			<span class="bp">self</span><span class="o">.</span><span class="n">_need_save</span> <span class="o">=</span> <span class="kc">True</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
+<div class="viewcode-block" id="FunctionStore.save">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.save">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reimport</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -1285,8 +1314,11 @@
 			<span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ast</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_need_save</span> <span class="o">=</span> <span class="kc">False</span>
 		<span class="k">if</span> <span class="n">reimport</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">reimport</span><span class="p">()</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">reimport</span><span class="p">()</span></div>
 
+
+<div class="viewcode-block" id="FunctionStore.reimport">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.reimport">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">reimport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
 		<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 			<span class="k">return</span>
@@ -1311,15 +1343,21 @@
 			<span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;__name__&quot;</span><span class="p">):</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">_ast_idx</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
 		<span class="k">if</span> <span class="n">signal</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+			<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
 
+
+<div class="viewcode-block" id="FunctionStore.iterplain">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.iterplain">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">iterplain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ast_idx</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-			<span class="k">yield</span> <span class="n">name</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+			<span class="k">yield</span> <span class="n">name</span><span class="p">,</span> <span class="n">ast</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span></div>
 
-	<span class="k">def</span><span class="w"> </span><span class="nf">store_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+<div class="viewcode-block" id="FunctionStore.store_source">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.store_source">[docs]</a>
+	<span class="k">def</span><span class="w"> </span><span class="nf">store_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_need_save</span> <span class="o">=</span> <span class="kc">True</span>
-		<span class="n">outdented</span> <span class="o">=</span> <span class="n">dedent_source</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+		<span class="n">outdented</span> <span class="o">=</span> <span class="n">dedent_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
 		<span class="n">mod</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">outdented</span><span class="p">)</span>
 		<span class="n">expr</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">Expr</span><span class="p">(</span><span class="n">mod</span><span class="p">)</span>
 		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">body</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
@@ -1340,11 +1378,17 @@
 		<span class="k">else</span><span class="p">:</span>
 			<span class="n">locl</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_module</span><span class="o">.</span><span class="vm">__name__</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_locl</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">locl</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">locl</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="n">locl</span><span class="p">[</span><span class="n">name</span><span class="p">])</span></div>
 
+
+<div class="viewcode-block" id="FunctionStore.get_source">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.get_source">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">get_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-		<span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast_idx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span>
+		<span class="k">return</span> <span class="n">ast</span><span class="o">.</span><span class="n">unparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="o">.</span><span class="n">body</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ast_idx</span><span class="p">[</span><span class="n">name</span><span class="p">]])</span></div>
 
+
+<div class="viewcode-block" id="FunctionStore.blake2b">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.FunctionStore.blake2b">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">blake2b</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return the blake2b hash digest of the code stored here</span>
 
@@ -1365,7 +1409,8 @@
 					<span class="s2">&quot;Only store function defs in FunctionStore&quot;</span><span class="p">,</span> <span class="n">funcdef</span>
 				<span class="p">)</span>
 			<span class="n">hasher</span><span class="o">.</span><span class="n">visit</span><span class="p">(</span><span class="n">funcdef</span><span class="p">)</span>
-		<span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">b64digest</span><span class="p">()</span>
+		<span class="k">return</span> <span class="n">hasher</span><span class="o">.</span><span class="n">b64digest</span><span class="p">()</span></div>
+
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_locl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ast</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ast_idx</span>
@@ -1375,40 +1420,60 @@
 
 
 
+<div class="viewcode-block" id="GenericFunctionStore">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.GenericFunctionStore">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">on_setattr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">getstate_setstate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GenericFunctionStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FunctionType</span><span class="p">]):</span>
-	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;function&quot;</span>
+	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;function&quot;</span></div>
 
 
+
+<div class="viewcode-block" id="MethodStore">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.MethodStore">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">on_setattr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">getstate_setstate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">MethodStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MethodType</span><span class="p">]):</span>
-	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;method&quot;</span>
+	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;method&quot;</span></div>
 
 
+
+<div class="viewcode-block" id="TriggerStore">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.TriggerStore">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">on_setattr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">getstate_setstate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">TriggerStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">[</span><span class="n">TriggerFuncName</span><span class="p">,</span> <span class="n">TriggerFunc</span><span class="p">]):</span>
 	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;trigger&quot;</span>
 
+<div class="viewcode-block" id="TriggerStore.get_source">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.TriggerStore.get_source">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">get_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;truth&quot;</span><span class="p">:</span>
 			<span class="k">return</span> <span class="s2">&quot;def truth(*args):</span><span class="se">\n\t</span><span class="s2">return True&quot;</span>
-		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_source</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_source</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
 
 	<span class="nd">@staticmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">truth</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-		<span class="k">return</span> <span class="kc">True</span>
+		<span class="k">return</span> <span class="kc">True</span></div>
 
 
+
+<div class="viewcode-block" id="PrereqStore">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.PrereqStore">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">on_setattr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">getstate_setstate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PrereqStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">[</span><span class="n">PrereqFuncName</span><span class="p">,</span> <span class="n">PrereqFunc</span><span class="p">]):</span>
-	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;prereq&quot;</span>
+	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;prereq&quot;</span></div>
 
 
+
+<div class="viewcode-block" id="ActionStore">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.ActionStore">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">on_setattr</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">getstate_setstate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">ActionStore</span><span class="p">(</span><span class="n">FunctionStore</span><span class="p">[</span><span class="n">ActionFuncName</span><span class="p">,</span> <span class="n">ActionFunc</span><span class="p">]):</span>
-	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;action&quot;</span>
+	<span class="n">_store</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;action&quot;</span></div>
 
 
+
+<div class="viewcode-block" id="UniversalMapping">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.UniversalMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">UniversalMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">AttrSignal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Mapping for variables that are global but which I keep history for&quot;&quot;&quot;</span>
@@ -1455,9 +1520,12 @@
 		<span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nbtt</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_universal_cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">universal_del</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=...</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">val</span><span class="o">=...</span><span class="p">)</span></div>
 
 
+
+<div class="viewcode-block" id="CharacterMapping">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CharacterMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CharacterMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">,</span> <span class="n">AttrSignal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A mapping by which to access :class:`Character` objects.</span>
@@ -1530,13 +1598,16 @@
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">CharName</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">del_character</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
 
 
 <span class="n">_K</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_K&quot;</span><span class="p">)</span>
 <span class="n">_V</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;_V&quot;</span><span class="p">)</span>
 
 
+<div class="viewcode-block" id="CompositeDict">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CompositeDict">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CompositeDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">MutableMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">],</span> <span class="n">Signal</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Combine two dictionaries into one&quot;&quot;&quot;</span>
 
@@ -1583,13 +1654,17 @@
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> is in neither of my wrapped dicts&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
+<div class="viewcode-block" id="CompositeDict.patch">
+<a class="viewcode-back" href="../../lisien/index.html#lisien.collections.CompositeDict.patch">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">patch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Recursive update&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 			<span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
 				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+				<span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+</div>
+
 </pre></div>
 
           </div>
@@ -1621,14 +1696,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.types">types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
@@ -1657,7 +1726,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
