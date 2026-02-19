@@ -239,7 +239,7 @@ proxy to the engine::
     manager.shutdown()
 
 
-You can pass :class:`Engine` arguments to the manager's initializer or the ``start`` method, as you please.
+You can pass :class:`lisien.Engine` arguments to the``start`` method.
 
 The proxy objects are mostly the same as what they represent, with affordances for when you
 have to do some work in the user interface while waiting for the core to finish something. Generally, you
