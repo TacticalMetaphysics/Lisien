@@ -184,10 +184,10 @@ only one argument: the Lisien entity that the rule is applied to.
 By default, trigger functions will be evaluated in parallel. Lisien has
 a process pool, in which worker processes keep copies of the current
 world state for trigger functions to work with. You can run arbitrary
-code in those processes, too, if you like; :class:`lisien.Engine` is an
+code in those processes, too, if you like; :class:`.engine.Engine` is an
 implementation of the standard Python
 :class:`concurrent.futures.Executor`. See
-:keyword:`lisien.examples.pathfind` for a demonstration of using the
+:mod:`lisien.examples.pathfind` for a demonstration of using the
 process pool to find many paths at once, then having things follow them.
 
 Prereq functions, however, are always evaluated serially in the core
