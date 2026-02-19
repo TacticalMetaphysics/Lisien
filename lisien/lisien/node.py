@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""The nodes of lisien's character graphs.
+"""The nodes of Lisien's character graphs.
 
 Every node that actually exists is either a Place or a Thing, but they
 have a lot in common.

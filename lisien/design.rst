@@ -257,4 +257,4 @@ the number of facts it needs to use is relatively small. Lisien will
 switch to the slow delta if the number of facts it would need for the
 fast one is larger than the gap between keyframes.
 
-.. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
+.. _Lisien may have such a feature some day: https://codeberg.org/clayote/Lisien/issues/28
