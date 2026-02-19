@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """Lisien's special directed graph type, the Character
 
-Based on NetworkX DiGraph objects with various additions and
+Based on `networkx.DiGraph`_ with various additions and
 conveniences.
 
 A :class:`lisien.character.Character` may well represent a fictional person,
@@ -38,6 +38,8 @@ attribute, so that the rule will be evaluated for every unit of the
 :class:`lisien.character.Character`, whatever :class:`lisien.character.Character`
 that unit happens to be in. Nodes may be units of any number of
 :class:`lisien.character.Character`s, which are called their "leaders".
+
+.. _networkx.DiGraph: https://networkx.org/documentation/stable/reference/classes/digraph.html
 
 """
 
