@@ -116,7 +116,7 @@ Upon startup, Lisien looks for the "current time," which is a triple of
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it's stored in the ``engine.eternal`` keys
 ``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the trunk branch
-(``"trunk"``, unless the user has switched to a different trunk branch),
+(which is called ``"trunk"``, by default),
 ``0``, and ``0`` respectively. To decide what to load, Lisien looks for
 the closest keyframe at or before the current time, and the keyframe
 after that, if any. Lisien then loads the earlier keyframe and all facts
