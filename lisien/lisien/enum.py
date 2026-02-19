@@ -56,5 +56,12 @@ except AttributeError:
 
 
 class Direction(Enum):
+	"""Directions a fast delta can go in -- just forward and backward
+
+	Slow deltas can go 'sideways' to other branches, but direction isn't
+	relevant to that algorithm.
+
+	"""
+
 	FORWARD = "forward"
 	BACKWARD = "backward"
