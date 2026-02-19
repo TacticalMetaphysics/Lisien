@@ -174,9 +174,7 @@ be followed in response to your changing the time "by hand".
 It is possible to change the time as part of the action of a rule. This
 is how you would make something happen after a delay. Say you want a
 rule that puts the character ``alice`` to sleep, then wakes her up after
-eight turns (presumably hour-long).:
-
-.. code::
+eight turns (presumably hour-long)::
 
    alice = engine.character['alice']
 
@@ -203,9 +201,7 @@ them, but does use some conventions for communicating with a user
 interface such as Elide.
 
 To ask the player to make a decision, first define a method for them to
-call, then return a menu description like this one.:
-
-.. code::
+call, then return a menu description like this one::
 
    @engine.method
    def wake_alice(self):
@@ -230,9 +226,7 @@ To ease the process of writing such frontends in Python, Lisien provides proxy o
 their corresponding objects in the Lisien core.
 
 Use :class:`lisien.proxy.EngineProxyManager` to start Lisien in a subprocess and get a
-proxy to the engine:
-
-.. code::
+proxy to the engine::
 
     from lisien.proxy import EngineProxyManager
 
@@ -250,9 +244,7 @@ You can pass :class:`Engine` arguments to the manager's initializer or the ``sta
 The proxy objects are mostly the same as what they represent, with affordances for when you
 have to do some work in the user interface while waiting for the core to finish something. Generally, you
 can pass a callback function to the relevant object's ``connect`` method, and Lisien will call the callback
-at the relevant time. Here's how you'd run some code whenever ``next_turn`` finishes running the rules engine:
-
-.. code::
+at the relevant time. Here's how you'd run some code whenever ``next_turn`` finishes running the rules engine::
 
     from threading import Thread
 
