@@ -7,11 +7,11 @@
 
     <title>Welcome to Lisien’s documentation! &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
     <script src="_static/documentation_options.js?v=10ab35ec"></script>
-    <script src="_static/doctools.js?v=fd6eb6e6"></script>
-    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Introduction" href="manual.html" />
@@ -68,75 +68,437 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="lisien/index.html">API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#engine">engine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#character">character</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#node">node</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#portal">portal</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#rule">rule</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#facade">facade</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#proxy">proxy</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#handle">handle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.engine">engine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.engine.Engine"><code class="docutils literal notranslate"><span class="pre">Engine</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.character">character</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.character.Character"><code class="docutils literal notranslate"><span class="pre">Character</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.node">node</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.node.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.node.Place"><code class="docutils literal notranslate"><span class="pre">Place</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.node.Thing"><code class="docutils literal notranslate"><span class="pre">Thing</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.portal">portal</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.portal.Portal"><code class="docutils literal notranslate"><span class="pre">Portal</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.rule">rule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.rule.Rule"><code class="docutils literal notranslate"><span class="pre">Rule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.rule.Rulebook"><code class="docutils literal notranslate"><span class="pre">Rulebook</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.facade">facade</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.proxy">proxy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.proxy.manager.EngineProxyManager"><code class="docutils literal notranslate"><span class="pre">EngineProxyManager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#module-lisien.proxy.handle">handle</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="lisien/index.html#internals">Internals</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#cache">cache</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#collections">collections</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#db">db</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#sql">sql</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#pqdb">pqdb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.cache">cache</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.AbstractTurnEndDict"><code class="docutils literal notranslate"><span class="pre">AbstractTurnEndDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.ActionListCache"><code class="docutils literal notranslate"><span class="pre">ActionListCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.AddDelGetter"><code class="docutils literal notranslate"><span class="pre">AddDelGetter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.BignessCache"><code class="docutils literal notranslate"><span class="pre">BignessCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.Cache"><code class="docutils literal notranslate"><span class="pre">Cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.CharacterPlaceRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">CharacterPlaceRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.CharacterPortalRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">CharacterPortalRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.CharacterRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">CharacterRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.CharacterThingRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">CharacterThingRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.CharactersRulebooksCache"><code class="docutils literal notranslate"><span class="pre">CharactersRulebooksCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.EdgeValCache"><code class="docutils literal notranslate"><span class="pre">EdgeValCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.EdgesCache"><code class="docutils literal notranslate"><span class="pre">EdgesCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.FuncListCache"><code class="docutils literal notranslate"><span class="pre">FuncListCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.GraphCache"><code class="docutils literal notranslate"><span class="pre">GraphCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.GraphValCache"><code class="docutils literal notranslate"><span class="pre">GraphValCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.LeaderSetCache"><code class="docutils literal notranslate"><span class="pre">LeaderSetCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NeighborhoodsCache"><code class="docutils literal notranslate"><span class="pre">NeighborhoodsCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NodeContentsCache"><code class="docutils literal notranslate"><span class="pre">NodeContentsCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NodeRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">NodeRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NodeValCache"><code class="docutils literal notranslate"><span class="pre">NodeValCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NodesCache"><code class="docutils literal notranslate"><span class="pre">NodesCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.NodesRulebooksCache"><code class="docutils literal notranslate"><span class="pre">NodesRulebooksCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.PortalRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">PortalRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.PortalsRulebooksCache"><code class="docutils literal notranslate"><span class="pre">PortalsRulebooksCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.PrereqListCache"><code class="docutils literal notranslate"><span class="pre">PrereqListCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.RuleAttribCache"><code class="docutils literal notranslate"><span class="pre">RuleAttribCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.RulebooksCache"><code class="docutils literal notranslate"><span class="pre">RulebooksCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.RulesHandledCache"><code class="docutils literal notranslate"><span class="pre">RulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.ThingsCache"><code class="docutils literal notranslate"><span class="pre">ThingsCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.TriggerListCache"><code class="docutils literal notranslate"><span class="pre">TriggerListCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.TurnEndDict"><code class="docutils literal notranslate"><span class="pre">TurnEndDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.TurnEndPlanDict"><code class="docutils literal notranslate"><span class="pre">TurnEndPlanDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.UnitDictCache"><code class="docutils literal notranslate"><span class="pre">UnitDictCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.UnitRulesHandledCache"><code class="docutils literal notranslate"><span class="pre">UnitRulesHandledCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.UnitnessCache"><code class="docutils literal notranslate"><span class="pre">UnitnessCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.UniversalCache"><code class="docutils literal notranslate"><span class="pre">UniversalCache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.cache.oner"><code class="docutils literal notranslate"><span class="pre">oner()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#enum">enum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#exc">exc</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#futures">futures</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#id1">proxy</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#abc">abc</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#id2">character</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#id3">engine</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#routine">routine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.collections">collections</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.ActionStore"><code class="docutils literal notranslate"><span class="pre">ActionStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.ChangeTrackingDict"><code class="docutils literal notranslate"><span class="pre">ChangeTrackingDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.CharacterMapping"><code class="docutils literal notranslate"><span class="pre">CharacterMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.CodeHasher"><code class="docutils literal notranslate"><span class="pre">CodeHasher</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.CompositeDict"><code class="docutils literal notranslate"><span class="pre">CompositeDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.FunctionStore"><code class="docutils literal notranslate"><span class="pre">FunctionStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.GenericFunctionStore"><code class="docutils literal notranslate"><span class="pre">GenericFunctionStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.LanguageDescriptor"><code class="docutils literal notranslate"><span class="pre">LanguageDescriptor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.MethodStore"><code class="docutils literal notranslate"><span class="pre">MethodStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.PrereqStore"><code class="docutils literal notranslate"><span class="pre">PrereqStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.StringStore"><code class="docutils literal notranslate"><span class="pre">StringStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.TamperEvidentDict"><code class="docutils literal notranslate"><span class="pre">TamperEvidentDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.TriggerStore"><code class="docutils literal notranslate"><span class="pre">TriggerStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.collections.UniversalMapping"><code class="docutils literal notranslate"><span class="pre">UniversalMapping</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#query">query</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#types">types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#util">util</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#window">window</a></li>
-<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#wrap">wrap</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.db">db</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.db.batched"><code class="docutils literal notranslate"><span class="pre">batched()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.db.Batch"><code class="docutils literal notranslate"><span class="pre">Batch</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#module-lisien.db.sql">sql</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#module-lisien.db.pqdb">pqdb</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.enum">enum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.enum.Direction"><code class="docutils literal notranslate"><span class="pre">Direction</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.enum.MsgpackExtensionType"><code class="docutils literal notranslate"><span class="pre">MsgpackExtensionType</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.enum.Sub"><code class="docutils literal notranslate"><span class="pre">Sub</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.exc">exc</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.AmbiguousLeaderError"><code class="docutils literal notranslate"><span class="pre">AmbiguousLeaderError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.BadTimeException"><code class="docutils literal notranslate"><span class="pre">BadTimeException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.CacheError"><code class="docutils literal notranslate"><span class="pre">CacheError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.EntityCollisionError"><code class="docutils literal notranslate"><span class="pre">EntityCollisionError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.GraphNameError"><code class="docutils literal notranslate"><span class="pre">GraphNameError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.HistoricKeyError"><code class="docutils literal notranslate"><span class="pre">HistoricKeyError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.KeyframeError"><code class="docutils literal notranslate"><span class="pre">KeyframeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.NonUniqueError"><code class="docutils literal notranslate"><span class="pre">NonUniqueError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.NotInKeyframeError"><code class="docutils literal notranslate"><span class="pre">NotInKeyframeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.OutOfTimelineError"><code class="docutils literal notranslate"><span class="pre">OutOfTimelineError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.PlanError"><code class="docutils literal notranslate"><span class="pre">PlanError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.RedundantRuleError"><code class="docutils literal notranslate"><span class="pre">RedundantRuleError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.RuleError"><code class="docutils literal notranslate"><span class="pre">RuleError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.RulesEngineError"><code class="docutils literal notranslate"><span class="pre">RulesEngineError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.TimeError"><code class="docutils literal notranslate"><span class="pre">TimeError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.TotalKeyError"><code class="docutils literal notranslate"><span class="pre">TotalKeyError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.TravelException"><code class="docutils literal notranslate"><span class="pre">TravelException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.UserFunctionError"><code class="docutils literal notranslate"><span class="pre">UserFunctionError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.WorkerProcessError"><code class="docutils literal notranslate"><span class="pre">WorkerProcessError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.WorkerProcessReadOnlyError"><code class="docutils literal notranslate"><span class="pre">WorkerProcessReadOnlyError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.exc.WorldIntegrityError"><code class="docutils literal notranslate"><span class="pre">WorldIntegrityError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.futures">futures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.Executor"><code class="docutils literal notranslate"><span class="pre">Executor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.Worker"><code class="docutils literal notranslate"><span class="pre">Worker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.InterpreterExecutor"><code class="docutils literal notranslate"><span class="pre">InterpreterExecutor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.InterpreterWorker"><code class="docutils literal notranslate"><span class="pre">InterpreterWorker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.ProcessExecutor"><code class="docutils literal notranslate"><span class="pre">ProcessExecutor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.ProcessWorker"><code class="docutils literal notranslate"><span class="pre">ProcessWorker</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.ThreadExecutor"><code class="docutils literal notranslate"><span class="pre">ThreadExecutor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.futures.ThreadWorker"><code class="docutils literal notranslate"><span class="pre">ThreadWorker</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#id27">proxy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#module-lisien.proxy.abc">abc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#id28">character</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#id33">engine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#module-lisien.proxy.routine">routine</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.query">query</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.query.windows_intersection"><code class="docutils literal notranslate"><span class="pre">windows_intersection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.query.windows_union"><code class="docutils literal notranslate"><span class="pre">windows_union()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.types">types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractBookmarkMapping"><code class="docutils literal notranslate"><span class="pre">AbstractBookmarkMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter"><code class="docutils literal notranslate"><span class="pre">AbstractCharacter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractEngine"><code class="docutils literal notranslate"><span class="pre">AbstractEngine</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractEntityMapping"><code class="docutils literal notranslate"><span class="pre">AbstractEntityMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractFunctionStore"><code class="docutils literal notranslate"><span class="pre">AbstractFunctionStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractLanguageDescriptor"><code class="docutils literal notranslate"><span class="pre">AbstractLanguageDescriptor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractPickyDefaultDict"><code class="docutils literal notranslate"><span class="pre">AbstractPickyDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractStringStore"><code class="docutils literal notranslate"><span class="pre">AbstractStringStore</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractSuccessors"><code class="docutils literal notranslate"><span class="pre">AbstractSuccessors</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AbstractThing"><code class="docutils literal notranslate"><span class="pre">AbstractThing</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.ActionFunc"><code class="docutils literal notranslate"><span class="pre">ActionFunc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.ActionFuncName"><code class="docutils literal notranslate"><span class="pre">ActionFuncName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.AttrSignal"><code class="docutils literal notranslate"><span class="pre">AttrSignal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.BaseMutableCharacterMapping"><code class="docutils literal notranslate"><span class="pre">BaseMutableCharacterMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Branch"><code class="docutils literal notranslate"><span class="pre">Branch</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CharName"><code class="docutils literal notranslate"><span class="pre">CharName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CharacterMapping"><code class="docutils literal notranslate"><span class="pre">CharacterMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CharacterStatAccessor"><code class="docutils literal notranslate"><span class="pre">CharacterStatAccessor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CharacterStatAlias"><code class="docutils literal notranslate"><span class="pre">CharacterStatAlias</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CombinedQueryResult"><code class="docutils literal notranslate"><span class="pre">CombinedQueryResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.ComparisonQuery"><code class="docutils literal notranslate"><span class="pre">ComparisonQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.CompoundQuery"><code class="docutils literal notranslate"><span class="pre">CompoundQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.ContainsQuery"><code class="docutils literal notranslate"><span class="pre">ContainsQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.DiGraph"><code class="docutils literal notranslate"><span class="pre">DiGraph</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.DiGraphPredecessorsMapping"><code class="docutils literal notranslate"><span class="pre">DiGraphPredecessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.DiGraphSuccessorsMapping"><code class="docutils literal notranslate"><span class="pre">DiGraphSuccessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Edge"><code class="docutils literal notranslate"><span class="pre">Edge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.EntityAccessor"><code class="docutils literal notranslate"><span class="pre">EntityAccessor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.EntityStatAccessor"><code class="docutils literal notranslate"><span class="pre">EntityStatAccessor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.EntityStatAlias"><code class="docutils literal notranslate"><span class="pre">EntityStatAlias</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.EqQuery"><code class="docutils literal notranslate"><span class="pre">EqQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.EternalKey"><code class="docutils literal notranslate"><span class="pre">EternalKey</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.FakeFuture"><code class="docutils literal notranslate"><span class="pre">FakeFuture</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.FuncName"><code class="docutils literal notranslate"><span class="pre">FuncName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GeQuery"><code class="docutils literal notranslate"><span class="pre">GeQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GraphEdgeMapping"><code class="docutils literal notranslate"><span class="pre">GraphEdgeMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GraphMapping"><code class="docutils literal notranslate"><span class="pre">GraphMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GraphNodeMapping"><code class="docutils literal notranslate"><span class="pre">GraphNodeMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GraphSuccessorsMapping"><code class="docutils literal notranslate"><span class="pre">GraphSuccessorsMapping</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.GtQuery"><code class="docutils literal notranslate"><span class="pre">GtQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.IntersectionQuery"><code class="docutils literal notranslate"><span class="pre">IntersectionQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Key"><code class="docutils literal notranslate"><span class="pre">Key</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Keyframe"><code class="docutils literal notranslate"><span class="pre">Keyframe</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.LeQuery"><code class="docutils literal notranslate"><span class="pre">LeQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.LinearTime"><code class="docutils literal notranslate"><span class="pre">LinearTime</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.LtQuery"><code class="docutils literal notranslate"><span class="pre">LtQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.MinusQuery"><code class="docutils literal notranslate"><span class="pre">MinusQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.NeQuery"><code class="docutils literal notranslate"><span class="pre">NeQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Node"><code class="docutils literal notranslate"><span class="pre">Node</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.NodeName"><code class="docutils literal notranslate"><span class="pre">NodeName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.PickierDefaultDict"><code class="docutils literal notranslate"><span class="pre">PickierDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.PickyDefaultDict"><code class="docutils literal notranslate"><span class="pre">PickyDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Plan"><code class="docutils literal notranslate"><span class="pre">Plan</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.PrereqFunc"><code class="docutils literal notranslate"><span class="pre">PrereqFunc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.PrereqFuncName"><code class="docutils literal notranslate"><span class="pre">PrereqFuncName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Query"><code class="docutils literal notranslate"><span class="pre">Query</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.QueryResult"><code class="docutils literal notranslate"><span class="pre">QueryResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.QueryResultEndTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultEndTurn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.QueryResultMidTurn"><code class="docutils literal notranslate"><span class="pre">QueryResultMidTurn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RuleBig"><code class="docutils literal notranslate"><span class="pre">RuleBig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RuleFunc"><code class="docutils literal notranslate"><span class="pre">RuleFunc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RuleKeyframe"><code class="docutils literal notranslate"><span class="pre">RuleKeyframe</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RuleName"><code class="docutils literal notranslate"><span class="pre">RuleName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RulebookName"><code class="docutils literal notranslate"><span class="pre">RulebookName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.RulebookPriority"><code class="docutils literal notranslate"><span class="pre">RulebookPriority</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.SignalDict"><code class="docutils literal notranslate"><span class="pre">SignalDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Stat"><code class="docutils literal notranslate"><span class="pre">Stat</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.StructuredDefaultDict"><code class="docutils literal notranslate"><span class="pre">StructuredDefaultDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Tick"><code class="docutils literal notranslate"><span class="pre">Tick</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Time"><code class="docutils literal notranslate"><span class="pre">Time</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.TriggerFunc"><code class="docutils literal notranslate"><span class="pre">TriggerFunc</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.TriggerFuncName"><code class="docutils literal notranslate"><span class="pre">TriggerFuncName</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Turn"><code class="docutils literal notranslate"><span class="pre">Turn</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.UnionQuery"><code class="docutils literal notranslate"><span class="pre">UnionQuery</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.UnitsAccessor"><code class="docutils literal notranslate"><span class="pre">UnitsAccessor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.UnitsAlias"><code class="docutils literal notranslate"><span class="pre">UnitsAlias</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.UniversalKey"><code class="docutils literal notranslate"><span class="pre">UniversalKey</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.ValidateTimeProtocol"><code class="docutils literal notranslate"><span class="pre">ValidateTimeProtocol</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.Value"><code class="docutils literal notranslate"><span class="pre">Value</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.deannotate"><code class="docutils literal notranslate"><span class="pre">deannotate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.get_rando"><code class="docutils literal notranslate"><span class="pre">get_rando</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.intersect2"><code class="docutils literal notranslate"><span class="pre">intersect2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.is_valid_key"><code class="docutils literal notranslate"><span class="pre">is_valid_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.is_valid_value"><code class="docutils literal notranslate"><span class="pre">is_valid_value()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.keyval"><code class="docutils literal notranslate"><span class="pre">keyval()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.slow_iter_turns_eval_cmp"><code class="docutils literal notranslate"><span class="pre">slow_iter_turns_eval_cmp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.types.sort_set"><code class="docutils literal notranslate"><span class="pre">sort_set()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.util">util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.Lockable"><code class="docutils literal notranslate"><span class="pre">Lockable</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.concat_d"><code class="docutils literal notranslate"><span class="pre">concat_d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.concat_list"><code class="docutils literal notranslate"><span class="pre">concat_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.garbage"><code class="docutils literal notranslate"><span class="pre">garbage()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.getatt"><code class="docutils literal notranslate"><span class="pre">getatt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.normalize_layout"><code class="docutils literal notranslate"><span class="pre">normalize_layout()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.singleton_get"><code class="docutils literal notranslate"><span class="pre">singleton_get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.util.world_locked"><code class="docutils literal notranslate"><span class="pre">world_locked()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.window">window</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.AssignmentTimeDict"><code class="docutils literal notranslate"><span class="pre">AssignmentTimeDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.BranchingTimeListDict"><code class="docutils literal notranslate"><span class="pre">BranchingTimeListDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.EntikeySettingsTurnDict"><code class="docutils literal notranslate"><span class="pre">EntikeySettingsTurnDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.EntikeyWindowDict"><code class="docutils literal notranslate"><span class="pre">EntikeyWindowDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.LinearTimeListDict"><code class="docutils literal notranslate"><span class="pre">LinearTimeListDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.SettingsTimes"><code class="docutils literal notranslate"><span class="pre">SettingsTimes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.UpdateFunctionProtocol"><code class="docutils literal notranslate"><span class="pre">UpdateFunctionProtocol</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDict"><code class="docutils literal notranslate"><span class="pre">WindowDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictFutureItemsView"><code class="docutils literal notranslate"><span class="pre">WindowDictFutureItemsView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictFutureKeysView"><code class="docutils literal notranslate"><span class="pre">WindowDictFutureKeysView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictFutureView"><code class="docutils literal notranslate"><span class="pre">WindowDictFutureView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictItemsView"><code class="docutils literal notranslate"><span class="pre">WindowDictItemsView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictKeysView"><code class="docutils literal notranslate"><span class="pre">WindowDictKeysView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastFutureItemsView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastFutureItemsView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastFutureValuesView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastFutureValuesView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastFutureView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastFutureView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastItemsView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastItemsView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastKeysView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastKeysView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictPastView"><code class="docutils literal notranslate"><span class="pre">WindowDictPastView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictSlice"><code class="docutils literal notranslate"><span class="pre">WindowDictSlice</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.WindowDictValuesView"><code class="docutils literal notranslate"><span class="pre">WindowDictValuesView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.update_backward_window"><code class="docutils literal notranslate"><span class="pre">update_backward_window()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.window.update_window"><code class="docutils literal notranslate"><span class="pre">update_window()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lisien/index.html#module-lisien.wrap">wrap</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.AbstractOrderlyMutableSet"><code class="docutils literal notranslate"><span class="pre">AbstractOrderlyMutableSet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.AbstractOrderlySet"><code class="docutils literal notranslate"><span class="pre">AbstractOrderlySet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.DictWrapper"><code class="docutils literal notranslate"><span class="pre">DictWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.ListWrapper"><code class="docutils literal notranslate"><span class="pre">ListWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MappingUnwrapper"><code class="docutils literal notranslate"><span class="pre">MappingUnwrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MutableMappingWrapper"><code class="docutils literal notranslate"><span class="pre">MutableMappingWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MutableSequenceWrapper"><code class="docutils literal notranslate"><span class="pre">MutableSequenceWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MutableWrapper"><code class="docutils literal notranslate"><span class="pre">MutableWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MutableWrapperDictList"><code class="docutils literal notranslate"><span class="pre">MutableWrapperDictList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.MutableWrapperSet"><code class="docutils literal notranslate"><span class="pre">MutableWrapperSet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.OrderlyFrozenSet"><code class="docutils literal notranslate"><span class="pre">OrderlyFrozenSet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.OrderlySet"><code class="docutils literal notranslate"><span class="pre">OrderlySet</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.SetWrapper"><code class="docutils literal notranslate"><span class="pre">SetWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.SubDictWrapper"><code class="docutils literal notranslate"><span class="pre">SubDictWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.SubListWrapper"><code class="docutils literal notranslate"><span class="pre">SubListWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.SubSetWrapper"><code class="docutils literal notranslate"><span class="pre">SubSetWrapper</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lisien/index.html#lisien.wrap.UnwrappingDict"><code class="docutils literal notranslate"><span class="pre">UnwrappingDict</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="elide/index.html">Elide</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#game">game</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#game">game</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.game.GameApp"><code class="docutils literal notranslate"><span class="pre">GameApp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.game.GameScreen"><code class="docutils literal notranslate"><span class="pre">GameScreen</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="elide/index.html#graph">graph</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="elide/index.html#board">board</a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#module-elide.graph.board">board</a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#pawn">pawn</a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#spot">spot</a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#arrow">arrow</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#grid">grid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#screen">screen</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#card">card</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#charmenu">charmenu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#charsview">charsview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#menu">menu</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#rulesview">rulesview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#grid">grid</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.grid.board.GridBoard"><code class="docutils literal notranslate"><span class="pre">GridBoard</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.grid.board.GridBoardScatterPlane"><code class="docutils literal notranslate"><span class="pre">GridBoardScatterPlane</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.grid.board.GridBoardView"><code class="docutils literal notranslate"><span class="pre">GridBoardView</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#module-elide.screen">screen</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.Box"><code class="docutils literal notranslate"><span class="pre">Box</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.CharMenuContainer"><code class="docutils literal notranslate"><span class="pre">CharMenuContainer</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.Dialog"><code class="docutils literal notranslate"><span class="pre">Dialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.DialogLayout"><code class="docutils literal notranslate"><span class="pre">DialogLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.DialogMenu"><code class="docutils literal notranslate"><span class="pre">DialogMenu</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.KvLayout"><code class="docutils literal notranslate"><span class="pre">KvLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.MainScreen"><code class="docutils literal notranslate"><span class="pre">MainScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.MessageBox"><code class="docutils literal notranslate"><span class="pre">MessageBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.OneTurnButton"><code class="docutils literal notranslate"><span class="pre">OneTurnButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.ScrollableLabel"><code class="docutils literal notranslate"><span class="pre">ScrollableLabel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.SimulateButton"><code class="docutils literal notranslate"><span class="pre">SimulateButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.StatListPanel"><code class="docutils literal notranslate"><span class="pre">StatListPanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.TimePanel"><code class="docutils literal notranslate"><span class="pre">TimePanel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.screen.TurnScroll"><code class="docutils literal notranslate"><span class="pre">TurnScroll</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#card">card</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.Card"><code class="docutils literal notranslate"><span class="pre">Card</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.ColorTextureBox"><code class="docutils literal notranslate"><span class="pre">ColorTextureBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.DeckBuilderLayout"><code class="docutils literal notranslate"><span class="pre">DeckBuilderLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.DeckBuilderScrollBar"><code class="docutils literal notranslate"><span class="pre">DeckBuilderScrollBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.DeckBuilderView"><code class="docutils literal notranslate"><span class="pre">DeckBuilderView</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.Foundation"><code class="docutils literal notranslate"><span class="pre">Foundation</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.ScrollBarBar"><code class="docutils literal notranslate"><span class="pre">ScrollBarBar</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.get_pos_hint"><code class="docutils literal notranslate"><span class="pre">get_pos_hint()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.get_pos_hint_x"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_x()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.card.get_pos_hint_y"><code class="docutils literal notranslate"><span class="pre">get_pos_hint_y()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#charmenu">charmenu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.charmenu.CharMenu"><code class="docutils literal notranslate"><span class="pre">CharMenu</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#charsview">charsview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.charsview.CharactersRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">CharactersRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.charsview.CharactersScreen"><code class="docutils literal notranslate"><span class="pre">CharactersScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.charsview.CharactersView"><code class="docutils literal notranslate"><span class="pre">CharactersView</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#menu">menu</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GameExporterModal"><code class="docutils literal notranslate"><span class="pre">GameExporterModal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GameImporterModal"><code class="docutils literal notranslate"><span class="pre">GameImporterModal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GameList"><code class="docutils literal notranslate"><span class="pre">GameList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GameLoaderModal"><code class="docutils literal notranslate"><span class="pre">GameLoaderModal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GamePickerModal"><code class="docutils literal notranslate"><span class="pre">GamePickerModal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.GeneratorButton"><code class="docutils literal notranslate"><span class="pre">GeneratorButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.MainMenuScreen"><code class="docutils literal notranslate"><span class="pre">MainMenuScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.MenuIntInput"><code class="docutils literal notranslate"><span class="pre">MenuIntInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.MenuTextInput"><code class="docutils literal notranslate"><span class="pre">MenuTextInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.NewGameModal"><code class="docutils literal notranslate"><span class="pre">NewGameModal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.menu.WorldStartConfigurator"><code class="docutils literal notranslate"><span class="pre">WorldStartConfigurator</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#rulesview">rulesview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.CharacterRulesScreen"><code class="docutils literal notranslate"><span class="pre">CharacterRulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RuleButton"><code class="docutils literal notranslate"><span class="pre">RuleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RuleButtonBox"><code class="docutils literal notranslate"><span class="pre">RuleButtonBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RulesBox"><code class="docutils literal notranslate"><span class="pre">RulesBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RulesList"><code class="docutils literal notranslate"><span class="pre">RulesList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RulesScreen"><code class="docutils literal notranslate"><span class="pre">RulesScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.rulesview.RulesView"><code class="docutils literal notranslate"><span class="pre">RulesView</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="elide/index.html#spritebuilder">spritebuilder</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.PawnConfigDialog"><code class="docutils literal notranslate"><span class="pre">PawnConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.PawnConfigScreen"><code class="docutils literal notranslate"><span class="pre">PawnConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.SpotConfigDialog"><code class="docutils literal notranslate"><span class="pre">SpotConfigDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.SpotConfigScreen"><code class="docutils literal notranslate"><span class="pre">SpotConfigScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.SpriteBuilder"><code class="docutils literal notranslate"><span class="pre">SpriteBuilder</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.SpriteDialog"><code class="docutils literal notranslate"><span class="pre">SpriteDialog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.spritebuilder.SpriteSelector"><code class="docutils literal notranslate"><span class="pre">SpriteSelector</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#dummy">dummy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#pallet">pallet</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="elide/index.html#statlist">statlist</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.statlist.BaseStatListView"><code class="docutils literal notranslate"><span class="pre">BaseStatListView</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#statcfg">statcfg</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="elide/index.html#stores">stores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.EdBox"><code class="docutils literal notranslate"><span class="pre">EdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.Editor"><code class="docutils literal notranslate"><span class="pre">Editor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.FuncEditor"><code class="docutils literal notranslate"><span class="pre">FuncEditor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.FuncsEdBox"><code class="docutils literal notranslate"><span class="pre">FuncsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.FuncsEdScreen"><code class="docutils literal notranslate"><span class="pre">FuncsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.FunctionEditor"><code class="docutils literal notranslate"><span class="pre">FunctionEditor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.FunctionNameInput"><code class="docutils literal notranslate"><span class="pre">FunctionNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.LanguageInput"><code class="docutils literal notranslate"><span class="pre">LanguageInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.MethodEditor"><code class="docutils literal notranslate"><span class="pre">MethodEditor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.RecycleToggleButton"><code class="docutils literal notranslate"><span class="pre">RecycleToggleButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StoreButton"><code class="docutils literal notranslate"><span class="pre">StoreButton</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StoreList"><code class="docutils literal notranslate"><span class="pre">StoreList</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StringInput"><code class="docutils literal notranslate"><span class="pre">StringInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StringNameInput"><code class="docutils literal notranslate"><span class="pre">StringNameInput</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StringsEdBox"><code class="docutils literal notranslate"><span class="pre">StringsEdBox</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.StringsEdScreen"><code class="docutils literal notranslate"><span class="pre">StringsEdScreen</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.stores.munge_source"><code class="docutils literal notranslate"><span class="pre">munge_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#python-editor">Python Editor</a></li>
 <li class="toctree-l3"><a class="reference internal" href="elide/index.html#strings-editor">Strings Editor</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#util">util</a></li>
-<li class="toctree-l2"><a class="reference internal" href="elide/index.html#app">app</a></li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#util">util</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.util.SelectableRecycleBoxLayout"><code class="docutils literal notranslate"><span class="pre">SelectableRecycleBoxLayout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.util.devour"><code class="docutils literal notranslate"><span class="pre">devour()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.util.dummynum"><code class="docutils literal notranslate"><span class="pre">dummynum()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.util.load_kv"><code class="docutils literal notranslate"><span class="pre">load_kv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="elide/index.html#app">app</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="elide/index.html#elide.app.ElideApp"><code class="docutils literal notranslate"><span class="pre">ElideApp</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -210,7 +572,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
