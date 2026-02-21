@@ -50,7 +50,7 @@ cp -rf pages/docs lisien_windows/
 python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
-unix2dos -n NEWS.rst lisien_windows/CHANGES.txt
+unix2dos -n CHANGES.rst lisien_windows/CHANGES.txt
 cd pages/docs
 git add .
 git commit -m "Release v${VERSION}"
