@@ -203,8 +203,7 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 	connect_string: str = field(default="sqlite:///:memory:")
 	"""The string passed to :func:`sqlalchemy.create_engine`
 	
-	Uses SQLAlchemy's URL structure:
-	https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls
+	Uses SQLAlchemy's URL structure. See :ref:`database_urls` for specifics.
 	
 	"""
 
@@ -214,10 +213,10 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 			raise TypeError("Invalid connect_string", val)
 
 	connect_args: dict[str, str] = field(factory=dict)
-	"""Dictionary of keyword arguments passed to :func:`sqlalchemy.create_engine`
+	"""Dictionary of keyword arguments passed as
+	the ``connect_args`` argument to :func:`sqlalchemy.create_engine`
 	
-	For details, see:
-	https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args
+	For details, see :ref:`custom_dbapi_args`
 	
 	"""
 

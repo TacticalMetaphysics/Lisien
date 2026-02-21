@@ -413,9 +413,13 @@ class Batch(list):
 
 	signature: inspect.Signature = field(converter=_convert_sig)
 	cached_properties: ClassVar[dict[str, cached_property]] = {}
-	"""`cached_property` objects produced by `@batched`"""
+	"""A dictionary mapping table names to their :class:`functools.cached_property` objects."""
 	serializers: ClassVar[dict[str, Callable[[Value], bytes]]] = {}
-	"""Serialization functions decorated by `@batched`"""
+	"""A dictionary mapping table names to their serializer functions
+    
+    The same functions decorated with :deco:`~.db.batched`.
+
+    """
 	validate: ClassVar[bool] = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
 

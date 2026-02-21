@@ -993,6 +993,21 @@ class RuleFollower(ABC):
 
 
 class AllRuleBooks(UserDict[RulebookName, Rulebook], Signal):
+	"""A mapping of :class:`~.rule.Rulebook` objects that exist.
+
+	Rulebooks must be assigned to entities' ``rulebook`` property before
+	they will run, but each entity gets its own rulebook by default.
+	Those rulebooks appear here when the entity is created.
+
+	Rules created with an entity's ``@rule`` decorator go on the end of
+	the entity's rulebook. You can reorder that rulebook the same way as
+	a Python list, or put :class:`~.rule.Rule` objects in it yourself.
+	For convenience, :class:`~.rule.Rulebook` will interpret
+	the names of rules as if they were the :class:`~.rule.Rule`
+	by that name.
+
+	"""
+
 	def __init__(self, engine: "Engine"):
 		Signal.__init__(self)
 		self.engine = engine
@@ -1038,10 +1053,20 @@ class AllRuleBooks(UserDict[RulebookName, Rulebook], Signal):
 
 
 class AllRules(UserDict[RuleName, Rule], Signal):
-	"""A mapping of every rule in the game.
+	"""A mapping of all :class:`~.rule.Rule` objects that have been made.
 
-	You can use this as a decorator to make a rule and not assign it
-	to anything.
+	It's possible to make new rules with this. It works the same way as the
+	``rule`` decorator that all Lisien entities have, but doesn't result
+	in the rule being assigned to anything::
+
+	    @engine.rule
+	    def do_something(obj):
+	        ...
+
+	    print(type(do_something))
+
+	This prints ``<class 'lisien.rule.Rule'>``. You'll need to put the rule
+	in a rulebook yourself.
 
 	"""
 

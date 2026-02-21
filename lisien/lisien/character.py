@@ -12,34 +12,33 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""Lisien's special directed graph type, the Character
+r"""Lisien's special directed graph type, the :class:`~.character.Character`
 
-Based on `networkx.DiGraph`_ with various additions and
+Based on :class:`networkx.DiGraph` with various additions and
 conveniences.
 
-A :class:`lisien.character.Character` may well represent a fictional person,
+A :class:`~.character.Character` may well represent a fictional person,
 in which case the graph most likely represents a state machine, governing
 that person's behavior in the game. But anything node-graph-shaped
-may be a :class:`lisien.character.Character`, too; in particular, the map on
+may be a :class:`~.character.Character`, too; in particular, the map on
 which the game's fictional persons move and do things is itself a
-:class:`lisien.character.Character`, conventionally called ``"physical"`` when
+:class:`~.character.Character`, conventionally called ``"physical"`` when
 there's only one such map in a game. A game's fictional persons may have multiple
-representations in different :class:`lisien.character.Character` objects;
+representations in different :class:`~.character.Character` objects;
 apart from the physical map, you may have another
-:class:`lisien.character.Character` for the social graph, another for their
-family tree, and so on. So :class:`lisien.character.Character` provides
-"units," which are nodes in *any* :class:`lisien.character.Character` that
+:class:`~.character.Character` for the social graph, another for their
+family tree, and so on. So :class:`~.character.Character` provides
+"units," which are nodes in *any* :class:`~.character.Character` that
 are, somehow, a part of this one. This could mean they directly represent
 the same person, or, in a strategy game, units could be other people,
 or groups of people, who are under that person's command.
 
-:class:`lisien.character.Character` lets you assign rules to its :attr:`unit`
-attribute, so that the rule will be evaluated for every unit of the
-:class:`lisien.character.Character`, whatever :class:`lisien.character.Character`
-that unit happens to be in. Nodes may be units of any number of
-:class:`lisien.character.Character`s, which are called their "leaders".
-
-.. _networkx.DiGraph: https://networkx.org/documentation/stable/reference/classes/digraph.html
+:class:`~.character.Character` lets you assign rules to its
+:attr:`~.character.Character.unit` attribute, so that the rule will be
+evaluated for every unit of the :class:`~.character.Character`, whatever
+:class:`~.character.Character` that unit happens to be in. Nodes may be
+units of any number of :class:`~.character.Character`\s, which are called
+their "leaders".
 
 """
 
@@ -215,41 +214,43 @@ class MutableCharacterMapping[_KT, _VT](
 
 @define(eq=False, repr=False)
 class Character(AbstractCharacter, RuleFollower):
-	"""A digraph that follows game rules and has a containment hierarchy
+	r"""A :class:`~networkx.DiGraph` that follows game rules and has a containment hierarchy
 
-	Nodes in a Character are subcategorized into Things and
-	Places. Things have locations, and those locations may be Places
-	or other Things. To get at those, use the `thing` and `place`
-	mappings -- but in situations where the distinction does not matter,
-	you may simply address the Character as a mapping, as in NetworkX.
+	Nodes in a :class:`Character` are subcategorized into
+	:class:`~.node.Thing` and :class:`~.node.Place`. :class:`~.node.Thing`
+	objects have locations, and those locations may be :class:`~.node.Place`
+	objects or other :class:`~.node.Thing` objects. To get at those, use the
+	:attr:`thing` and :attr:`place` mappings -- but in situations where the
+	distinction does not matter, you may simply address the Character as a
+	mapping, as in NetworkX.
 
-	Characters may have units in other Characters. These are just
-	nodes. You can apply rules to a Character's units, and thus to
-	any collection of nodes you want, perhaps in many different
-	Characters. The ``unit`` attribute handles this. It is a mapping,
-	keyed by the other Character's name, then by the name of the node
-	that is this Character's unit. In the common case where a
-	Character has exactly one unit, it may be retrieved as
-	``unit.only``. When it has more than one unit, but only has
-	any units in a single other Character, you can get the mapping
-	of units in that Character as ``unit.node``. Add units with the
-	``add_unit`` method and remove them with ``del_unit``.
+	One :class:`Character` may have units in another :class:`Character`. These
+	are normal :class:`~.node.Place` or :class:`~.node.Thing` objects. You
+	can apply rules to a :class:`Character`'s units, and thus to any
+	collection of nodes you want, perhaps in many different
+	:class:`Character` objects. The :attr:`unit` attribute handles this. It is a
+	mapping, keyed by the other Character's name, then by the name of the
+	node that is this Character's unit. In the common case where a Character
+	has exactly one unit, it may be retrieved as ``unit.only``. When it has
+	more than one unit, but only has any units in a single other
+	:class:`Character`, you can get the mapping of units in that
+	:class:`Character` as ``unit.node``. Add units with the :meth:`add_unit`
+	method and remove them with :meth:`del_unit`.
 
-	You can assign rules to Characters with their ``rule`` attribute,
+	You can assign rules to a :class:`Character` with the ``rule`` attribute,
 	typically using it as a decorator (see :mod:`lisien.rule`). You can do the
-	same to some of Character's
+	same to some of :class:`Character`'s
 	attributes:
 
-	* ``thing.rule`` to make a rule run on all Things in this Character
-	  every turn
-	* ``place.rule`` to make a rule run on all Places in this Character
-	  every turn
-	* ``node.rule`` to make a rule run on all Things and Places in this
-	  Character every turn
-	* ``unit.rule`` to make a rule run on all the units this
-	  Character has every turn, regardless of what Character the
-	  unit is in
-	* ``adj.rule`` to make a rule run on all the edges this Character
+	* ``thing.rule`` to make a rule run on all :class:`~.node.Thing`\s in this
+	  :class:`Character` every turn
+	* ``place.rule`` to make a rule run on all Places in this
+	  :class:`Character` every turn
+	* ``node.rule`` to make a rule run on all :class:`~.node.Thing`\s and
+	  :class:`~.node.Place`\s in this :class:`Character` every turn
+	* ``unit.rule`` to make a rule run on all the units this :class:`Character`
+	  has every turn, regardless of what :class:`Character` the unit is in
+	* ``adj.rule`` to make a rule run on all the edges this :class:`Character`
 	  has every turn
 
 	"""
@@ -923,9 +924,12 @@ class Character(AbstractCharacter, RuleFollower):
 
 		@property
 		def node(self) -> Mapping[NodeName, Place | Thing]:
-			"""If I have units in only one graph, return a map of them
+			"""A mapping of :class:`~.node.Thing` and :class:`~.node.Place`
+			objects in this :class:`Character`.
 
-			Otherwise, raise AttributeError.
+			This mapping has a ``rule`` method for applying new rules to every
+			:class:`Node` here, and a ``rulebook`` property for
+			assigning premade rulebooks.
 
 			"""
 			try:
@@ -955,11 +959,16 @@ class Character(AbstractCharacter, RuleFollower):
 				raise AttributeError("I have no unit, or more than one unit")
 
 	def facade(self) -> CharacterFacade:
-		"""Return a temporary copy of this Character
+		r"""Return a temporary copy of this :class:`Character`
 
-		A Facade looks like its :class:`Character`, but doesn't do any of the
-		stuff Characters do to save changes to the database, nor enable
-		time travel. This makes it much speedier to work with.
+		A :class:`~.facade.CharacterFacade` looks like its :class:`Character`,
+		but doesn't do any of the stuff :class:`Character`\s do to save changes
+		to the database, nor enable time travel. This makes it much speedier
+		to work with.
+
+		If you decide to keep the changes you made to the
+		:class:`~.facade.CharacterFacade`, call its
+		:meth:`~.facade.CharacterFacade.apply` method to make them "for real".
 
 		"""
 		return CharacterFacade(
@@ -990,7 +999,11 @@ class Character(AbstractCharacter, RuleFollower):
 		return me
 
 	def add_place(self, node_for_adding: KeyHint | NodeName, **attr):
-		"""Add a new Place"""
+		"""Add a new :class:`~.node.Place`
+
+		Keyword arguments will be used as stats of the new :class:`~.node.Place`.
+
+		"""
 		attr: StatDict
 		self.place[node_for_adding] = attr
 
@@ -1000,14 +1013,14 @@ class Character(AbstractCharacter, RuleFollower):
 			self.add_place(place, **attrs)
 
 	def remove_place(self, place: KeyHint | NodeName) -> None:
-		"""Remove an existing Place"""
+		"""Remove an existing :class:`.node.Place`"""
 		if place in self.place:
 			self.remove_node(place)
 		else:
 			raise KeyError("No such place: {}".format(place))
 
 	def remove_thing(self, thing: KeyHint | NodeName) -> None:
-		"""Remove an existing Thing"""
+		"""Remove an existing :class:`~.node.Thing`"""
 		if thing in self.thing:
 			self.remove_node(thing)
 		else:
@@ -1019,7 +1032,12 @@ class Character(AbstractCharacter, RuleFollower):
 		location: KeyHint | NodeName,
 		**kwargs: dict[KeyHint | Stat, ValueHint | Value],
 	):
-		"""Make a new Thing and set its location"""
+		"""Make a new :class:`~.node.Thing` at this location
+
+		Keyword arguments, if present, will be the initial stats of the
+		:class:`~.node.Thing` we create.
+
+		"""
 		if name in self.thing:
 			raise WorldIntegrityError(
 				"Already have a Thing named {}".format(name)
@@ -1046,7 +1064,14 @@ class Character(AbstractCharacter, RuleFollower):
 		],
 		**attrs,
 	) -> None:
-		"""Make many new Things"""
+		"""Make many new :class:`~.node.Thing` objects
+
+		Takes a sequence of pairs, of which item 0 is the name of the new
+		:class:`~.node.Thing`, and item 1 is the name. Or triples, of which
+		item 2 is a dictionary of stats that the :class:`~.node.Thing` object
+		will start with.
+
+		"""
 		attrs: StatDict
 		for tup in seq:
 			name = tup[0]
@@ -1057,9 +1082,9 @@ class Character(AbstractCharacter, RuleFollower):
 	def place2thing(
 		self, name: KeyHint | NodeName, location: KeyHint | NodeName
 	) -> None:
-		"""Turn a Place into a Thing with the given location.
+		"""Turn a :class:`~.node.Place` into a :class:`~.node.Thing` at the given location.
 
-		It will keep all its attached Portals.
+		All :class:`~.portal.Portal` objects attached to it will stay attached.
 
 		"""
 		name = NodeName(Key(name))
@@ -1075,7 +1100,7 @@ class Character(AbstractCharacter, RuleFollower):
 			self.engine._node_objs[self.name, name] = thing
 
 	def thing2place(self, name: KeyHint | NodeName) -> None:
-		"""Unset a Thing's location, and thus turn it into a Place."""
+		"""Unset a :class:`~.node.Thing`'s location, and thus turn it into a :class:`~.node.Place`."""
 		name = NodeName(Key(name))
 		self.engine._set_thing_loc(self.name, name, ...)
 		if (self.name, name) in self.engine._node_objs:
@@ -1093,9 +1118,9 @@ class Character(AbstractCharacter, RuleFollower):
 		destination: KeyHint | NodeName,
 		**kwargs,
 	) -> None:
-		"""Connect the origin to the destination with a :class:`Portal`.
+		"""Connect the origin to the destination with a :class:`~.portal.Portal`.
 
-		Keyword arguments are attributes of the :class:`Portal`.
+		Keyword arguments will be the initial attributes of the :class:`~.portal.Portal`.
 
 		"""
 		kwargs: StatDict
@@ -1140,7 +1165,11 @@ class Character(AbstractCharacter, RuleFollower):
 		destination: KeyHint | NodeName,
 		**kwargs,
 	) -> Portal:
-		"""Create a portal and return it"""
+		"""Create a :class:`~.portal.Portal` and return it
+
+		Keyword arguments will be stats of the new :class:`~.portal.Portal`.
+
+		"""
 		kwargs: StatDict
 		self.add_portal(origin, destination, **kwargs)
 		return self.engine._get_edge(
@@ -1155,10 +1184,11 @@ class Character(AbstractCharacter, RuleFollower):
 		],
 		**kwargs,
 	):
-		"""Make portals for a sequence of (origin, destination) pairs
+		"""Make portals from a sequence of ``(origin, destination)`` pairs
 
 		Actually, triples are acceptable too, in which case the third
-		item is a dictionary of stats for the new :class:`Portal`.
+		item is a dictionary of stats for the new :class:`~.portal.Portal`.
+
 		"""
 		for tup in seq:
 			orig = tup[0]
