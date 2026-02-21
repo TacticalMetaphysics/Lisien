@@ -22,8 +22,7 @@ operates independently of you.
 Lisien can help you make games like:
 
 -  `The Sims <https://www.ea.com/games/the-sims>`__
--  `SimLife: The Genetic Playground
-   (1992) <https://collectionchamber.blogspot.com/p/simlife-genetic-playground.html>`__
+-  `SimLife: The Genetic Playground (1992)<https://collectionchamber.blogspot.com/p/simlife-genetic-playground.html>`__
 -  `Rimworld <https://rimworldgame.com/>`__
 -  `Dwarf Fortress <https://bay12games.com/dwarves/features.html>`__
 -  `Princess Maker <https://en.wikipedia.org/wiki/Princess_Maker>`__
