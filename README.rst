@@ -5,8 +5,6 @@ Lisien is a tool for developing life simulation games.
 `Read
 Documentation <https://clayote.codeberg.page/lisien/docs/manual.html>`__
 
-Follow on Mastodon
-
 What is a life simulation game?
 ===============================
 
