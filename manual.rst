@@ -183,12 +183,12 @@ eight turns (presumably hour-long)::
 
    @alice.rule
    def sleep(character):
-           character.stat['awake'] = False
-           start_turn = character.engine.turn
-           with character.engine.plan() as plan_num:
-                   character.engine.turn += 8
-                   character.stat['awake'] = True
-           character.stat['wake_plan'] = plan_num
+       character.stat['awake'] = False
+       start_turn = character.engine.turn
+       with character.engine.plan() as plan_num:
+           character.engine.turn += 8
+           character.stat['awake'] = True
+       character.stat['wake_plan'] = plan_num
 
 At the end of a ``plan():`` block, the game-time will be reset to its
 position at the start of that block. You can use the plan's ID number,
@@ -208,13 +208,16 @@ call, then return a menu description like this one::
 
    @engine.method
    def wake_alice(self):
-           self.character['alice'].stat['awake'] = True
+       self.character['alice'].stat['awake'] = True
 
    alice = engine.character['alice']
 
    @alice.rule
    def wakeup(character):
-           return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
+       return "Wake up?", [
+           ("Yes", character.engine.wake_alice),
+           ("No", None)
+       ]
 
 Only methods defined with the ``@engine.method`` function store may be
 used in a menu. In Elide, that means you have to define them in the Method
@@ -233,14 +236,12 @@ proxy to the engine::
 
     from lisien.proxy import EngineProxyManager
 
-
     manager = EngineProxyManager('gamedir/')
     engine_proxy = manager.start(workers=4)
 
     # do stuff here
 
     manager.shutdown()
-
 
 You can pass :class:`.Engine` arguments to the ``start`` method.
 
