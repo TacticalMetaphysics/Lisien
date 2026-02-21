@@ -407,8 +407,13 @@ Lisien itself under the AGPL, but this doesn’t apply to your game code.
 
 Game code is that which is loaded into the engine at launch time, either
 from a file named ``game_start.py`` in the game prefix, or from modules
-specified by the following parameters to the Lisien engine: \*
-``trigger`` \* ``prereq`` \* ``action`` \* ``function`` \* ``method``
+specified by the following parameters to the Lisien engine:
+
+- ``trigger``
+- ``prereq``
+- ``action``
+- ``function``
+- ``method``
 
 Or stored in files by those names (plus extensions) inside the game’s
 prefix. Game code must not alter the function of Lisien itself (no “hot
