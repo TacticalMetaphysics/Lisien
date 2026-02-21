@@ -163,6 +163,11 @@ the action should *not* happen; if a single prerequisite returns
 Use the ``engine`` property of any Lisien entity to get the engine, then
 use methods such as ``percent_chance`` and ``dice_check``.
 
+A prerequisite may return a value that is not Boolean. This indicates that
+the game should stop and ask the user for input. If you're using Elide,
+the appropriate return type is described in :attr:`elide.screen.DialogLayout.todo`.
+
+
 Time Control
 ============
 
