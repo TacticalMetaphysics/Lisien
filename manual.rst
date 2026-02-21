@@ -228,7 +228,7 @@ Lisien may be run in a separate process from Elide, or any other frontend you ma
 To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
 their corresponding objects in the Lisien core.
 
-Use :class:`lisien.proxy.EngineProxyManager` to start Lisien in a subprocess and get a
+Use :class:`.proxy.manager.EngineProxyManager` to start Lisien in a subprocess and get a
 proxy to the engine::
 
     from lisien.proxy import EngineProxyManager
