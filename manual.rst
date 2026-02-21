@@ -256,19 +256,17 @@ at the relevant time. Here's how you'd run some code whenever ``next_turn`` fini
     from my_excellent_game import display_menu, apply_delta
 
     manager = EngineProxyManager()
-    engine_proxy = manager.start()
 
+    with manager.start() as engine_proxy:
 
-    def update_from_next_turn(engine, menu_info, delta):
-        display_menu(*menu_info)
-        apply_delta(delta)
+        @engine_proxy.next_turn.connect
+        def update_from_next_turn(engine, menu_info, delta):
+            display_menu(*menu_info)
+            apply_delta(delta)
 
-    engine_proxy.next_turn.connect(update_from_next_turn)
+        subthread = Thread(target=engine_proxy.next_turn)
+        subthread.start()
 
-    subthread = Thread(target=engine_proxy.next_turn)
-    subthread.start()
+        # do some UI work here
 
-    # do some UI work here
-
-    subthread.join()
-    manager.shutdown()
+        subthread.join()
