@@ -38,11 +38,14 @@ easy to compartmentalize complexity and choose what of it you want to
 deal with and when.
 
 It is a rules engine, an old concept from business software that lets
-you determine what conditions cause what effects. Here, conditions are
-Triggers and effects are Actions, and they're both lists of Python
-functions. Actions make some change to the state of the world, while
-Triggers look at the world once-per-turn and return a Boolean to show
-whether their Actions should happen.
+you determine what conditions cause what effects. Though you'll still
+need to write some Python code for the conditions and the effects that
+they have, the connections between them and the objects that follow the
+rule are defined in data. Once you've written a short Python function
+that works in the rules engine, it's easy to reuse it for another rule
+on another object. Changing the rules while the game is running is just
+as easy, so you can experiment with ideas for rules as soon as you have
+them.
 
 **********
  Concepts
