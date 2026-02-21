@@ -22,6 +22,7 @@ grid, the time control panel, and the menu.
 from ast import literal_eval
 from functools import partial
 from threading import Thread
+from typing import Callable
 
 from kivy.app import App
 from kivy.clock import Clock, mainthread, triggered
@@ -108,6 +109,8 @@ class StatListPanel(BoxLayout):
 
 
 class SimulateButton(ToggleButton):
+	"""A button that lets the simulation run while toggled on"""
+
 	@logwrap(section="SimulateButton")
 	def on_state(self, *_):
 		app = App.get_running_app()
@@ -115,6 +118,8 @@ class SimulateButton(ToggleButton):
 
 
 class OneTurnButton(Button):
+	"""A button that runs the simulation for exactly one turn"""
+
 	screen = ObjectProperty()
 
 	@logwrap(section="OneTurnButton")
@@ -200,10 +205,10 @@ class TimePanel(BoxLayout):
 class MainScreen(Screen):
 	"""A master layout that contains one graph and some menus.
 
-	This contains three elements: a scrollview (containing the graph),
+	This contains three elements: a view on the current character,
 	a menu, and the time control panel. This class has some support methods
 	for handling interactions with the menu and the character sheet,
-	but if neither of those happen, the scrollview handles touches on its
+	but if neither of those happen, the character view handles touches on its
 	own.
 
 	"""
@@ -602,6 +607,8 @@ class MainScreen(Screen):
 
 
 class CharMenuContainer(BoxLayout):
+	"""Layout containing the right-hand column of Elide"""
+
 	screen = ObjectProperty()
 	dummyplace = ObjectProperty()
 	dummything = ObjectProperty()
@@ -725,6 +732,8 @@ class CharMenuContainer(BoxLayout):
 
 
 class TurnScroll(Slider):
+	"""A slider that travels through time, turn-by-turn"""
+
 	def __init__(self, **kwargs):
 		kwargs["step"] = 1
 		super().__init__(**kwargs)
@@ -774,6 +783,8 @@ class TurnScroll(Slider):
 
 
 class Box(Widget):
+	"""A rectangle, maybe with padding, rounded corners, and/or text"""
+
 	padding = VariableListProperty(6)
 	border = VariableListProperty(4)
 	font_size = StringProperty("15sp")
@@ -792,9 +803,9 @@ class ScrollableLabel(ScrollView):
 
 
 class MessageBox(Box):
-	"""Looks like a TextInput but doesn't accept any input.
+	"""Looks like a :class:`kivy.uix.textinput.TextInput`, but doesn't accept input
 
-	Does support styled text with BBcode.
+	Supports styled text with BBcode.
 
 	"""
 
@@ -805,14 +816,18 @@ class MessageBox(Box):
 class DialogMenu(Box):
 	"""Some buttons that make the game do things.
 
-	Set ``options`` to a list of pairs of ``(text, function)`` and the
-	menu will be populated with buttons that say ``text`` that call
-	``function`` when pressed.
+	Usually instantiated by passing options to a :class:`DialogLayout`.
 
 	"""
 
-	options = ListProperty()
-	"""List of pairs of (button_text, callable)"""
+	options: list[tuple[str, Callable]] = ListProperty()
+	"""List of pairs of (button_text, callable)
+	
+	Set :attr:`options` to a list of pairs of :code:`(text, function)` and the
+	menu will be populated with buttons that say ``text`` that call
+	``function`` when pressed.
+	
+	"""
 
 	def _set_sv_size(self, *_):
 		self._sv.width = self.width - self.padding[0] - self.padding[2]
@@ -863,8 +878,8 @@ class Dialog(BoxLayout):
 
 	Set the properties ``message_kwargs`` and ``menu_kwargs``,
 	respectively, to control them -- but you probably want
-	to do that by returning a pair of dicts from an action
-	in lisien.
+	to do that in :class:`DialogLayout`, by returning a pair of
+	dictionaries from the Lisien core.
 
 	"""
 
@@ -923,26 +938,42 @@ class Dialog(BoxLayout):
 class DialogLayout(FloatLayout):
 	"""A layout, normally empty, that can generate dialogs
 
-	To make dialogs, set my ``todo`` property to a list. It may contain:
-
-	* Strings, which will be displayed with an "OK" button to dismiss them
-	* Lists of pairs of strings and callables, which generate buttons with the
-	  string on them that, when clicked, call the callable
-	* Lists of pairs of dictionaries, which are interpreted as keyword
-	  arguments to :class:`MessageBox` and :class:`DialogMenu`
-
-	In place of a callable you can use the name of a function in my
-	``usermod``, a Python module given by name. I'll import it when I need it.
-
-	Needs to be instantiated with a lisien ``engine`` -- probably an
-	:class:`EngineProxy`.
+	When Lisien code returns values compatible with :attr:`todo`,
+	those values are put on the end of :attr:`todo`, and we will proceed
+	to display the dialogs they describe.
 
 	"""
 
-	dialog = ObjectProperty()
-	todo = ListProperty()
+	dialog: Dialog = ObjectProperty()
+	"""The :class:`.Dialog` currently displayed. Defaults to an empty one."""
+	todo: list[str | tuple[str, Callable | str] | tuple[dict, dict]] = (
+		ListProperty()
+	)
+	"""Instructions for what dialogs to make. May contain:
+	
+	* :type:`str`, which will be displayed with an "OK" button to dismiss them
+	* :type:`tuple[str, Callable]`, which generate buttons with the
+	    string on them that, when clicked, call the callable
+	  
+	    In place of the callable, you can use the :type:`str` name of a function
+	    in my :attr:`usermod`, a Python module given by name. I'll import it when
+	    I need it.
+	* :type:`tuple[dict, dict]`, which are interpreted as keyword
+	    arguments to :class:`.MessageBox` and :class:`.DialogMenu`
+	  
+	We'll display one dialog at a time, removing it from the list when we're
+	done, and then advance to the next one. When we run out, we'll switch
+	to an empty dialog.
+	
+	"""
 	usermod = StringProperty("user")
+	"""Name of a module with callback functions for use in :attr:`todo`"""
 	userpkg = StringProperty(None, allownone=True)
+	"""Name of the package that :attr:`usermod` is in
+	
+	Only needed when :attr:`usermod` is not in the same directory as the game.
+	
+	"""
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -983,11 +1014,16 @@ class DialogLayout(FloatLayout):
 	@mainthread
 	@logwrap(section="DialogLayout")
 	def advance_dialog(self, after_ok=None, *args):
-		"""Try to display the next dialog described in my ``todo``.
+		"""Try to display the next dialog described in my :attr:`todo`.
+
+		You normally don't want to call this directly--Elide takes care of it--
+		but you might have to, if you're writing your own Elide-based app.
+		In that case, you should only have to call this once per turn,
+		for the very first dialog in :attr:`todo`.
 
 		:param after_ok: An optional callable. Will be called after the user clicks
-		a dialog option--as well as after any game-specific code for that option
-		has run.
+			a dialog option--as well as after any game-specific code for that option
+			has run.
 
 		"""
 		self.clear_widgets()
