@@ -59,7 +59,7 @@ from typing import (
 )
 
 import networkx as nx
-from attrs import define
+from attrs import define, field
 
 from .exc import WorldIntegrityError
 from .facade import CharacterFacade, EngineFacade
@@ -213,6 +213,7 @@ class MutableCharacterMapping[_KT, _VT](
 ): ...
 
 
+@define(eq=False, repr=False)
 class Character(AbstractCharacter, RuleFollower):
 	"""A digraph that follows game rules and has a containment hierarchy
 
@@ -254,8 +255,9 @@ class Character(AbstractCharacter, RuleFollower):
 	"""
 
 	engine: Engine
-	name: CharName
-	_book = "character"
+	_name: CharName
+	_init_rulebooks: bool = field(default=False, kw_only=True)
+	_book: ClassVar[str] = "character"
 
 	@staticmethod
 	def node_dict_factory() -> StatDict:
@@ -289,13 +291,12 @@ class Character(AbstractCharacter, RuleFollower):
 	):
 		return super().__new__(cls, engine, name)
 
-	def __init__(
-		self, engine: Engine, name: CharName, *, init_rulebooks: bool = False
-	):
-		name = name
-		super().__init__(engine, name)
+	@_init_rulebooks.validator
+	def _do_init_rulebooks(self, _, init_rulebooks):
 		if not init_rulebooks:
 			return
+		engine = self.engine
+		name = self._name
 		cachemap = {
 			"character_rulebook": engine._characters_rulebooks_cache,
 			"unit_rulebook": engine._units_rulebooks_cache,

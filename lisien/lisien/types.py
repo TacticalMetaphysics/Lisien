@@ -2228,6 +2228,7 @@ def unwrapped_dict(d) -> dict:
 	return ret
 
 
+@define(eq=False)
 class DiGraph(nx.DiGraph, ABC):
 	"""A version of the networkx.DiGraph class that stores its state in a
 	database.
@@ -2238,15 +2239,6 @@ class DiGraph(nx.DiGraph, ABC):
 	pred_cls: ClassVar = DiGraphPredecessorsMapping
 	graph_map_cls: ClassVar = GraphMapping
 	node_map_cls: ClassVar = GraphNodeMapping
-
-	def __new__(
-		cls,
-		engine: AbstractEngine | None = None,
-		name: CharName | None = None,
-		*,
-		init_rulebooks: bool = False,
-	):
-		return super().__new__(cls)
 
 	def _nodes_state(self) -> dict[NodeName, dict[Stat, Value]]:
 		return {
