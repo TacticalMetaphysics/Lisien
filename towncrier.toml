@@ -1,0 +1,5 @@
+[tool.towncrier]
+directory = "changelog.d"
+package = "lisien"
+package_dir = "lisien"
+filename = "CHANGES.rst"
