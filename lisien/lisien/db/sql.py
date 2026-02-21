@@ -228,8 +228,6 @@ class SQLAlchemyDatabaseConnector(ThreadedDatabaseConnector):
 		for k, v in val.items():
 			if not isinstance(k, str):
 				raise TypeError("Invalid argument name", k)
-			if not isinstance(v, str):
-				raise TypeError("Invalid argument value", v)
 
 	def pack(
 		self,
