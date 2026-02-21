@@ -7696,7 +7696,6 @@ class Engine(AbstractEngine, BaseExecutor):
 		keyframe_interval: int | None = 1000,
 		commit_interval: int | None = None,
 		random_seed: int | None = None,
-		clear: bool = False,
 		keep_rules_journal: bool = True,
 		keyframe_on_close: bool = True,
 		enforce_end_of_time: bool = True,
