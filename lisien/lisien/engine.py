@@ -457,6 +457,21 @@ class Engine(AbstractEngine, BaseExecutor):
 
 		from lisien import Engine
 
+	:class:`Engine` accepts lots and lots of keyword arguments, most of which
+	can be set on the constructed :class:`Engine`, too. They are therefore
+	documented as :class:`Engine` attributes. These are the exceptions.
+
+	:param connect_string: the string URL to a SQL database, if you want to connect
+		to one. It will be used to store the state of the world and the
+		 configuration of the rules engine, but not your game's Python code.
+		 See :ref:`database_urls` for the precise syntax.
+	:param connect_args: dictionary used for the keyword arguments to
+		:func:`sqlalchemy.create_engine`
+	:param clear: a Boolean, default ``False``; if ``True``, we'll immediately
+		delete everything in the ``prefix``, as well as all world state in the
+		database. Not recommended, generally, but there are workflows based
+		on rapid prototyping where that makes sense.
+
 	"""
 
 	is_proxy: ClassVar = False
@@ -523,7 +538,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		default=None,
 	)
 	"""Module containing utility functions; if absent, we'll use a 
-	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	:class:`~.collections.FunctionStore` to keep them in a .py file in 
 	the ``prefix``.
 	
      Only functions stored in one of these attributes can be used by Lisien's
@@ -543,7 +558,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		default=None,
 	)
 	"""Module containing functions taking this engine as first argument. If 
-	absent, we'll use a :class:`lisien.collections.FunctionStore` to keep 
+	absent, we'll use a :class:`~.collections.FunctionStore` to keep 
 	them in a .py file in the ``prefix``.
 	
      Only functions stored in one of these attributes can be used by Lisien's
@@ -585,7 +600,7 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing trigger functions, taking a Lisien entity and 
 	returning a boolean for whether to run a rule. If absent, we'll use a 
-	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	:class:`~.collections.FunctionStore` to keep them in a .py file in 
 	the ``prefix``.
 	
     Trigger functions are evaluated in parallel by default.
@@ -599,9 +614,9 @@ class Engine(AbstractEngine, BaseExecutor):
 		),
 		default=None,
 	)
-	"""Module containing prereq functions, taking a lisien entity and 
+	"""Module containing prereq functions, taking a Lisien entity and 
 	returning a boolean for whether to permit a rule to run. If absent, 
-	we'll use a :class:`lisien.collections.FunctionStore` to keep them in a 
+	we'll use a :class:`~.collections.FunctionStore` to keep them in a 
 	.py file in the ``prefix``."""
 	action: ModuleType | ActionStore = field(
 		kw_only=True,
@@ -613,7 +628,7 @@ class Engine(AbstractEngine, BaseExecutor):
 	)
 	"""Module containing action functions, taking a Lisien entity and 
 	mutating it (and possibly the rest of the world). If absent, we'll use a 
-	:class:`lisien.collections.FunctionStore` to keep them in a .py file in 
+	:class:`~.collections.FunctionStore` to keep them in a .py file in 
 	the ``prefix``."""
 	random_seed: int | None = field(kw_only=True, default=None)
 	"""An integer to initialize the randomizer. Lisien saves the state of the 
@@ -637,13 +652,12 @@ class Engine(AbstractEngine, BaseExecutor):
 	but useful for debugging."""
 	connect_string: str | None = field(kw_only=True, default=None)
 	"""URL for a database to connect to. Leave it as the default, ``None``, 
-	to use the ParquetDB database in the ``prefix``, if supplied. This uses 
-	SQLAlchemy's URL structure: 
-	https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls"""
+	to use the ParquetDB database in the ``prefix``, if supplied. For the 
+	syntax, see :ref:`database_urls`."""
 	connect_args: dict[str, str] | None = field(kw_only=True, default=None)
 	"""Dictionary of keyword arguments for the database connection. Only 
-	meaningful when combined with ``connect_string``. For details, see:
-	https://docs.sqlalchemy.org/en/20/core/engines.html#custom-dbapi-args"""
+	meaningful when combined with ``connect_string``. For details, see
+	:func:`sqlalchemy.create_engine`."""
 
 	def _database_factory(self):
 		if self._prefix is None:
@@ -993,10 +1007,10 @@ class Engine(AbstractEngine, BaseExecutor):
 		default=None,
 	)
 	"""Dictionary of strings to be used in the game; if absent, we'll use a 
-	:class:`lisien.collections.StringStore` to keep them in JSON files in the
+	:class:`~lisien.collections.StringStore` to keep them in JSON files in the
 	``string/`` subdirectory of our ``prefix``.
 	
-	If using :class:`.collections.StringStore`, you can switch languages
+	If using :class:`~.collections.StringStore`, you can switch languages
 	like this::
 		
 		from lisien import Engine
@@ -1045,9 +1059,8 @@ class Engine(AbstractEngine, BaseExecutor):
 	parallel processing. By default, Lisien will use as many workers as 
 	we have CPU cores. When ``0``, parallel processing is disabled. Note that 
 	``workers=0`` implies that trigger functions operate on bare Lisien 
-	objects, and can therefore have side effects. If you don't want this, 
-	instead use ``workers=1``, which *does* disable parallelism in the case 
-	of trigger functions."""
+	objects, rather than :mod:`~.proxy` objects, and can therefore have side
+	effects. If you don't want this,  instead use ``workers=1``."""
 
 	@staticmethod
 	def _convert_sub_mode(sub_mode):
@@ -1166,7 +1179,7 @@ class Engine(AbstractEngine, BaseExecutor):
 	cache_nodes: int = field(default=1000)
 	"""Number of node objects to cache
 	
-	They may be either :class:`lisien.node.Thing` or :class:`lisien.node.Place`.
+	They may be either :class:`~.node.Thing` or :class:`~.node.Place`.
 	
 	"""
 
@@ -1659,10 +1672,12 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@cached_property
 	def rule(self) -> AllRules:
+		__doc__ = AllRules.__doc__
 		return AllRules(self)
 
 	@cached_property
 	def rulebook(self) -> AllRuleBooks:
+		__doc__ = AllRuleBooks.__doc__
 		return AllRuleBooks(self)
 
 	@cached_property
@@ -1715,7 +1730,17 @@ class Engine(AbstractEngine, BaseExecutor):
 
 	@contextmanager
 	def wayback(self):
-		"""Return to the time at the start of the context once it's done"""
+		"""Context manager that returns you to the time you started it at
+
+		To get a value from somewhere else in the timestream::
+
+			engine.time = ('trunk', 0, 0)
+			with engine.wayback():
+				engine.time = ('elsewhen', 2, 3)
+				gotcha = engine.universal['secret']
+			assert engine.time == ('trunk', 0, 0)
+
+		"""
 		now = tuple(self.time)
 		yield
 		self.time = now
@@ -7708,7 +7733,15 @@ class Engine(AbstractEngine, BaseExecutor):
 		| None = None,
 		executor: Executor | None = None,
 	) -> Engine:
-		"""Make a new Lisien engine out of an archive exported from another engine"""
+		"""Make a new :class:`Engine` out of an archive exported from another
+
+		Accepts the same keyword arguments as :class:`Engine`, except for
+		``clear``.
+
+		:param archive_path: Path to a ``.lisien`` archive
+		:param prefix: Optional directory to put the game in
+
+		"""
 		if database is None:
 			if prefix:
 				fake = EngineFacade(None)

@@ -3959,12 +3959,31 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@cached_property
 	def thing(self) -> ThingMapping:
+		"""A mapping of :class:`~.node.Thing` objects in this :class:`Character`
+
+		They represent the type of node that can be located in another node--either
+		a :class:`~.node.Place` or a :class:`~.node.Thing`.
+
+		This mapping has a ``rule`` method for applying new rules to every
+		:class:`~.node.Thing` here, and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		"""
 		return self.ThingMapping(self)
 
 	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
+		"""A mapping of :class:`~.node.Place` objects in this :class:`Character`
+
+		:class:`~.node.Thing` objects may be located in these.
+
+		This mapping has a ``rule`` method for applying new rules to every
+		:class:`Place` here, and a ``rulebook`` property for assigning premade
+		rulebooks.
+
+		"""
 		return self.PlaceMapping(self)
 
 	ThingPlaceMapping: ClassVar[
@@ -3997,6 +4016,14 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@property
 	def portal(self):
+		"""A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by origin and destination
+
+		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		Aliases:  ``adj``, ``edge``, ``succ``
+
+		"""
 		return self._succ
 
 	@property
@@ -4025,6 +4052,14 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@property
 	def preportal(self):
+		"""A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by destination and origin
+
+		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		Alias: ``pred``
+
+		"""
 		return self._pred
 
 	@property
@@ -4041,10 +4076,24 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
+		"""A two-layer mapping of this character's units in other characters.
+
+		Units are nodes in other characters that are in some sense part of this one. A common example in strategy
+		games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
+		state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
+		general's :class:`Character`, are still under their command, and therefore follow rules defined on the
+		general's ``unit.rule`` subproperty.
+
+		The outer layer is the name of the character. The inner layer is the name
+		of the unit, which may be a :class:`~.node.Place` or a
+		:class:`~.node.Thing`.
+
+		"""
 		return self.UnitGraphMapping(self)
 
 	@property
 	def stat(self):
+		"""A mapping of arbitrary data, sensitive to game time"""
 		return self.graph
 
 	def units(self):
