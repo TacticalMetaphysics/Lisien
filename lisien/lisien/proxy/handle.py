@@ -15,6 +15,10 @@
 """Wrap a lisien engine so you can access and control it using only
 ordinary method calls.
 
+You normally want to use :class:`~.manager.EngineProxyManager` instead,
+but :class:`EngineHandle` may be useful if you want to make your own API.
+Perhaps, in another programming language.
+
 """
 
 from __future__ import annotations
