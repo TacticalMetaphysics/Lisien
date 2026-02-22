@@ -6890,11 +6890,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		edge: Optional[EdgeValDict] = None,
 		**kwargs,
 	) -> Character:
-		"""Create and return a new :class:`Character`.
-
-		See :meth:`add_character` for details.
-
-		"""
+		__doc__ = AbstractEngine.new_character.__doc__
 		self.add_character(name, data, layout, node=node, edge=edge, **kwargs)
 		return self.character[CharName(name)]
 
@@ -6907,28 +6903,7 @@ class Engine(AbstractEngine, BaseExecutor):
 		edge: Optional[EdgeValDict] = None,
 		**kwargs,
 	) -> None:
-		"""Create a new character.
-
-		You'll be able to access it as a :class:`Character` object by
-		looking up ``name`` in my ``character`` property.
-
-		``data``, if provided, should be a :class:`networkx.Graph`
-		or :class:`networkx.DiGraph` object. The character will be
-		a copy of it.
-
-		``node`` may be a dictionary of dictionaries representing either
-		``Thing`` objects, if they have a ``"location"`` key, or else
-		``Place`` objects.
-
-		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,
-		connecting mainly ``Place`` objects together.
-
-		With ``layout=True``, compute a layout to make the
-		graph show up nicely in elide.
-
-		Any keyword arguments will be set as stats of the new character.
-
-		"""
+		__doc__ = AbstractEngine.add_character.__doc__
 		if name in self.character:
 			raise KeyError("Already have that character", name)
 		if layout and (data or node or edge):

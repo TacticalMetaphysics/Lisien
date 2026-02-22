@@ -3575,7 +3575,29 @@ class AbstractEngine(ABC):
 		node: NodeValDict | None = None,
 		edge: EdgeValDict | None = None,
 		**kwargs,
-	): ...
+	):
+		"""Create a new character.
+
+		You'll be able to access it as a :class:`Character` object by
+		looking up ``name`` in my ``character`` property.
+
+		``data``, if provided, should be a :class:`networkx.Graph`
+		or :class:`networkx.DiGraph` object. The character will be
+		a copy of it.
+
+		``node`` may be a dictionary of dictionaries representing either
+		``Thing`` objects, if they have a ``"location"`` key, or else
+		``Place`` objects.
+
+		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,
+		connecting mainly ``Place`` objects together.
+
+		With ``layout=True``, compute a layout to make the
+		graph show up nicely in elide.
+
+		Any keyword arguments will be set as stats of the new character.
+
+		"""
 
 	def new_character(
 		self,
@@ -3586,6 +3608,11 @@ class AbstractEngine(ABC):
 		edge: EdgeValDict | None = None,
 		**kwargs,
 	):
+		"""Create and return a new :class:`Character`.
+
+		See :meth:`add_character` for details.
+
+		"""
 		self.add_character(name, data)
 		return self.character[name]
 

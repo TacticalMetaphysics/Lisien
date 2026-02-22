@@ -199,6 +199,7 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.facade
 
+.. _proxy:
 #######
  proxy
 #######

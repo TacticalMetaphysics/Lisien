@@ -1,3 +1,4 @@
+.. _elide:
 #######
  Elide
 #######
@@ -229,6 +230,8 @@ Editor widgets for strings and Python code.
 .. automodule:: elide.stores
    :members:
 
+.. _python-editor:
+=============
 Python Editor
 =============
 
@@ -238,6 +241,7 @@ appropriate tab from Trigger, Prereq, or Action at the top, and the
 function you write will show up in the appropriate part of the rules
 editor.
 
+==============
 Strings Editor
 ==============
 
