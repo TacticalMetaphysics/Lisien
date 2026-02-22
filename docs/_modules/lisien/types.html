@@ -6,11 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>lisien.types &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
     <script src="../../_static/documentation_options.js?v=10ab35ec"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -173,7 +173,7 @@
 
 
 <div class="viewcode-block" id="is_valid_value">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.is_valid_value">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.is_valid_value">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">is_valid_value</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeGuard</span><span class="p">[</span><span class="n">Value</span><span class="p">]:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Is this an object that Lisien can serialize as a value?&quot;&quot;&quot;</span>
 	<span class="k">return</span> <span class="p">(</span>
@@ -244,7 +244,7 @@
 
 
 <div class="viewcode-block" id="Value">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Value">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Value">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Value</span><span class="p">(</span><span class="n">metaclass</span><span class="o">=</span><span class="n">_ValueMeta</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Serializable object. Used for dynamic typing.&quot;&quot;&quot;</span>
 
@@ -256,7 +256,7 @@
 
 
 <div class="viewcode-block" id="is_valid_key">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.is_valid_key">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.is_valid_key">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">is_valid_key</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TypeGuard</span><span class="p">[</span><span class="n">Key</span><span class="p">]:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Is this an object that Lisien can serialize as a key?&quot;&quot;&quot;</span>
 	<span class="k">return</span> <span class="p">(</span>
@@ -285,7 +285,7 @@
 
 
 <div class="viewcode-block" id="Key">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Key">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Key">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Key</span><span class="p">(</span><span class="n">Value</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">_KeyMeta</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Serializable key for mappings. Used in dynamic typing.&quot;&quot;&quot;</span>
 
@@ -297,7 +297,7 @@
 
 
 <div class="viewcode-block" id="keyval">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.keyval">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.keyval">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">keyval</span><span class="p">(</span><span class="n">pair</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">ValueHint</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Key</span><span class="p">,</span> <span class="n">Value</span><span class="p">]:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Convenience function to serialize both items of a pair&quot;&quot;&quot;</span>
 	<span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">pair</span>
@@ -320,7 +320,7 @@
 
 
 <div class="viewcode-block" id="Time">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Time">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Time">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Time</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">]):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A tuple of branch, turn, and tick</span>
 
@@ -434,13 +434,13 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_me</span><span class="p">()</span><span class="o">.</span><span class="fm">__rmul__</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Time.count">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Time.count">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Time.count">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">count</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_me</span><span class="p">()</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Time.index">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Time.index">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Time.index">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">,</span> <span class="o">/</span><span class="p">):</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_me</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span></div>
 
@@ -502,7 +502,7 @@
 
 
 <div class="viewcode-block" id="ValidateTimeProtocol">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.ValidateTimeProtocol">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.ValidateTimeProtocol">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ValidateTimeProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 	<span class="nd">@override</span>
 	<span class="nd">@staticmethod</span>
@@ -564,7 +564,7 @@
 
 
 <div class="viewcode-block" id="LinearTime">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.LinearTime">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.LinearTime">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LinearTime</span><span class="p">(</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">]):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A point in time within some branch&quot;&quot;&quot;</span>
 
@@ -699,7 +699,7 @@
 
 
 <div class="viewcode-block" id="RuleKeyframe">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.RuleKeyframe">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.RuleKeyframe">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">RuleKeyframe</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The state of all rules at a point in the timestream&quot;&quot;&quot;</span>
 
@@ -1102,7 +1102,7 @@
 
 
 <div class="viewcode-block" id="Keyframe">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Keyframe">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Keyframe">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Keyframe</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
 	<span class="n">universal</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">UniversalKey</span><span class="p">,</span> <span class="n">Value</span><span class="p">]</span>
 	<span class="n">triggers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">RuleName</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">TriggerFuncName</span><span class="p">]]</span>
@@ -1147,7 +1147,7 @@
 
 
 <div class="viewcode-block" id="CharacterMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.CharacterMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.CharacterMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">CharacterMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">MappingUnwrapper</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Common amenities for mappings in :class:`Character`&quot;&quot;&quot;</span>
@@ -1167,7 +1167,7 @@
 
 
 <div class="viewcode-block" id="AbstractEntityMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEntityMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEntityMapping">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractEntityMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span>
 	<span class="n">MappingUnwrapper</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">],</span> <span class="n">ABC</span>
 <span class="p">):</span>
@@ -1258,7 +1258,7 @@
 
 
 <div class="viewcode-block" id="GraphMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GraphMapping</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Mapping for graph attributes&quot;&quot;&quot;</span>
@@ -1342,7 +1342,7 @@
 		<span class="p">)</span>
 
 <div class="viewcode-block" id="GraphMapping.clear">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphMapping.clear">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphMapping.clear">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="n">keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 		<span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
@@ -1353,7 +1353,7 @@
 		<span class="k">return</span> <span class="n">unwrap_items</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
 
 <div class="viewcode-block" id="GraphMapping.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphMapping.update">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphMapping.update">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">upd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">ValueHint</span><span class="p">]):</span>
 		<span class="n">realupd</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 		<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">upd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1382,7 +1382,7 @@
 
 
 <div class="viewcode-block" id="Node">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Node</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
@@ -1460,7 +1460,7 @@
 		<span class="p">)</span>
 
 <div class="viewcode-block" id="Node.add_portal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.add_portal">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node.add_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">other</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Node</span><span class="p">,</span>
@@ -1478,7 +1478,7 @@
 
 
 <div class="viewcode-block" id="Node.new_portal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.new_portal">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node.new_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">other</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">Node</span><span class="p">,</span>
@@ -1496,7 +1496,7 @@
 
 
 <div class="viewcode-block" id="Node.add_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.add_thing">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node.add_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -1507,7 +1507,7 @@
 
 
 <div class="viewcode-block" id="Node.new_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.new_thing">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node.new_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -1518,7 +1518,7 @@
 
 
 <div class="viewcode-block" id="Node.historical">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Node.historical">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Node.historical">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">historical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stat</span><span class="p">:</span> <span class="n">Stat</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EntityStatAlias</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a reference to the values that a stat has had in the past.</span>
 
@@ -1542,7 +1542,7 @@
 
 
 <div class="viewcode-block" id="Edge">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Edge">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Edge">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Edge</span><span class="p">(</span><span class="n">AbstractEntityMapping</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Mapping for edge attributes&quot;&quot;&quot;</span>
@@ -1623,7 +1623,7 @@
 
 
 <div class="viewcode-block" id="AttrSignal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AttrSignal">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AttrSignal">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">slots</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AttrSignal</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">__attrs_pre_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1632,7 +1632,7 @@
 
 
 <div class="viewcode-block" id="GraphNodeMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphNodeMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphNodeMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GraphNodeMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span>
 	<span class="n">CharacterMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">],</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">],</span> <span class="n">AttrSignal</span><span class="p">,</span> <span class="n">ABC</span>
@@ -1770,7 +1770,7 @@
 			<span class="k">yield</span> <span class="n">noded</span><span class="p">,</span> <span class="n">value</span>
 
 <div class="viewcode-block" id="GraphNodeMapping.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphNodeMapping.update">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphNodeMapping.update">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">m</span><span class="p">:</span> <span class="n">_m_typ</span><span class="p">,</span>
@@ -1791,7 +1791,7 @@
 
 
 <div class="viewcode-block" id="GraphEdgeMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphEdgeMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphEdgeMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GraphEdgeMapping</span><span class="p">[</span>
 	<span class="n">_ORIG</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -1838,7 +1838,7 @@
 
 
 <div class="viewcode-block" id="AbstractSuccessors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractSuccessors">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractSuccessors">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractSuccessors</span><span class="p">(</span>
 	<span class="n">MutableMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Edge</span><span class="p">]],</span> <span class="n">ABC</span>
@@ -1943,7 +1943,7 @@
 		<span class="p">)</span>
 
 <div class="viewcode-block" id="AbstractSuccessors.clear">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractSuccessors.clear">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractSuccessors.clear">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Delete every edge with origin at my orig&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">dest</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1951,7 +1951,7 @@
 
 
 <div class="viewcode-block" id="AbstractSuccessors.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractSuccessors.update">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractSuccessors.update">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">m</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span>
@@ -2020,7 +2020,7 @@
 
 
 <div class="viewcode-block" id="GraphSuccessorsMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphSuccessorsMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphSuccessorsMapping">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">GraphSuccessorsMapping</span><span class="p">(</span>
 	<span class="n">GraphEdgeMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">AbstractSuccessors</span><span class="p">],</span> <span class="n">ABC</span>
@@ -2032,7 +2032,7 @@
 	<span class="n">character</span><span class="p">:</span> <span class="n">DiGraph</span>
 
 <div class="viewcode-block" id="GraphSuccessorsMapping.Successors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphSuccessorsMapping.Successors">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphSuccessorsMapping.Successors">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">Successors</span><span class="p">(</span><span class="n">AbstractSuccessors</span><span class="p">):</span>
 		<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
@@ -2048,7 +2048,7 @@
 				<span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GraphSuccessorsMapping.Successors.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GraphSuccessorsMapping.Successors.update">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GraphSuccessorsMapping.Successors.update">[docs]</a>
 		<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">,</span>
 			<span class="n">m</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">EllipsisType</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]]</span>
@@ -2151,13 +2151,13 @@
 
 
 <div class="viewcode-block" id="DiGraphSuccessorsMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraphSuccessorsMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraphSuccessorsMapping">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DiGraphSuccessorsMapping</span><span class="p">(</span><span class="n">GraphSuccessorsMapping</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 
 <div class="viewcode-block" id="DiGraphSuccessorsMapping.Successors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraphSuccessorsMapping.Successors">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraphSuccessorsMapping.Successors">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">Successors</span><span class="p">(</span><span class="n">AbstractSuccessors</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 		<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
@@ -2169,7 +2169,7 @@
 
 
 <div class="viewcode-block" id="DiGraphPredecessorsMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraphPredecessorsMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraphPredecessorsMapping">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DiGraphPredecessorsMapping</span><span class="p">(</span>
 	<span class="n">MutableMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">MutableMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Edge</span><span class="p">]],</span> <span class="n">ABC</span>
@@ -2248,7 +2248,7 @@
 		<span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DiGraphPredecessorsMapping.Predecessors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraphPredecessorsMapping.Predecessors">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraphPredecessorsMapping.Predecessors">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">Predecessors</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Edge</span><span class="p">]):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Mapping of Edges that end at a particular node&quot;&quot;&quot;</span>
@@ -2376,7 +2376,8 @@
 
 
 <div class="viewcode-block" id="DiGraph">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">DiGraph</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A version of the networkx.DiGraph class that stores its state in a</span>
 <span class="sd">	database.</span>
@@ -2387,15 +2388,6 @@
 	<span class="n">pred_cls</span><span class="p">:</span> <span class="n">ClassVar</span> <span class="o">=</span> <span class="n">DiGraphPredecessorsMapping</span>
 	<span class="n">graph_map_cls</span><span class="p">:</span> <span class="n">ClassVar</span> <span class="o">=</span> <span class="n">GraphMapping</span>
 	<span class="n">node_map_cls</span><span class="p">:</span> <span class="n">ClassVar</span> <span class="o">=</span> <span class="n">GraphNodeMapping</span>
-
-	<span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span>
-		<span class="bp">cls</span><span class="p">,</span>
-		<span class="n">engine</span><span class="p">:</span> <span class="n">AbstractEngine</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-		<span class="n">name</span><span class="p">:</span> <span class="n">CharName</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-		<span class="o">*</span><span class="p">,</span>
-		<span class="n">init_rulebooks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-	<span class="p">):</span>
-		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_nodes_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]]:</span>
 		<span class="k">return</span> <span class="p">{</span>
@@ -2487,7 +2479,7 @@
 		<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;graphs can&#39;t be renamed&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DiGraph.remove_node">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.remove_node">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.remove_node">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Version of remove_node that minimizes writes&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node</span><span class="p">:</span>
@@ -2502,7 +2494,7 @@
 
 
 <div class="viewcode-block" id="DiGraph.remove_edge">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.remove_edge">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.remove_edge">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_edge</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -2520,7 +2512,7 @@
 
 
 <div class="viewcode-block" id="DiGraph.remove_edges_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.remove_edges_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.remove_edges_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_edges_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">ebunch</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">]]</span>
 	<span class="p">):</span>
@@ -2536,7 +2528,7 @@
 
 
 <div class="viewcode-block" id="DiGraph.add_edge">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.add_edge">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.add_edge">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_edge</span><span class="p">(</span></div>
 
@@ -2548,7 +2540,7 @@
 	<span class="p">):</span> <span class="o">...</span>
 
 <div class="viewcode-block" id="DiGraph.add_edges_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.add_edges_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.add_edges_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_edges_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">ebunch</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span>
@@ -2595,7 +2587,7 @@
 
 
 <div class="viewcode-block" id="DiGraph.clear">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.clear">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.clear">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove all nodes and edges from the graph.</span>
 
@@ -2610,19 +2602,19 @@
 
 
 <div class="viewcode-block" id="DiGraph.adjlist_inner_dict_factory">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.adjlist_inner_dict_factory">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.adjlist_inner_dict_factory">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">adjlist_inner_dict_factory</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]]:</span>
 		<span class="k">return</span> <span class="p">{}</span></div>
 
 
 <div class="viewcode-block" id="DiGraph.node_dict_factory">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.node_dict_factory">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.node_dict_factory">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">node_dict_factory</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Stat</span><span class="p">,</span> <span class="n">Value</span><span class="p">]:</span>
 		<span class="k">return</span> <span class="p">{}</span></div>
 
 
 <div class="viewcode-block" id="DiGraph.add_node">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.DiGraph.add_node">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.DiGraph.add_node">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_node</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">node_for_adding</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -2706,7 +2698,7 @@
 
 
 <div class="viewcode-block" id="get_rando">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.get_rando">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.get_rando">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">get_rando</span><span class="p">:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Attribute getter for randomization functions</span>
 
@@ -2741,7 +2733,7 @@
 
 
 <div class="viewcode-block" id="SignalDict">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.SignalDict">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.SignalDict">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SignalDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">Signal</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 	<span class="k">def</span><span class="w"> </span><span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__key</span><span class="p">,</span> <span class="n">__value</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">__key</span><span class="p">,</span> <span class="n">__value</span><span class="p">)</span>
@@ -2754,7 +2746,7 @@
 
 
 <div class="viewcode-block" id="EntityAccessor">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.EntityAccessor">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.EntityAccessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EntityAccessor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">(</span>
 		<span class="s2">&quot;engine&quot;</span><span class="p">,</span>
@@ -2893,7 +2885,7 @@
 		<span class="k">return</span> <span class="n">res</span>
 
 <div class="viewcode-block" id="EntityAccessor.iter_history">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.EntityAccessor.iter_history">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.EntityAccessor.iter_history">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">iter_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">beginning</span><span class="p">:</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Turn</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Value</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all the values this stat has had in the given window, inclusive.&quot;&quot;&quot;</span>
 		<span class="c1"># It might be useful to do this in a way that doesn&#39;t change the</span>
@@ -2918,7 +2910,7 @@
 
 
 <div class="viewcode-block" id="UnitsAccessor">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.UnitsAccessor">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.UnitsAccessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UnitsAccessor</span><span class="p">(</span><span class="n">EntityAccessor</span><span class="p">):</span>
 	<span class="n">entity</span><span class="p">:</span> <span class="n">AbstractCharacter</span>
 
@@ -2933,7 +2925,7 @@
 
 
 <div class="viewcode-block" id="CharacterStatAccessor">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.CharacterStatAccessor">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.CharacterStatAccessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CharacterStatAccessor</span><span class="p">(</span><span class="n">EntityAccessor</span><span class="p">):</span>
 	<span class="n">entity</span><span class="p">:</span> <span class="n">AbstractCharacter</span>
 
@@ -2943,7 +2935,7 @@
 
 
 <div class="viewcode-block" id="EntityStatAccessor">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.EntityStatAccessor">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.EntityStatAccessor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EntityStatAccessor</span><span class="p">(</span><span class="n">EntityAccessor</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_get_value_now</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Value</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">entity</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">]</span></div>
@@ -2951,7 +2943,7 @@
 
 
 <div class="viewcode-block" id="FakeFuture">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.FakeFuture">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.FakeFuture">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FakeFuture</span><span class="p">(</span><span class="n">Future</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A &#39;Future&#39; that calls its function immediately and sets the result&quot;&quot;&quot;</span>
 
@@ -2962,7 +2954,7 @@
 
 
 <div class="viewcode-block" id="AbstractBookmarkMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractBookmarkMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractBookmarkMapping">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractBookmarkMapping</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">Time</span><span class="p">],</span> <span class="n">Callable</span><span class="p">):</span>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span></div>
@@ -2977,7 +2969,7 @@
 
 
 <div class="viewcode-block" id="AbstractEngine">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractEngine</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Parent class to the real Engine as well as EngineProxy.</span>
@@ -3182,7 +3174,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AbstractEngine.is_ancestor_of">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.is_ancestor_of">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.is_ancestor_of">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">is_ancestor_of</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Branch</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="n">Branch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return whether ``child`` is a branch descended from ``parent``</span>
 
@@ -3816,21 +3808,21 @@
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractEngine</span><span class="p">:</span> <span class="o">...</span>
 
 <div class="viewcode-block" id="AbstractEngine.coin_flip">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.coin_flip">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.coin_flip">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">coin_flip</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return True or False with equal probability.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">choice</span><span class="p">((</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="AbstractEngine.die_roll">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.die_roll">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.die_roll">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">die_roll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">d</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mi">1</span><span class="p">)])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Roll a die with ``d`` faces. Return the result.&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AbstractEngine.dice">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.dice">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.dice">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">dice</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span> <span class="n">d</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
@@ -3845,7 +3837,7 @@
 
 
 <div class="viewcode-block" id="AbstractEngine.dice_check">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.dice_check">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.dice_check">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">dice_check</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">n</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span>
@@ -3876,7 +3868,7 @@
 
 
 <div class="viewcode-block" id="AbstractEngine.chance">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.chance">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.chance">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">chance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="n">Le</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return True or False with a given unit probability</span>
 
@@ -3892,7 +3884,7 @@
 
 
 <div class="viewcode-block" id="AbstractEngine.percent_chance">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractEngine.percent_chance">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractEngine.percent_chance">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">percent_chance</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">pct</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Ge</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">Le</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>
@@ -3932,7 +3924,7 @@
 
 
 <div class="viewcode-block" id="BaseMutableCharacterMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.BaseMutableCharacterMapping">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.BaseMutableCharacterMapping">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">BaseMutableCharacterMapping</span><span class="p">[</span><span class="n">_KT</span><span class="p">,</span> <span class="n">_VT</span><span class="p">](</span></div>
 
 	<span class="n">MutableMapping</span><span class="p">[</span><span class="n">_KT</span><span class="p">,</span> <span class="n">_VT</span><span class="p">],</span> <span class="n">CharacterMapping</span><span class="p">,</span> <span class="n">ABC</span>
@@ -3940,7 +3932,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter">[docs]</a>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractCharacter</span><span class="p">(</span><span class="n">DiGraph</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;The Character API, with all requisite mappings and graph generators.</span>
@@ -3966,14 +3958,14 @@
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 
 <div class="viewcode-block" id="AbstractCharacter.is_directed">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.is_directed">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.is_directed">[docs]</a>
 	<span class="nd">@staticmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">is_directed</span><span class="p">():</span>
 		<span class="k">return</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="AbstractCharacter.is_multigraph">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.is_multigraph">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.is_multigraph">[docs]</a>
 	<span class="nd">@staticmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">is_multigraph</span><span class="p">():</span>
 		<span class="k">return</span> <span class="kc">False</span></div>
@@ -3984,7 +3976,7 @@
 		<span class="k">pass</span>
 
 <div class="viewcode-block" id="AbstractCharacter.add_node">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.add_node">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.add_node">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_place</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
@@ -3994,13 +3986,13 @@
 		<span class="k">pass</span>
 
 <div class="viewcode-block" id="AbstractCharacter.add_nodes_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.add_nodes_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.add_nodes_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_places_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AbstractCharacter.new_place">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.new_place">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.new_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_place</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -4044,7 +4036,7 @@
 		<span class="k">pass</span>
 
 <div class="viewcode-block" id="AbstractCharacter.new_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.new_thing">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.new_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -4085,7 +4077,7 @@
 	<span class="k">def</span><span class="w"> </span><span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
 
 <div class="viewcode-block" id="AbstractCharacter.remove_node">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.remove_node">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.remove_node">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Key</span><span class="p">):</span>
 			<span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Invalid node&quot;</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
@@ -4095,7 +4087,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter.remove_nodes_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.remove_nodes_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.remove_nodes_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_nodes_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">]):</span>
 		<span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
 			<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Key</span><span class="p">):</span>
@@ -4115,7 +4107,7 @@
 		<span class="k">pass</span>
 
 <div class="viewcode-block" id="AbstractCharacter.add_edge">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.add_edge">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.add_edge">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_edge</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">orig</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -4143,7 +4135,7 @@
 		<span class="k">pass</span>
 
 <div class="viewcode-block" id="AbstractCharacter.add_edges_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.add_edges_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.add_edges_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_edges_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_portals_from</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span></div>
 
@@ -4167,7 +4159,7 @@
 			<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">orig</span><span class="p">][</span><span class="n">dest</span><span class="p">]</span>
 
 <div class="viewcode-block" id="AbstractCharacter.remove_edges_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.remove_edges_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.remove_edges_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_edges_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">]]</span>
 	<span class="p">):</span>
@@ -4233,12 +4225,31 @@
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">thing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThingMapping</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of :class:`~.node.Thing` objects in this :class:`Character`</span>
+
+<span class="sd">		They represent the type of node that can be located in another node--either</span>
+<span class="sd">		a :class:`~.node.Place` or a :class:`~.node.Thing`.</span>
+
+<span class="sd">		This mapping has a ``rule`` method for applying new rules to every</span>
+<span class="sd">		:class:`~.node.Thing` here, and a ``rulebook`` property for</span>
+<span class="sd">		assigning premade :class:`~.rule.Rulebook`s.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ThingMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="n">PlaceMapping</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">type</span><span class="p">[</span><span class="n">BaseMutableCharacterMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Node</span><span class="p">]]]</span>
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">place</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PlaceMapping</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of :class:`~.node.Place` objects in this :class:`Character`</span>
+
+<span class="sd">		:class:`~.node.Thing` objects may be located in these.</span>
+
+<span class="sd">		This mapping has a ``rule`` method for applying new rules to every</span>
+<span class="sd">		:class:`Place` here, and a ``rulebook`` property for assigning premade</span>
+<span class="sd">		rulebooks.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PlaceMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="n">ThingPlaceMapping</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span>
@@ -4271,6 +4282,14 @@
 
 	<span class="nd">@property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">portal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by origin and destination</span>
+
+<span class="sd">		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for</span>
+<span class="sd">		assigning premade :class:`~.rule.Rulebook`s.</span>
+
+<span class="sd">		Aliases:  ``adj``, ``edge``, ``succ``</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_succ</span>
 
 	<span class="nd">@property</span>
@@ -4299,6 +4318,14 @@
 
 	<span class="nd">@property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">preportal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by destination and origin</span>
+
+<span class="sd">		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for</span>
+<span class="sd">		assigning premade :class:`~.rule.Rulebook`s.</span>
+
+<span class="sd">		Alias: ``pred``</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span>
 
 	<span class="nd">@property</span>
@@ -4315,10 +4342,24 @@
 
 	<span class="nd">@cached_property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">unit</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UnitGraphMapping</span><span class="p">:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A two-layer mapping of this character&#39;s units in other characters.</span>
+
+<span class="sd">		Units are nodes in other characters that are in some sense part of this one. A common example in strategy</span>
+<span class="sd">		games is when a general leads an army: the general is one :class:`Character`, with a graph representing the</span>
+<span class="sd">		state of their AI; the battle map is another :class:`Character`; and the general&#39;s units, though not in the</span>
+<span class="sd">		general&#39;s :class:`Character`, are still under their command, and therefore follow rules defined on the</span>
+<span class="sd">		general&#39;s ``unit.rule`` subproperty.</span>
+
+<span class="sd">		The outer layer is the name of the character. The inner layer is the name</span>
+<span class="sd">		of the unit, which may be a :class:`~.node.Place` or a</span>
+<span class="sd">		:class:`~.node.Thing`.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">UnitGraphMapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
 	<span class="nd">@property</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">stat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of arbitrary data, sensitive to game time&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">graph</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -4329,7 +4370,7 @@
 		<span class="k">return</span> <span class="n">EntityStatAlias</span><span class="p">(</span><span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">stat</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AbstractCharacter.do">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.do">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.do">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">do</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Apply the function to myself, and return myself.</span>
 
@@ -4346,7 +4387,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter.copy_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.copy_from">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.copy_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">copy_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">:</span> <span class="n">AbstractCharacter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Copy all nodes and edges from the given graph into this.</span>
 
@@ -4379,7 +4420,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter.become">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.become">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.become">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">become</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">:</span> <span class="n">AbstractCharacter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Erase all my nodes and edges. Replace them with a copy of the graph</span>
 <span class="sd">		provided.</span>
@@ -4394,7 +4435,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter.clear">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.clear">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.clear">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
@@ -4410,7 +4451,7 @@
 		<span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="p">,</span> <span class="n">comparator</span><span class="p">)</span>
 
 <div class="viewcode-block" id="AbstractCharacter.cull_nodes">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.cull_nodes">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.cull_nodes">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">cull_nodes</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">stat</span><span class="p">:</span> <span class="n">Stat</span><span class="p">,</span>
@@ -4434,7 +4475,7 @@
 
 
 <div class="viewcode-block" id="AbstractCharacter.cull_portals">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.cull_portals">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.cull_portals">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">cull_portals</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">stat</span><span class="p">:</span> <span class="n">Stat</span><span class="p">,</span>
@@ -4462,7 +4503,7 @@
 	<span class="n">cull_edges</span> <span class="o">=</span> <span class="n">cull_portals</span>
 
 <div class="viewcode-block" id="AbstractCharacter.portals">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractCharacter.portals">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractCharacter.portals">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">portals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Edge</span><span class="p">]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over all portals.&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adj</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
@@ -4472,7 +4513,7 @@
 
 
 <div class="viewcode-block" id="AbstractThing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractThing">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractThing">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractThing</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
 	<span class="n">character</span><span class="p">:</span> <span class="n">AbstractCharacter</span>
@@ -4505,7 +4546,7 @@
 	<span class="k">def</span><span class="w"> </span><span class="nf">to_place</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Node</span><span class="p">:</span> <span class="o">...</span>
 
 <div class="viewcode-block" id="AbstractThing.go_to_place">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractThing.go_to_place">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractThing.go_to_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">go_to_place</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">place</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
@@ -4540,7 +4581,7 @@
 
 
 <div class="viewcode-block" id="AbstractThing.follow_path">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractThing.follow_path">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractThing.follow_path">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">follow_path</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">path</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">],</span>
@@ -4624,7 +4665,7 @@
 
 
 <div class="viewcode-block" id="AbstractThing.travel_to">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractThing.travel_to">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractThing.travel_to">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">travel_to</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">dest</span><span class="p">:</span> <span class="n">Node</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -4684,7 +4725,7 @@
 
 
 <div class="viewcode-block" id="sort_set">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.sort_set">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.sort_set">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sort_set</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">_T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">_T</span><span class="p">]:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return a sorted list of the contents of a set</span>
 
@@ -4763,7 +4804,7 @@
 
 
 <div class="viewcode-block" id="deannotate">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.deannotate">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.deannotate">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">deannotate</span><span class="p">(</span><span class="n">annotation</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">type</span><span class="p">]:</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Yield all the types in an annotation</span>
 
@@ -4798,7 +4839,7 @@
 
 
 <div class="viewcode-block" id="AbstractStringStore">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractStringStore">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractStringStore">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractStringStore</span><span class="p">(</span><span class="n">MutableMapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
 	<span class="n">language</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">AbstractLanguageDescriptor</span><span class="p">]</span>
@@ -4820,25 +4861,25 @@
 
 
 <div class="viewcode-block" id="AbstractFunctionStore">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractFunctionStore</span><span class="p">[</span><span class="n">_K</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">_V</span><span class="p">:</span> <span class="n">FunctionType</span> <span class="o">|</span> <span class="n">MethodType</span><span class="p">](</span><span class="n">ABC</span><span class="p">):</span>
 <div class="viewcode-block" id="AbstractFunctionStore.save">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore.save">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore.save">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reimport</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Write all my code to the file I represent.&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="AbstractFunctionStore.reimport">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore.reimport">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore.reimport">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">reimport</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Load any changes to the code in my file.&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="AbstractFunctionStore.iterplain">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore.iterplain">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore.iterplain">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">iterplain</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Iterate over pairs of the names of my functions and their code.</span>
@@ -4850,14 +4891,14 @@
 
 
 <div class="viewcode-block" id="AbstractFunctionStore.store_source">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore.store_source">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore.store_source">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">store_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">_K</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Store the source code, ``source``, of a function named ``name``&quot;&quot;&quot;</span></div>
 
 
 <div class="viewcode-block" id="AbstractFunctionStore.get_source">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractFunctionStore.get_source">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractFunctionStore.get_source">[docs]</a>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">get_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">_K</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Return the source code, in a string, of a function named ``name``&quot;&quot;&quot;</span></div>
@@ -4891,25 +4932,25 @@
 
 
 <div class="viewcode-block" id="EntityStatAlias">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.EntityStatAlias">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.EntityStatAlias">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EntityStatAlias</span><span class="p">(</span><span class="n">StatAlias</span><span class="p">,</span> <span class="n">EntityStatAccessor</span><span class="p">):</span> <span class="o">...</span></div>
 
 
 
 <div class="viewcode-block" id="CharacterStatAlias">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.CharacterStatAlias">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.CharacterStatAlias">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CharacterStatAlias</span><span class="p">(</span><span class="n">StatAlias</span><span class="p">,</span> <span class="n">CharacterStatAccessor</span><span class="p">):</span> <span class="o">...</span></div>
 
 
 
 <div class="viewcode-block" id="UnitsAlias">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.UnitsAlias">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.UnitsAlias">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UnitsAlias</span><span class="p">(</span><span class="n">StatAlias</span><span class="p">,</span> <span class="n">UnitsAccessor</span><span class="p">):</span> <span class="o">...</span></div>
 
 
 
 <div class="viewcode-block" id="Query">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Query">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.Query">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Query</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
 	<span class="n">oper</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">NotImplemented</span>
 
@@ -4946,7 +4987,7 @@
 
 
 <div class="viewcode-block" id="ComparisonQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.ComparisonQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.ComparisonQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ComparisonQuery</span><span class="p">(</span><span class="n">Query</span><span class="p">):</span>
 	<span class="n">oper</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">NotImplemented</span>
 
@@ -4969,49 +5010,49 @@
 
 
 <div class="viewcode-block" id="EqQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.EqQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.EqQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EqQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">eq</span></div>
 
 
 
 <div class="viewcode-block" id="NeQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.NeQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.NeQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">NeQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">ne</span></div>
 
 
 
 <div class="viewcode-block" id="GtQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GtQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GtQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GtQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">gt</span></div>
 
 
 
 <div class="viewcode-block" id="LtQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.LtQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.LtQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LtQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">lt</span></div>
 
 
 
 <div class="viewcode-block" id="GeQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.GeQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.GeQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">GeQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">ge</span></div>
 
 
 
 <div class="viewcode-block" id="LeQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.LeQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.LeQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LeQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">le</span></div>
 
 
 
 <div class="viewcode-block" id="ContainsQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.ContainsQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.ContainsQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ContainsQuery</span><span class="p">(</span><span class="n">ComparisonQuery</span><span class="p">):</span>
 	<span class="nd">@staticmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">oper</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
@@ -5020,35 +5061,35 @@
 
 
 <div class="viewcode-block" id="CompoundQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.CompoundQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.CompoundQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CompoundQuery</span><span class="p">(</span><span class="n">Query</span><span class="p">):</span>
 	<span class="n">oper</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="nb">set</span><span class="p">]</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="bp">NotImplemented</span></div>
 
 
 
 <div class="viewcode-block" id="UnionQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.UnionQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.UnionQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UnionQuery</span><span class="p">(</span><span class="n">CompoundQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">or_</span></div>
 
 
 
 <div class="viewcode-block" id="IntersectionQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.IntersectionQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.IntersectionQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">IntersectionQuery</span><span class="p">(</span><span class="n">CompoundQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">and_</span></div>
 
 
 
 <div class="viewcode-block" id="MinusQuery">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.MinusQuery">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.MinusQuery">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MinusQuery</span><span class="p">(</span><span class="n">CompoundQuery</span><span class="p">):</span>
 	<span class="n">oper</span> <span class="o">=</span> <span class="n">operator</span><span class="o">.</span><span class="n">sub</span></div>
 
 
 
 <div class="viewcode-block" id="QueryResult">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.QueryResult">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.QueryResult">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">QueryResult</span><span class="p">(</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A slightly lazy tuple-like object holding a history query&#39;s results</span>
 
@@ -5119,7 +5160,7 @@
 
 
 <div class="viewcode-block" id="QueryResultEndTurn">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.QueryResultEndTurn">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.QueryResultEndTurn">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">QueryResultEndTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">spans</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
@@ -5227,7 +5268,7 @@
 
 
 <div class="viewcode-block" id="QueryResultMidTurn">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.QueryResultMidTurn">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.QueryResultMidTurn">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">QueryResultMidTurn</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_generate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="n">spans</span> <span class="o">=</span> <span class="p">[]</span>
@@ -5359,7 +5400,7 @@
 
 
 <div class="viewcode-block" id="CombinedQueryResult">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.CombinedQueryResult">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.CombinedQueryResult">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CombinedQueryResult</span><span class="p">(</span><span class="n">QueryResult</span><span class="p">):</span>
 	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">QueryResult</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">QueryResult</span><span class="p">,</span> <span class="n">oper</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_left</span> <span class="o">=</span> <span class="n">left</span>
@@ -5412,7 +5453,7 @@
 
 
 <div class="viewcode-block" id="slow_iter_turns_eval_cmp">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.slow_iter_turns_eval_cmp">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.slow_iter_turns_eval_cmp">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">slow_iter_turns_eval_cmp</span><span class="p">(</span><span class="n">qry</span><span class="p">,</span> <span class="n">oper</span><span class="p">,</span> <span class="n">start_branch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Iterate over all turns on which a comparison holds.</span>
 
@@ -5465,7 +5506,7 @@
 
 
 <div class="viewcode-block" id="intersect2">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.intersect2">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.intersect2">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">intersect2</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Return intersection of 2 windows of time&quot;&quot;&quot;</span>
 	<span class="k">if</span> <span class="n">left</span> <span class="o">==</span> <span class="n">right</span><span class="p">:</span>
@@ -5593,7 +5634,7 @@
 
 
 <div class="viewcode-block" id="AbstractPickyDefaultDict">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractPickyDefaultDict">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractPickyDefaultDict">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractPickyDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="nb">dict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 	<span class="vm">__slots__</span> <span class="o">=</span> <span class="p">()</span>
@@ -5677,7 +5718,7 @@
 
 
 <div class="viewcode-block" id="PickyDefaultDict">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.PickyDefaultDict">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.PickyDefaultDict">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PickyDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">AbstractPickyDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A ``defaultdict`` alternative that requires values of a specific type.</span>
@@ -5707,7 +5748,7 @@
 
 
 <div class="viewcode-block" id="PickierDefaultDict">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.PickierDefaultDict">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.PickierDefaultDict">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">PickierDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="n">AbstractPickyDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;So picky, even the keys need to be a certain type&quot;&quot;&quot;</span>
@@ -5743,7 +5784,7 @@
 
 
 <div class="viewcode-block" id="StructuredDefaultDict">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.StructuredDefaultDict">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.StructuredDefaultDict">[docs]</a>
 <span class="nd">@define</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">StructuredDefaultDict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">](</span><span class="nb">dict</span><span class="p">[</span><span class="n">_K</span><span class="p">,</span> <span class="n">_V</span><span class="p">]):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A `defaultdict`-like class with values stored at a specific depth.</span>
@@ -5835,7 +5876,7 @@
 
 
 <div class="viewcode-block" id="AbstractLanguageDescriptor">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.AbstractLanguageDescriptor">[docs]</a>
+<a class="viewcode-back" href="../../lisien/index.html#lisien.types.AbstractLanguageDescriptor">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">AbstractLanguageDescriptor</span><span class="p">(</span><span class="n">Signal</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 	<span class="nd">@abstractmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">_get_language</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">:</span> <span class="n">AbstractStringStore</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -5883,8 +5924,25 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.engine">engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.character">character</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.node">node</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.portal">portal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.rule">rule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.facade">facade</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.proxy">proxy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.cache">cache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.collections">collections</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.db">db</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.enum">enum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.exc">exc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.futures">futures</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#id38">proxy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.query">query</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.util">util</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.window">window</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.wrap">wrap</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 
@@ -5913,7 +5971,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>

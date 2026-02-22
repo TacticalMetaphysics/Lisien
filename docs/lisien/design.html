@@ -7,11 +7,11 @@
 
     <title>Design &#8212; Lisien 0.23.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
-    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
     <script src="../_static/documentation_options.js?v=10ab35ec"></script>
-    <script src="../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="API" href="index.html" />
@@ -72,9 +72,9 @@ also get stored in a big global list, mostly to make it convenient to
 construct deltas describing the difference between two moments in the
 same branch. When looking up data for use in simulation code, a
 different data structure is used.</p>
-<p><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.window.TurnDict</span></code> holds a variable’s value for
+<p><a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a> holds a variable’s value for
 each turn in a pair of stacks, which in turn hold the basic
-<a class="reference internal" href="index.html#lisien.window.WindowDict" title="lisien.window.WindowDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.window.WindowDict</span></code></a>, a pair of stacks kept in
+<a class="reference internal" href="index.html#lisien.window.WindowDict" title="lisien.window.WindowDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.WindowDict</span></code></a>, a pair of stacks kept in
 order, tracking changes in a variable each tick. Popping from one stack
 and appending to the other is the default way to look up the value at a
 given time. As values are stored in pairs, with their tick as the
@@ -83,14 +83,14 @@ where the most recent value is on top of the one holding past values.</p>
 <p>So, the algorithm for finding the present effective value of some
 variable is as follows:</p>
 <ol class="arabic simple">
-<li><p>Find the relevant <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> for the desired branch and variable
+<li><p>Find the relevant <a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a> for the desired branch and variable
 (generally a couple of plain dictionary lookups)</p></li>
-<li><p>Pop/append that <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> until the “past” stack’s top entry is
+<li><p>Pop/append that <a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a> until the “past” stack’s top entry is
 before or equal to the desired turn, and the “future” stack is either
 empty, or has a top entry for after the desired turn. If the turn of
 the pair on top of the “past” stack is at or after the previous
 keyframe:</p></li>
-<li><p>Take the <code class="docutils literal notranslate"><span class="pre">WindowDict</span></code> from the top of the <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code>’s “past”
+<li><p>Take the <a class="reference internal" href="index.html#lisien.window.WindowDict" title="lisien.window.WindowDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.WindowDict</span></code></a> from the top of the <a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a>’s “past”
 stack, and pop/append the “past” and “future” stacks as in step 2. If
 the tick of the pair on top of the “past” stack is strictly after the
 previous keyframe, return that value. Otherwise, return the value
@@ -127,7 +127,7 @@ keyframe and everything after it.</p>
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it’s stored in the <code class="docutils literal notranslate"><span class="pre">engine.eternal</span></code> keys
 <code class="docutils literal notranslate"><span class="pre">&quot;branch&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;turn&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;tick&quot;</span></code>, defaulting to the trunk branch
-(<code class="docutils literal notranslate"><span class="pre">&quot;trunk&quot;</span></code>, unless the user has switched to a different trunk branch),
+(which is called <code class="docutils literal notranslate"><span class="pre">&quot;trunk&quot;</span></code>, by default),
 <code class="docutils literal notranslate"><span class="pre">0</span></code>, and <code class="docutils literal notranslate"><span class="pre">0</span></code> respectively. To decide what to load, Lisien looks for
 the closest keyframe at or before the current time, and the keyframe
 after that, if any. Lisien then loads the earlier keyframe and all facts
@@ -170,7 +170,7 @@ rules engine.</p>
 Resource Planning app, a rules engine would be expected to have some
 configuration language–possibly an entire logic language–for
 specifying the rules, enabling algorithms such as Rete to efficiently
-evaluate the conditions. <a class="reference external" href="&lt;https://codeberg.org/clayote/Lisien/issues/28&gt;">Lisien may have such a feature some day</a>,
+evaluate the conditions. <a class="reference external" href="https://codeberg.org/clayote/Lisien/issues/28">Lisien may have such a feature some day</a>,
 but, for maximum flexibility and minimum barrier to entry, rules may be
 specified as collections of Python functions.</p>
 <p>Every rule needs at least one action function, which is what the rule
@@ -186,10 +186,10 @@ only one argument: the Lisien entity that the rule is applied to.</p>
 <p>By default, trigger functions will be evaluated in parallel. Lisien has
 a process pool, in which worker processes keep copies of the current
 world state for trigger functions to work with. You can run arbitrary
-code in those processes, too, if you like; <code class="xref py py-class docutils literal notranslate"><span class="pre">lisien.Engine</span></code> is an
+code in those processes, too, if you like; <a class="reference internal" href="index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">engine.Engine</span></code></a> is an
 implementation of the standard Python
 <a class="reference external" href="https://docs.python.org/3/library/concurrent.futures.html#concurrent.futures.Executor" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">concurrent.futures.Executor</span></code></a>. See
-<code class="xref std std-keyword docutils literal notranslate"><span class="pre">lisien.examples.pathfind</span></code> for a demonstration of using the
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">lisien.examples.pathfind</span></code> for a demonstration of using the
 process pool to find many paths at once, then having things follow them.</p>
 <p>Prereq functions, however, are always evaluated serially in the core
 Lisien process. This enables them to change the state of the world,
@@ -242,8 +242,8 @@ in the delta.</p>
 <h3>Fast<a class="headerlink" href="#fast" title="Link to this heading">¶</a></h3>
 <p>The fast delta is a collection of facts that were set between two times.
 To make it convenient to iterate over <em>all</em> facts, they are copied into
-one big global <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> when they are set or loaded. Then, to make
-the delta, we take a slice of that global <code class="docutils literal notranslate"><span class="pre">TurnDict</span></code> and compile the
+one big global <a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a> when they are set or loaded. Then, to make
+the delta, we take a slice of that global <a class="reference internal" href="index.html#lisien.window.AssignmentTimeDict" title="lisien.window.AssignmentTimeDict"><code class="xref py py-class docutils literal notranslate"><span class="pre">window.AssignmentTimeDict</span></code></a> and compile the
 facts in it into a dictionary.</p>
 <p>Despite the name, the fast delta is only faster than the slow one when
 the number of facts it needs to use is relatively small. Lisien will
@@ -328,7 +328,7 @@ fast one is larger than the gap between keyframes.</p>
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |

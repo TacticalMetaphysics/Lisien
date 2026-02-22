@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>What is a life simulation game? &#8212; Lisien 0.23.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <p>Lisien is a tool for developing life simulation games.</p>
+<p><a class="reference external" href="https://clayote.itch.io/Lisien">Download and Discuss on Itch</a></p>
+<p><a class="reference external" href="https://clayote.codeberg.page/lisien/docs/manual.html">Read
+Documentation</a></p>
+<section id="what-is-a-life-simulation-game">
+<h1>What is a life simulation game?<a class="headerlink" href="#what-is-a-life-simulation-game" title="Link to this heading">¶</a></h1>
+<p>Life simulation games simulate the world in relatively high detail, but
+not in the sense that physics engines are concerned with – rather, each
+game in the genre has a different take on the mundane events that
+constitute everyday life. Logistics and roleplaying elements tend to
+feature heavily in these games, but a lot of the appeal is in the parts
+that are not directly under player control. The game world feels like it
+continues to exist when you’re not playing it, because so much of it
+operates independently of you.</p>
+<p>Lisien can help you make games like:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.ea.com/games/the-sims">The Sims</a></p></li>
+<li><p><a href="#id1"><span class="problematic" id="id2">`SimLife: The Genetic Playground (1992)&lt;https://collectionchamber.blogspot.com/p/simlife-genetic-playground.html&gt;`__</span></a></p></li>
+<li><p><a class="reference external" href="https://rimworldgame.com/">Rimworld</a></p></li>
+<li><p><a class="reference external" href="https://bay12games.com/dwarves/features.html">Dwarf Fortress</a></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Princess_Maker">Princess Maker</a></p></li>
+<li><p><a class="reference external" href="https://www.paradoxinteractive.com/games/crusader-kings-iii/about">Crusader
+Kings</a></p></li>
+<li><p><a class="reference external" href="https://sixages.com/ride-like-the-wind/">Six Ages</a></p></li>
+<li><p><a class="reference external" href="https://snoddasmannen.itch.io/galimulator">Galimulator</a></p></li>
+<li><p><a class="reference external" href="https://bludgeonsoft.itch.io/">Vilmonic</a></p></li>
+<li><p><a class="reference external" href="https://ellpeck.itch.io/tiny-life">TinyLife</a></p></li>
+<li><p><a class="reference external" href="https://frnsys.itch.io/half-earth-socialism">Half-Earth
+Socialism</a></p></li>
+</ul>
+</section>
+<section id="why-should-i-use-lisien-for-this-purpose">
+<h1>Why should I use Lisien for this purpose?<a class="headerlink" href="#why-should-i-use-lisien-for-this-purpose" title="Link to this heading">¶</a></h1>
+<p>Lisien assumes that you’ll have problems keeping track of the game
+world’s state and the game’s rules. Though you will still need to write
+some Python code for your game, it should only be the code that
+describes how your game’s world works. If you don’t want to worry about
+the data structure that represents the world, Lisien gives you one that
+will work, and takes care of saving and loading the game.</p>
+<p>The Lisien data model has been designed from the ground up to support
+debugging of complex simulations. It remembers everything that ever
+happened in the simulation, so that when something strange happens in a
+tester’s game, you can track down the cause, even if it happened long
+before they knew to look for it. They just have to send you their “save
+file”– which is, in fact, a recording of everything that happened when
+they played.</p>
+</section>
+<section id="features">
+<h1>Features<a class="headerlink" href="#features" title="Link to this heading">¶</a></h1>
+<section id="core">
+<h2>Core<a class="headerlink" href="#core" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><em>Multiverse time travel</em>, rendering traditional save files obsolete.
+Lisien remembers everything that ever happened while you were
+playing, and will let you set the state of the game back to any
+earlier state whenever you want, whether or not you remembered to
+“save your game”. Alternate branches of time are available.</p></li>
+<li><p>Integration with <a class="reference external" href="http://networkx.github.io">NetworkX</a> for
+convenient access to various <em>graph algorithms</em>, particularly
+pathfinding.</p></li>
+<li><p><em>Rules engine</em> for game logic. Rules are written in plain Python.
+They are composable, and can be disabled or reassigned to different
+entities mid-game.</p></li>
+<li><p>Can be run as a <em>web server</em>, so that you can control Lisien and
+query its world state from any other game engine you please.</p></li>
+</ul>
+</section>
+<section id="ide">
+<h2>IDE<a class="headerlink" href="#ide" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><em>Instant replay</em>: Time travel that works like the game is a video.
+Rewind whenever you want, and play differently on a new branch of the
+timestream.</p></li>
+<li><p><em>Rule constructor</em>: Build rules out of short functions representing
+triggers and actions.</p></li>
+<li><p><em>Rule stepper</em>: view the world state in the middle of a turn, just
+after one rule’s run and before another.</p></li>
+<li><p>Edit state in graph or grid view</p></li>
+<li><p>Edit rule functions with syntax highlighting</p></li>
+</ul>
+</section>
+</section>
+<section id="setup">
+<h1>Setup<a class="headerlink" href="#setup" title="Link to this heading">¶</a></h1>
+<p>Lisien is available <a class="reference external" href="https://pypi.org/project/Lisien/">on PyPI</a>, so
+<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">lisien</span> <span class="pre">elide</span></code> will work, but won’t always have the latest
+experimental code. If you want that, then in a command line, with
+<a class="reference external" href="https://python.org">Python</a> (at least <a class="reference external" href="https://www.python.org/downloads/latest/python3.12/">version
+3.12</a>) already
+installed, run:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>--upgrade<span class="w"> </span>https://codeberg.org/clayote/Lisien/archive/main.zip
+</pre></div>
+</div>
+<p>Run it again whenever you want the latest Lisien code.</p>
+</section>
+<section id="getting-started">
+<h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
+<p>You could now start the graphical frontend with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">elide</span></code>, but
+this might not be very useful, as you don’t have any world state to edit
+yet. You could laboriously assemble a gameworld by hand, but instead
+let’s generate one, Parable of the Polygons by Nicky Case.</p>
+<p>Make a new Python script, let’s say <code class="docutils literal notranslate"><span class="pre">polygons.py</span></code>, and write the
+following in it (or use the <a class="reference external" href="https://codeberg.org/clayote/Lisien/src/branch/main/Lisien/Lisien/examples/polygons.py">example
+version</a>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lisien</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+
+<span class="k">with</span> <span class="n">Engine</span><span class="p">(</span><span class="n">clear</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">eng</span><span class="p">:</span>
+    <span class="n">phys</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;physical&#39;</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">grid_2d_graph</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+    <span class="n">tri</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;triangle&#39;</span><span class="p">)</span>
+    <span class="n">sq</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;square&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This starts a new game with its world state stored in the ‘world’
+folder. Because of <code class="docutils literal notranslate"><span class="pre">clear</span></code> being <code class="docutils literal notranslate"><span class="pre">True</span></code>, it will delete any existing
+world state and game code each time it’s run, which is often useful when
+you’re getting started. It creates three characters, one of which, named
+‘physical’, has a 20x20 grid in it. The others are empty, and in fact we
+don’t intend to put any graph in them; they’re just for keeping track of
+things in <code class="docutils literal notranslate"><span class="pre">physical</span></code>. Add the following inside the <code class="docutils literal notranslate"><span class="pre">with</span></code> block of
+<code class="docutils literal notranslate"><span class="pre">polygons.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">empty</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">phys</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="n">eng</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">empty</span><span class="p">)</span>
+<span class="c1"># distribute 30 of each shape randomly among the empty places</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">):</span>
+    <span class="n">place</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="n">square</span> <span class="o">=</span> <span class="n">place</span><span class="o">.</span><span class="n">new_thing</span><span class="p">(</span><span class="s1">&#39;square</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">_image_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;atlas://polygons/meh_square&#39;</span><span class="p">])</span>
+    <span class="n">sq</span><span class="o">.</span><span class="n">add_unit</span><span class="p">(</span><span class="n">square</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">):</span>
+    <span class="n">place</span> <span class="o">=</span> <span class="n">empty</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+    <span class="n">triangle</span> <span class="o">=</span> <span class="n">place</span><span class="o">.</span><span class="n">new_thing</span><span class="p">(</span><span class="s1">&#39;triangle</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">_image_paths</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;atlas://polygons/meh_triangle&#39;</span><span class="p">])</span>
+    <span class="n">tri</span><span class="o">.</span><span class="n">add_unit</span><span class="p">(</span><span class="n">triangle</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now there are thirty each of squares and triangles in the world. They
+are things, rather than places, which just means they have locations –
+each square and triangle is located in a place in the graph.</p>
+<p>The new_thing method of a place object creates a new thing and puts it
+there. You have to give the thing a name as its first argument. You can
+supply further keyword arguments to customize the thing’s stats; in this
+case, I’ve given the things graphics representing what shape they are.
+If you wanted, you could set the <code class="docutils literal notranslate"><span class="pre">_image_paths</span></code> to a list of paths to
+whatever graphics. The ‘atlas://’ in the front is only necessary if
+you’re using graphics packed in the way that the default ones are; <a class="reference external" href="https://kivy.org/doc/stable/api-kivy.atlas.html">read
+about atlases</a> if
+you like, or just use <code class="docutils literal notranslate"><span class="pre">.png</span></code> files.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">add_unit</span></code> method of a character object marks a thing or place so
+that it’s considered part of a character whose graph it is not in. This
+doesn’t do anything yet, but we’ll be using it to write our rules in a
+little while.</p>
+<p>Now we have our world, but nothing ever happens in it. Let’s add the
+rules of the simulation to the <code class="docutils literal notranslate"><span class="pre">with</span></code> block:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@eng</span><span class="o">.</span><span class="n">function</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">cmp</span><span class="p">,</span> <span class="n">stat</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare the proportion of neighboring polys with the same shape as this one</span>
+
+<span class="sd">    Count the neighboring polys that are the same shape as this one, and return how that compares with</span>
+<span class="sd">    some stat on the poly&#39;s user.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">home</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">location</span>
+    <span class="n">similar</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># iterate over portals leading outward from home</span>
+    <span class="k">for</span> <span class="n">neighbor_home</span> <span class="ow">in</span> <span class="n">home</span><span class="o">.</span><span class="n">neighbors</span><span class="p">():</span>
+        <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># there&#39;s really only 1 polygon per home right now, but this will still work if there are more</span>
+        <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbor_home</span><span class="o">.</span><span class="n">contents</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">neighbor</span><span class="o">.</span><span class="n">leader</span> <span class="ow">is</span> <span class="n">poly</span><span class="o">.</span><span class="n">leader</span><span class="p">:</span>
+                <span class="n">similar</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">cmp</span><span class="p">(</span><span class="n">poly</span><span class="o">.</span><span class="n">leader</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="n">stat</span><span class="p">],</span> <span class="n">similar</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span>
+
+
+<span class="nd">@phys</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">rule</span><span class="p">(</span><span class="n">neighborhood</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">relocate</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Move to a random unoccupied place&quot;&quot;&quot;</span>
+    <span class="n">unoccupied</span> <span class="o">=</span> <span class="p">[</span><span class="n">place</span> <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">poly</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span>
+                  <span class="ow">not</span> <span class="n">place</span><span class="o">.</span><span class="n">content</span><span class="p">]</span>
+    <span class="n">poly</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">unoccupied</span><span class="p">)</span>
+
+
+<span class="nd">@relocate</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">similar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood fails to be enough like me&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">ge</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="s1">&#39;min_sameness&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@relocate</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dissimilar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood gets too much like me&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">lt</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="s1">&#39;max_sameness&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The core of this ruleset is the <code class="docutils literal notranslate"><span class="pre">cmp_neighbor_shapes</span></code> function, which
+is a plain Python function that I’ve chosen to store in the engine
+because that makes it easier for the rules to get at. Functions
+decorated with <code class="docutils literal notranslate"><span class="pre">&#64;engine.function</span></code> become accessible as attributes of
+<code class="docutils literal notranslate"><span class="pre">engine.function</span></code>. Every Lisien entity has an attribute <code class="docutils literal notranslate"><span class="pre">engine</span></code>
+that you can use to get at that function store and lots of other
+utilities.</p>
+<p>If you didn’t want to use the function store, you could just import
+<code class="docutils literal notranslate"><span class="pre">cmp_neighbor_shapes</span></code> in every rule that uses it, like I’ve done with
+the operators <code class="docutils literal notranslate"><span class="pre">ge</span></code> and <code class="docutils literal notranslate"><span class="pre">lt</span></code> here.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cmp_neighbor_shapes</span></code> looks over the places that are directly
+connected to the one a given shape is in, counts the number that contain
+the same shape, and compares the result to a stat of the <code class="docutils literal notranslate"><span class="pre">user</span></code>–the
+character of which this thing is a unit. When called in
+<code class="docutils literal notranslate"><span class="pre">similar_neighbors</span></code> and <code class="docutils literal notranslate"><span class="pre">dissimilar_neighbors</span></code>, the stats in
+question are ‘min_sameness’ and ‘max_sameness’ respectively, so let’s
+set those at the end of the <code class="docutils literal notranslate"><span class="pre">with</span></code> block:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sq</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;min_sameness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="n">sq</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;max_sameness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;min_sameness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.2</span>
+<span class="n">tri</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;max_sameness&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.8</span>
+</pre></div>
+</div>
+<p>Here we diverge from the original simulation a bit by setting these
+values differently for the different shapes, demonstrating an advantage
+of units.</p>
+<p>The argument <code class="docutils literal notranslate"><span class="pre">neighborhood=1</span></code> to <code class="docutils literal notranslate"><span class="pre">&#64;phys.thing.rule</span></code> tells it that it
+only needs to check its triggers if something changed in either the
+location of the thing in question, or its neighbor places.
+<code class="docutils literal notranslate"><span class="pre">neighborhood=2</span></code> would include neighbors of those neighbors as well,
+and so on. You never <em>need</em> this, but it makes this simulation go fast.</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">polygons.py</span></code> to generate the simulation. To view it, run
+<code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">elide</span> <span class="pre">.</span></code> in the same directory. Just click the big &gt;
+button and watch it for a little while. There’s a control panel at the
+bottom of the screen that lets you go back in time, if you wish. You can
+use that to browse different runs of the simulation with different
+starting conditions, or even stats and rules arbitrarily changing in the
+middle of a run.</p>
+<p>If you run <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">-m</span> <span class="pre">elide</span></code> without the <code class="docutils literal notranslate"><span class="pre">.</span></code> or other directory at
+the end, you’ll get a main menu with save, load, import, and export
+options. Games are saved and loaded to a “games” directory inside the
+current directory. To send a game to someone else, it’s best to export
+it after quitting. This will make a file ending in <code class="docutils literal notranslate"><span class="pre">.lisien</span></code>, which
+may be imported with the “Import game” option in the main menu.
+Alternatively, you can import it in Python:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lisien</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+
+<span class="k">with</span> <span class="n">Engine</span><span class="o">.</span><span class="n">from_archive</span><span class="p">(</span><span class="s2">&quot;polygons.lisien&quot;</span><span class="p">,</span> <span class="s2">&quot;polygons/&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">eng</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">turn</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">turn</span><span class="p">)</span>
+        <span class="n">eng</span><span class="o">.</span><span class="n">next_turn</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">engine.next_turn()</span></code> method is the usual way of running the
+simulation from a Python interpreter. If you want to travel through time
+programmatically, set the properties <code class="docutils literal notranslate"><span class="pre">eng.branch</span></code> (to a string),
+<code class="docutils literal notranslate"><span class="pre">eng.turn</span></code>, and <code class="docutils literal notranslate"><span class="pre">eng.tick</span></code> (to integers).</p>
+<p>To prevent blocking when running <code class="docutils literal notranslate"><span class="pre">next_turn()</span></code>, you might want to run
+Lisien in a subprocess. This is done by instantiating
+<code class="docutils literal notranslate"><span class="pre">lisien.proxy.EngineProxyManager()</span></code>, calling its <code class="docutils literal notranslate"><span class="pre">start()</span></code> method,
+and treating the proxy it gives you like it’s a Lisien engine. Now you
+can call <code class="docutils literal notranslate"><span class="pre">next_turn()</span></code> in a thread while doing something else in
+parallel. Call <code class="docutils literal notranslate"><span class="pre">EngineProxyManager.shutdown()</span></code> when it’s time to quit
+the game.</p>
+<p>What next? If you wanted, you could set rules to be followed by only
+some of the shapes, like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lisien</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+
+<span class="k">with</span> <span class="n">Engine</span><span class="p">(</span><span class="n">clear</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">eng</span><span class="p">:</span>
+    <span class="n">phys</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;physical&#39;</span><span class="p">,</span> <span class="n">nx</span><span class="o">.</span><span class="n">grid_2d_graph</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">))</span>
+    <span class="n">tri</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;triangle&#39;</span><span class="p">)</span>
+    <span class="n">sq</span> <span class="o">=</span> <span class="n">eng</span><span class="o">.</span><span class="n">new_character</span><span class="p">(</span><span class="s1">&#39;square&#39;</span><span class="p">)</span>
+
+    <span class="nd">@tri</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">rule</span><span class="p">(</span><span class="n">neighborhood</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tri_relocate</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move to a random unoccupied place&quot;&quot;&quot;</span>
+        <span class="n">unoccupied</span> <span class="o">=</span> <span class="p">[</span><span class="n">place</span> <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">poly</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">place</span><span class="o">.</span><span class="n">content</span><span class="p">]</span>
+        <span class="n">poly</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">unoccupied</span><span class="p">)</span>
+
+
+    <span class="nd">@tri_relocate</span><span class="o">.</span><span class="n">trigger</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">similar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood fails to be enough like me&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">ge</span>
+        <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="s1">&#39;min_sameness&#39;</span><span class="p">)</span>
+
+
+    <span class="nd">@sq</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">rule</span><span class="p">(</span><span class="n">neighborhood</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sq_relocate</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Move to a random unoccupied place&quot;&quot;&quot;</span>
+        <span class="n">unoccupied</span> <span class="o">=</span> <span class="p">[</span><span class="n">place</span> <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">poly</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">place</span><span class="o">.</span><span class="n">content</span><span class="p">]</span>
+        <span class="n">poly</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">unoccupied</span><span class="p">)</span>
+
+
+    <span class="nd">@sq_relocate</span><span class="o">.</span><span class="n">trigger</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dissimilar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood gets too much like me&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">lt</span>
+        <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="s1">&#39;max_sameness&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now the triangles only relocate whenever their neighborhood looks too
+much like them, whereas squares only relocate when they have too many
+triangle neighbors.</p>
+<p>When you have a set of rules that needs to apply to many entities, you
+can have the entities share a rulebook. This works:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sq</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="n">tri</span><span class="o">.</span><span class="n">unit</span><span class="o">.</span><span class="n">rulebook</span>
+</pre></div>
+</div>
+<p>That would result in pretty much the same simulation as the first
+example, with all the shapes following the same rules, but you could
+have other things in <code class="docutils literal notranslate"><span class="pre">phys</span></code>, following different rules.</p>
+<p>You could build a rulebook ahead-of-time and assign it to many entities:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># this needs to replace any existing rule code you&#39;ve written,</span>
+<span class="c1"># it won&#39;t work so well together with eg. @phys.thing.rule</span>
+<span class="nd">@eng</span><span class="o">.</span><span class="n">rule</span><span class="p">(</span><span class="n">neighborhood</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">relocate</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Move to a random unoccupied place&quot;&quot;&quot;</span>
+    <span class="n">unoccupied</span> <span class="o">=</span> <span class="p">[</span><span class="n">place</span> <span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">poly</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">place</span><span class="o">.</span><span class="n">content</span><span class="p">]</span>
+    <span class="n">poly</span><span class="o">.</span><span class="n">location</span> <span class="o">=</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">unoccupied</span><span class="p">)</span>
+
+
+<span class="nd">@relocate</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">similar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood fails to be enough like me&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">ge</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">ge</span><span class="p">,</span> <span class="s1">&#39;min_sameness&#39;</span><span class="p">)</span>
+
+
+<span class="nd">@relocate</span><span class="o">.</span><span class="n">trigger</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">dissimilar_neighbors</span><span class="p">(</span><span class="n">poly</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Trigger when my neighborhood gets too much like me&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">operator</span><span class="w"> </span><span class="kn">import</span> <span class="n">lt</span>
+    <span class="k">return</span> <span class="n">poly</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">cmp_neighbor_shapes</span><span class="p">(</span><span class="n">poly</span><span class="p">,</span> <span class="n">lt</span><span class="p">,</span> <span class="s1">&#39;max_sameness&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># rulebooks need names too, so you have to make it like this</span>
+<span class="n">eng</span><span class="o">.</span><span class="n">rulebook</span><span class="p">[</span><span class="s1">&#39;parable&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">relocate</span><span class="p">]</span>
+<span class="n">sq</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="n">tri</span><span class="o">.</span><span class="n">rulebook</span> <span class="o">=</span> <span class="s1">&#39;parable&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="making-a-game">
+<h1>Making a game<a class="headerlink" href="#making-a-game" title="Link to this heading">¶</a></h1>
+<p>Elide is meant to support repurposing its widgets to build a rudimentary
+graphical interface for a game. For an example of what that might look
+like, see <a class="reference external" href="https://codeberg.org/clayote/Lisien/src/branch/main/elide/elide/examples/awareness.py">the Awareness
+sim</a>.
+You may prefer to work with some other Python-based game engine, such as
+<a class="reference external" href="http://pyglet.org/">Pyglet</a> or
+<a class="reference external" href="https://www.ursinaengine.org/">Ursina</a>, in which case you don’t
+really need Elide. You may find it useful to open Elide in your game
+folder when you’re trying to track down a bug.</p>
+</section>
+<section id="license-information">
+<h1>License Information<a class="headerlink" href="#license-information" title="Link to this heading">¶</a></h1>
+<p>Elide uses third-party graphics sets:</p>
+<ul class="simple">
+<li><p>The <a class="reference external" href="http://rltiles.sourceforge.net/">RLTiles</a>, available under
+<a class="reference external" href="http://creativecommons.org/publicdomain/zero/1.0/">CC0</a>, being in
+the public domain where it exists.</p></li>
+<li><p>The Elide icon is by Robin Hill, used with permission.</p></li>
+<li><p>Everything else is by <a class="reference external" href="https://kenney.nl">Kenney</a>, available under
+<a class="reference external" href="http://creativecommons.org/publicdomain/zero/1.0/">CC0</a>.</p></li>
+</ul>
+<p>The Lisien and Elide source files are licensed under the terms of the
+GNU Affero Public License version 3 (and no later). If you make a game
+with it, you have to release any modifications you make to Elide or
+Lisien itself under the AGPL, but this doesn’t apply to your game code.</p>
+<p>Game code is that which is loaded into the engine at launch time, either
+from a file named <code class="docutils literal notranslate"><span class="pre">game_start.py</span></code> in the game prefix, or from modules
+specified by the following parameters to the Lisien engine:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">trigger</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">prereq</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">action</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">function</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></li>
+</ul>
+<p>Or stored in files by those names (plus extensions) inside the game’s
+prefix. Game code must not alter the function of Lisien itself (no “hot
+patching”). If it does, then it is part of Lisien.</p>
+<p>If you write another application (not using any Lisien or Elide code)
+that accesses a Lisien server via internet, it is separate from Lisien
+and not subject to its license. If you run Lisien in a Python
+interpreter embedded into your application, the Lisien license only
+covers Lisien itself, and not any code run outside of that Python
+interpreter. You must still release any modifications you make to
+Lisien, but the embedding application remains your own.</p>
+<p>If you need a different license, or a new exception to the AGPL3
+license, please email <a class="reference external" href="mailto:public&#37;&#52;&#48;zacharyspector&#46;com">public<span>&#64;</span>zacharyspector<span>&#46;</span>com</a>.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Lisien</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elide/index.html">Elide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;Zachary Spector.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/README.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

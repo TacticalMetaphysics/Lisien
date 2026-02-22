@@ -38,11 +38,14 @@ easy to compartmentalize complexity and choose what of it you want to
 deal with and when.
 
 It is a rules engine, an old concept from business software that lets
-you determine what conditions cause what effects. Here, conditions are
-Triggers and effects are Actions, and they're both lists of Python
-functions. Actions make some change to the state of the world, while
-Triggers look at the world once-per-turn and return a Boolean to show
-whether their Actions should happen.
+you determine what conditions cause what effects. Though you'll still
+need to write some Python code for the conditions and the effects that
+they have, the connections between them and the objects that follow the
+rule are defined in data. Once you've written a short Python function
+that works in the rules engine, it's easy to reuse it for another rule
+on another object. Changing the rules while the game is running is just
+as easy, so you can experiment with ideas for rules as soon as you have
+them.
 
 **********
  Concepts
@@ -90,7 +93,7 @@ See :doc:`lisien/design` for details.
 *******
 
 The only Lisien class that you should ever instantiate yourself is
-:class:`lisien.Engine`. All simulation objects should be created
+:class:`.Engine`. All simulation objects should be created
 and accessed through it. By default, it keeps the simulation code and
 world state in the working directory, but you can pass in another
 directory if you prefer. Either use it with a context manager (``with
@@ -160,6 +163,11 @@ the action should *not* happen; if a single prerequisite returns
 Use the ``engine`` property of any Lisien entity to get the engine, then
 use methods such as ``percent_chance`` and ``dice_check``.
 
+A prerequisite may return a value that is not Boolean. This indicates that
+the game should stop and ask the user for input. If you're using Elide,
+the appropriate return type is described in :attr:`elide.screen.DialogLayout.todo`.
+
+
 Time Control
 ============
 
@@ -174,20 +182,18 @@ be followed in response to your changing the time "by hand".
 It is possible to change the time as part of the action of a rule. This
 is how you would make something happen after a delay. Say you want a
 rule that puts the character ``alice`` to sleep, then wakes her up after
-eight turns (presumably hour-long).:
-
-.. code::
+eight turns (presumably hour-long)::
 
    alice = engine.character['alice']
 
    @alice.rule
    def sleep(character):
-           character.stat['awake'] = False
-           start_turn = character.engine.turn
-           with character.engine.plan() as plan_num:
-                   character.engine.turn += 8
-                   character.stat['awake'] = True
-           character.stat['wake_plan'] = plan_num
+       character.stat['awake'] = False
+       start_turn = character.engine.turn
+       with character.engine.plan() as plan_num:
+           character.engine.turn += 8
+           character.stat['awake'] = True
+       character.stat['wake_plan'] = plan_num
 
 At the end of a ``plan():`` block, the game-time will be reset to its
 position at the start of that block. You can use the plan's ID number,
@@ -203,19 +209,20 @@ them, but does use some conventions for communicating with a user
 interface such as Elide.
 
 To ask the player to make a decision, first define a method for them to
-call, then return a menu description like this one.:
-
-.. code::
+call, then return a menu description like this one::
 
    @engine.method
    def wake_alice(self):
-           self.character['alice'].stat['awake'] = True
+       self.character['alice'].stat['awake'] = True
 
    alice = engine.character['alice']
 
    @alice.rule
    def wakeup(character):
-           return "Wake up?", [("Yes", character.engine.wake_alice), ("No", None)]
+       return "Wake up?", [
+           ("Yes", character.engine.wake_alice),
+           ("No", None)
+       ]
 
 Only methods defined with the ``@engine.method`` function store may be
 used in a menu. In Elide, that means you have to define them in the Method
@@ -229,13 +236,10 @@ Lisien may be run in a separate process from Elide, or any other frontend you ma
 To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
 their corresponding objects in the Lisien core.
 
-Use :class:`lisien.proxy.EngineProxyManager` to start Lisien in a subprocess and get a
-proxy to the engine:
-
-.. code::
+Use :class:`~.proxy.manager.EngineProxyManager` to start Lisien in a subprocess and get a
+proxy to the engine::
 
     from lisien.proxy import EngineProxyManager
-
 
     manager = EngineProxyManager('gamedir/')
     engine_proxy = manager.start(workers=4)
@@ -244,15 +248,12 @@ proxy to the engine:
 
     manager.shutdown()
 
-
-You can pass :class:`Engine` arguments to the manager's initializer or the ``start`` method, as you please.
+You can pass :class:`.Engine` arguments to the ``start`` method.
 
 The proxy objects are mostly the same as what they represent, with affordances for when you
 have to do some work in the user interface while waiting for the core to finish something. Generally, you
 can pass a callback function to the relevant object's ``connect`` method, and Lisien will call the callback
-at the relevant time. Here's how you'd run some code whenever ``next_turn`` finishes running the rules engine:
-
-.. code::
+at the relevant time. Here's how you'd run some code whenever ``next_turn`` finishes running the rules engine::
 
     from threading import Thread
 
@@ -261,19 +262,17 @@ at the relevant time. Here's how you'd run some code whenever ``next_turn`` fini
     from my_excellent_game import display_menu, apply_delta
 
     manager = EngineProxyManager()
-    engine_proxy = manager.start()
 
+    with manager.start() as engine_proxy:
 
-    def update_from_next_turn(engine, menu_info, delta):
-        display_menu(*menu_info)
-        apply_delta(delta)
+        @engine_proxy.next_turn.connect
+        def update_from_next_turn(engine, menu_info, delta):
+            display_menu(*menu_info)
+            apply_delta(delta)
 
-    engine_proxy.next_turn.connect(update_from_next_turn)
+        subthread = Thread(target=engine_proxy.next_turn)
+        subthread.start()
 
-    subthread = Thread(target=engine_proxy.next_turn)
-    subthread.start()
+        # do some UI work here
 
-    # do some UI work here
-
-    subthread.join()
-    manager.shutdown()
+        subthread.join()

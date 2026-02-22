@@ -9,8 +9,8 @@
     <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=27fed22d" />
     <script src="../../_static/documentation_options.js?v=10ab35ec"></script>
-    <script src="../../_static/doctools.js?v=9bcbadda"></script>
-    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
    
@@ -45,32 +45,33 @@
 <span class="c1">#</span>
 <span class="c1"># You should have received a copy of the GNU Affero General Public License</span>
 <span class="c1"># along with this program.  If not, see &lt;https://www.gnu.org/licenses/&gt;.</span>
-<span class="sd">&quot;&quot;&quot;Lisien&#39;s special directed graph type, the Character</span>
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lisien&#39;s special directed graph type, the :class:`~.character.Character`</span>
 
-<span class="sd">Based on NetworkX DiGraph objects with various additions and</span>
+<span class="sd">Based on :class:`networkx.DiGraph` with various additions and</span>
 <span class="sd">conveniences.</span>
 
-<span class="sd">A :class:`lisien.character.Character` may well represent a fictional person,</span>
+<span class="sd">A :class:`~.character.Character` may well represent a fictional person,</span>
 <span class="sd">in which case the graph most likely represents a state machine, governing</span>
 <span class="sd">that person&#39;s behavior in the game. But anything node-graph-shaped</span>
-<span class="sd">may be a :class:`lisien.character.Character`, too; in particular, the map on</span>
+<span class="sd">may be a :class:`~.character.Character`, too; in particular, the map on</span>
 <span class="sd">which the game&#39;s fictional persons move and do things is itself a</span>
-<span class="sd">:class:`lisien.character.Character`, conventionally called ``&quot;physical&quot;`` when</span>
+<span class="sd">:class:`~.character.Character`, conventionally called ``&quot;physical&quot;`` when</span>
 <span class="sd">there&#39;s only one such map in a game. A game&#39;s fictional persons may have multiple</span>
-<span class="sd">representations in different :class:`lisien.character.Character` objects;</span>
+<span class="sd">representations in different :class:`~.character.Character` objects;</span>
 <span class="sd">apart from the physical map, you may have another</span>
-<span class="sd">:class:`lisien.character.Character` for the social graph, another for their</span>
-<span class="sd">family tree, and so on. So :class:`lisien.character.Character` provides</span>
-<span class="sd">&quot;units,&quot; which are nodes in *any* :class:`lisien.character.Character` that</span>
+<span class="sd">:class:`~.character.Character` for the social graph, another for their</span>
+<span class="sd">family tree, and so on. So :class:`~.character.Character` provides</span>
+<span class="sd">&quot;units,&quot; which are nodes in *any* :class:`~.character.Character` that</span>
 <span class="sd">are, somehow, a part of this one. This could mean they directly represent</span>
 <span class="sd">the same person, or, in a strategy game, units could be other people,</span>
 <span class="sd">or groups of people, who are under that person&#39;s command.</span>
 
-<span class="sd">:class:`lisien.character.Character` lets you assign rules to its :attr:`unit`</span>
-<span class="sd">attribute, so that the rule will be evaluated for every unit of the</span>
-<span class="sd">:class:`lisien.character.Character`, whatever :class:`lisien.character.Character`</span>
-<span class="sd">that unit happens to be in. Nodes may be units of any number of</span>
-<span class="sd">:class:`lisien.character.Character`s, which are called their &quot;leaders&quot;.</span>
+<span class="sd">:class:`~.character.Character` lets you assign rules to its</span>
+<span class="sd">:attr:`~.character.Character.unit` attribute, so that the rule will be</span>
+<span class="sd">evaluated for every unit of the :class:`~.character.Character`, whatever</span>
+<span class="sd">:class:`~.character.Character` that unit happens to be in. Nodes may be</span>
+<span class="sd">units of any number of :class:`~.character.Character`\s, which are called</span>
+<span class="sd">their &quot;leaders&quot;.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -90,7 +91,7 @@
 <span class="p">)</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">define</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">attrs</span><span class="w"> </span><span class="kn">import</span> <span class="n">define</span><span class="p">,</span> <span class="n">field</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.exc</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorldIntegrityError</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">.facade</span><span class="w"> </span><span class="kn">import</span> <span class="n">CharacterFacade</span><span class="p">,</span> <span class="n">EngineFacade</span>
@@ -246,56 +247,57 @@
 
 <div class="viewcode-block" id="Character">
 <a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character">[docs]</a>
+<span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">repr</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">Character</span><span class="p">(</span><span class="n">AbstractCharacter</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;A digraph that follows game rules and has a containment hierarchy</span>
+<span class="w">	</span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;A :class:`~networkx.DiGraph` that follows game rules and has a containment hierarchy</span>
 
-<span class="sd">	Nodes in a Character are subcategorized into Things and</span>
-<span class="sd">	Places. Things have locations, and those locations may be Places</span>
-<span class="sd">	or other Things. To get at those, use the `thing` and `place`</span>
-<span class="sd">	mappings -- but in situations where the distinction does not matter,</span>
-<span class="sd">	you may simply address the Character as a mapping, as in NetworkX.</span>
+<span class="sd">	Nodes in a :class:`Character` are subcategorized into</span>
+<span class="sd">	:class:`~.node.Thing` and :class:`~.node.Place`. :class:`~.node.Thing`</span>
+<span class="sd">	objects have locations, and those locations may be :class:`~.node.Place`</span>
+<span class="sd">	objects or other :class:`~.node.Thing` objects. To get at those, use the</span>
+<span class="sd">	:attr:`thing` and :attr:`place` mappings -- but in situations where the</span>
+<span class="sd">	distinction does not matter, you may simply address the Character as a</span>
+<span class="sd">	mapping, as in NetworkX.</span>
 
-<span class="sd">	Characters may have units in other Characters. These are just</span>
-<span class="sd">	nodes. You can apply rules to a Character&#39;s units, and thus to</span>
-<span class="sd">	any collection of nodes you want, perhaps in many different</span>
-<span class="sd">	Characters. The ``unit`` attribute handles this. It is a mapping,</span>
-<span class="sd">	keyed by the other Character&#39;s name, then by the name of the node</span>
-<span class="sd">	that is this Character&#39;s unit. In the common case where a</span>
-<span class="sd">	Character has exactly one unit, it may be retrieved as</span>
-<span class="sd">	``unit.only``. When it has more than one unit, but only has</span>
-<span class="sd">	any units in a single other Character, you can get the mapping</span>
-<span class="sd">	of units in that Character as ``unit.node``. Add units with the</span>
-<span class="sd">	``add_unit`` method and remove them with ``del_unit``.</span>
+<span class="sd">	One :class:`Character` may have units in another :class:`Character`. These</span>
+<span class="sd">	are normal :class:`~.node.Place` or :class:`~.node.Thing` objects. You</span>
+<span class="sd">	can apply rules to a :class:`Character`&#39;s units, and thus to any</span>
+<span class="sd">	collection of nodes you want, perhaps in many different</span>
+<span class="sd">	:class:`Character` objects. The :attr:`unit` attribute handles this. It is a</span>
+<span class="sd">	mapping, keyed by the other Character&#39;s name, then by the name of the</span>
+<span class="sd">	node that is this Character&#39;s unit. In the common case where a Character</span>
+<span class="sd">	has exactly one unit, it may be retrieved as ``unit.only``. When it has</span>
+<span class="sd">	more than one unit, but only has any units in a single other</span>
+<span class="sd">	:class:`Character`, you can get the mapping of units in that</span>
+<span class="sd">	:class:`Character` as ``unit.node``. Add units with the :meth:`add_unit`</span>
+<span class="sd">	method and remove them with :meth:`del_unit`.</span>
 
-<span class="sd">	You can assign rules to Characters with their ``rule`` attribute,</span>
+<span class="sd">	You can assign rules to a :class:`Character` with the ``rule`` attribute,</span>
 <span class="sd">	typically using it as a decorator (see :mod:`lisien.rule`). You can do the</span>
-<span class="sd">	same to some of Character&#39;s</span>
+<span class="sd">	same to some of :class:`Character`&#39;s</span>
 <span class="sd">	attributes:</span>
 
-<span class="sd">	* ``thing.rule`` to make a rule run on all Things in this Character</span>
-<span class="sd">	  every turn</span>
-<span class="sd">	* ``place.rule`` to make a rule run on all Places in this Character</span>
-<span class="sd">	  every turn</span>
-<span class="sd">	* ``node.rule`` to make a rule run on all Things and Places in this</span>
-<span class="sd">	  Character every turn</span>
-<span class="sd">	* ``unit.rule`` to make a rule run on all the units this</span>
-<span class="sd">	  Character has every turn, regardless of what Character the</span>
-<span class="sd">	  unit is in</span>
-<span class="sd">	* ``adj.rule`` to make a rule run on all the edges this Character</span>
+<span class="sd">	* ``thing.rule`` to make a rule run on all :class:`~.node.Thing`\s in this</span>
+<span class="sd">	  :class:`Character` every turn</span>
+<span class="sd">	* ``place.rule`` to make a rule run on all Places in this</span>
+<span class="sd">	  :class:`Character` every turn</span>
+<span class="sd">	* ``node.rule`` to make a rule run on all :class:`~.node.Thing`\s and</span>
+<span class="sd">	  :class:`~.node.Place`\s in this :class:`Character` every turn</span>
+<span class="sd">	* ``unit.rule`` to make a rule run on all the units this :class:`Character`</span>
+<span class="sd">	  has every turn, regardless of what :class:`Character` the unit is in</span>
+<span class="sd">	* ``adj.rule`` to make a rule run on all the edges this :class:`Character`</span>
 <span class="sd">	  has every turn</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span>
-	<span class="n">name</span><span class="p">:</span> <span class="n">CharName</span>
-	<span class="n">_book</span> <span class="o">=</span> <span class="s2">&quot;character&quot;</span>
+	<span class="n">_name</span><span class="p">:</span> <span class="n">CharName</span>
+	<span class="n">_init_rulebooks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+	<span class="n">_book</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;character&quot;</span>
 
-<div class="viewcode-block" id="Character.node_dict_factory">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.node_dict_factory">[docs]</a>
 	<span class="nd">@staticmethod</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">node_dict_factory</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">StatDict</span><span class="p">:</span>
-		<span class="k">return</span> <span class="p">{}</span></div>
-
+		<span class="k">return</span> <span class="p">{}</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">):</span>
 		<span class="vm">__doc__</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_edge</span><span class="o">.</span><span class="vm">__doc__</span>
@@ -325,13 +327,12 @@
 	<span class="p">):</span>
 		<span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">engine</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
-	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
-		<span class="bp">self</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">CharName</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-	<span class="p">):</span>
-		<span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
-		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+	<span class="nd">@_init_rulebooks</span><span class="o">.</span><span class="n">validator</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">_do_init_rulebooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">init_rulebooks</span><span class="p">):</span>
 		<span class="k">if</span> <span class="ow">not</span> <span class="n">init_rulebooks</span><span class="p">:</span>
 			<span class="k">return</span>
+		<span class="n">engine</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
+		<span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
 		<span class="n">cachemap</span> <span class="o">=</span> <span class="p">{</span>
 			<span class="s2">&quot;character_rulebook&quot;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_characters_rulebooks_cache</span><span class="p">,</span>
 			<span class="s2">&quot;unit_rulebook&quot;</span><span class="p">:</span> <span class="n">engine</span><span class="o">.</span><span class="n">_units_rulebooks_cache</span><span class="p">,</span>
@@ -348,8 +349,6 @@
 			<span class="n">set_rb</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook_name</span><span class="p">)</span>
 			<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">rulebook_name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Character.ThingMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.ThingMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">ThingMapping</span><span class="p">(</span><span class="n">MutableCharacterMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Thing</span><span class="p">]):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;:class:`Thing` objects that are in a :class:`Character`&quot;&quot;&quot;</span>
@@ -423,11 +422,8 @@
 			<span class="n">th</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">&quot;location&quot;</span><span class="p">})</span>
 
 		<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">):</span>
-			<span class="bp">self</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+			<span class="bp">self</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="Character.PlaceMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PlaceMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">PlaceMapping</span><span class="p">(</span><span class="n">MutableCharacterMapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Place</span><span class="p">]):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;:class:`Place` objects that are in a :class:`Character`&quot;&quot;&quot;</span>
@@ -437,11 +433,8 @@
 		<span class="k">def</span><span class="w"> </span><span class="nf">_get_rulebook_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_characters_places_rulebooks_cache</span>
 
-<div class="viewcode-block" id="Character.PlaceMapping.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PlaceMapping.update">[docs]</a>
 		<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">__m</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">__m</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
+			<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">__m</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
 		<span class="k">def</span><span class="w"> </span><span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]:</span>
 			<span class="n">node_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_nodes_cache</span><span class="o">.</span><span class="n">node_exists</span>
@@ -502,11 +495,8 @@
 			<span class="n">pl</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
 		<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">NodeName</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">):</span>
-			<span class="bp">self</span><span class="p">[</span><span class="n">place</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+			<span class="bp">self</span><span class="p">[</span><span class="n">place</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="Character.ThingPlaceMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.ThingPlaceMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">ThingPlaceMapping</span><span class="p">(</span><span class="n">GraphNodeMapping</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;GraphNodeMapping but for Place and Thing&quot;&quot;&quot;</span>
@@ -534,13 +524,10 @@
 			<span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_is_thing</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
 				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
-
+				<span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
 	<span class="n">node_map_cls</span> <span class="o">=</span> <span class="n">ThingPlaceMapping</span>
 
-<div class="viewcode-block" id="Character.PortalSuccessorsMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalSuccessorsMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">PortalSuccessorsMapping</span><span class="p">(</span><span class="n">DiGraphSuccessorsMapping</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Mapping of nodes that have at least one outgoing edge.</span>
@@ -572,8 +559,6 @@
 		<span class="k">def</span><span class="w"> </span><span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">orig</span><span class="p">:</span> <span class="n">KeyHint</span><span class="p">):</span>
 			<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__delitem__</span><span class="p">(</span><span class="n">orig</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Character.PortalSuccessorsMapping.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalSuccessorsMapping.update">[docs]</a>
 		<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">ValueHint</span><span class="p">]],</span> <span class="o">**</span><span class="n">kwargs</span>
 		<span class="p">):</span>
@@ -703,11 +688,8 @@
 									<span class="n">v</span><span class="p">,</span>
 								<span class="p">)</span>
 								<span class="n">tick</span> <span class="o">+=</span> <span class="mi">1</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">tick</span> <span class="o">=</span> <span class="n">tick</span>
 
-
-<div class="viewcode-block" id="Character.PortalSuccessorsMapping.Successors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalSuccessorsMapping.Successors">[docs]</a>
 		<span class="nd">@define</span>
 		<span class="k">class</span><span class="w"> </span><span class="nc">Successors</span><span class="p">(</span><span class="n">DiGraphSuccessorsMapping</span><span class="o">.</span><span class="n">Successors</span><span class="p">):</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Mapping for possible destinations from some node.&quot;&quot;&quot;</span>
@@ -770,8 +752,6 @@
 					<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No portal to </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dest</span><span class="p">))</span>
 				<span class="bp">self</span><span class="p">[</span><span class="n">dest</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
-<div class="viewcode-block" id="Character.PortalSuccessorsMapping.Successors.update">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalSuccessorsMapping.Successors.update">[docs]</a>
 			<span class="k">def</span><span class="w"> </span><span class="nf">update</span><span class="p">(</span>
 				<span class="bp">self</span><span class="p">,</span>
 				<span class="n">other</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">KeyHint</span><span class="p">,</span> <span class="n">ValueHint</span><span class="p">]]</span>
@@ -785,15 +765,10 @@
 					<span class="n">other</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">StatDict</span><span class="p">]</span>
 					<span class="n">it</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
 				<span class="k">for</span> <span class="n">dest</span><span class="p">,</span> <span class="n">vs</span> <span class="ow">in</span> <span class="n">it</span><span class="p">:</span>
-					<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">vs</span><span class="p">)</span></div>
-</div>
-</div>
-
+					<span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">vs</span><span class="p">)</span>
 
 	<span class="n">adj_cls</span> <span class="o">=</span> <span class="n">PortalSuccessorsMapping</span>
 
-<div class="viewcode-block" id="Character.PortalPredecessorsMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalPredecessorsMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">PortalPredecessorsMapping</span><span class="p">(</span><span class="n">DiGraphPredecessorsMapping</span><span class="p">,</span> <span class="n">RuleFollower</span><span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;Mapping of nodes that have at least one incoming edge.</span>
@@ -808,8 +783,6 @@
 		<span class="k">def</span><span class="w"> </span><span class="nf">_get_rulebook_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 			<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_characters_portals_rulebooks_cache</span>
 
-<div class="viewcode-block" id="Character.PortalPredecessorsMapping.Predecessors">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.PortalPredecessorsMapping.Predecessors">[docs]</a>
 		<span class="nd">@define</span>
 		<span class="k">class</span><span class="w"> </span><span class="nc">Predecessors</span><span class="p">(</span><span class="n">DiGraphPredecessorsMapping</span><span class="o">.</span><span class="n">Predecessors</span><span class="p">):</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Mapping of possible origins from some destination.&quot;&quot;&quot;</span>
@@ -826,22 +799,16 @@
 				<span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_edge_exists</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">):</span>
 					<span class="n">p</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_exist_edge</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">)</span>
 				<span class="n">p</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-				<span class="n">p</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
-</div>
-
+				<span class="n">p</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
 	<span class="n">pred_cls</span> <span class="o">=</span> <span class="n">PortalPredecessorsMapping</span>
 
-<div class="viewcode-block" id="Character.UnitGraphMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.UnitGraphMapping">[docs]</a>
 	<span class="nd">@define</span>
 	<span class="k">class</span><span class="w"> </span><span class="nc">UnitGraphMapping</span><span class="p">(</span>
 		<span class="n">CharacterMapping</span><span class="p">[</span><span class="n">CharName</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Node</span><span class="p">]],</span> <span class="n">RuleFollower</span>
 	<span class="p">):</span>
 <span class="w">		</span><span class="sd">&quot;&quot;&quot;A mapping of other characters in which one has a unit.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Character.UnitGraphMapping.CharacterUnitMapping">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.UnitGraphMapping.CharacterUnitMapping">[docs]</a>
 		<span class="nd">@define</span>
 		<span class="k">class</span><span class="w"> </span><span class="nc">CharacterUnitMapping</span><span class="p">(</span><span class="n">Mapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Place</span> <span class="o">|</span> <span class="n">Thing</span><span class="p">]):</span>
 <span class="w">			</span><span class="sd">&quot;&quot;&quot;Mapping of units of one Character in another Character.&quot;&quot;&quot;</span>
@@ -936,8 +903,7 @@
 						<span class="n">graphn</span><span class="p">,</span>
 						<span class="n">mykey</span><span class="p">,</span>
 						<span class="o">*</span><span class="n">btt</span><span class="p">,</span>
-					<span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span></div>
-
+					<span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">ex</span>
 
 		<span class="n">_book</span> <span class="o">=</span> <span class="s2">&quot;unit&quot;</span>
 
@@ -993,9 +959,12 @@
 
 		<span class="nd">@property</span>
 		<span class="k">def</span><span class="w"> </span><span class="nf">node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">Place</span> <span class="o">|</span> <span class="n">Thing</span><span class="p">]:</span>
-<span class="w">			</span><span class="sd">&quot;&quot;&quot;If I have units in only one graph, return a map of them</span>
+<span class="w">			</span><span class="sd">&quot;&quot;&quot;A mapping of :class:`~.node.Thing` and :class:`~.node.Place`</span>
+<span class="sd">			objects in this :class:`Character`.</span>
 
-<span class="sd">			Otherwise, raise AttributeError.</span>
+<span class="sd">			This mapping has a ``rule`` method for applying new rules to every</span>
+<span class="sd">			:class:`Node` here, and a ``rulebook`` property for</span>
+<span class="sd">			assigning premade rulebooks.</span>
 
 <span class="sd">			&quot;&quot;&quot;</span>
 			<span class="k">try</span><span class="p">:</span>
@@ -1022,23 +991,24 @@
 				<span class="p">)</span>
 				<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="n">charn</span><span class="p">,</span> <span class="n">noden</span><span class="p">)</span>
 			<span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-				<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;I have no unit, or more than one unit&quot;</span><span class="p">)</span></div>
+				<span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;I have no unit, or more than one unit&quot;</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.facade">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.facade">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CharacterFacade</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Return a temporary copy of this Character</span>
+<span class="w">		</span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return a temporary copy of this :class:`Character`</span>
 
-<span class="sd">		A Facade looks like its :class:`Character`, but doesn&#39;t do any of the</span>
-<span class="sd">		stuff Characters do to save changes to the database, nor enable</span>
-<span class="sd">		time travel. This makes it much speedier to work with.</span>
+<span class="sd">		A :class:`~.facade.CharacterFacade` looks like its :class:`Character`,</span>
+<span class="sd">		but doesn&#39;t do any of the stuff :class:`Character`\s do to save changes</span>
+<span class="sd">		to the database, nor enable time travel. This makes it much speedier</span>
+<span class="sd">		to work with.</span>
+
+<span class="sd">		If you decide to keep the changes you made to the</span>
+<span class="sd">		:class:`~.facade.CharacterFacade`, call its</span>
+<span class="sd">		:meth:`~.facade.CharacterFacade.apply` method to make them &quot;for real&quot;.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="n">CharacterFacade</span><span class="p">(</span>
 			<span class="n">engine</span><span class="o">=</span><span class="n">EngineFacade</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-		<span class="p">)</span></div>
-
+		<span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">__copy__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CharacterFacade</span><span class="p">:</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">facade</span><span class="p">()</span>
@@ -1063,48 +1033,46 @@
 					<span class="n">fake</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">me</span><span class="o">.</span><span class="n">deep_copy</span><span class="p">(</span><span class="n">unwrap</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">memo</span><span class="p">)</span>
 		<span class="k">return</span> <span class="n">me</span>
 
-<div class="viewcode-block" id="Character.add_place">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_for_adding</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Add a new Place&quot;&quot;&quot;</span>
-		<span class="n">attr</span><span class="p">:</span> <span class="n">StatDict</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">node_for_adding</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span></div>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Add a new :class:`~.node.Place`</span>
 
+<span class="sd">		Keyword arguments will be used as stats of the new :class:`~.node.Place`.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="n">attr</span><span class="p">:</span> <span class="n">StatDict</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">[</span><span class="n">node_for_adding</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">],</span> <span class="o">**</span><span class="n">attrs</span><span class="p">):</span>
 		<span class="n">attrs</span><span class="p">:</span> <span class="n">StatDict</span>
 		<span class="k">for</span> <span class="n">place</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">add_place</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Character.remove_place">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.remove_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing Place&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing :class:`.node.Place`&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">place</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">place</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such place: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">place</span><span class="p">))</span></div>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such place: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">place</span><span class="p">))</span>
 
-
-<div class="viewcode-block" id="Character.remove_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.remove_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing Thing&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Remove an existing :class:`~.node.Thing`&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">thing</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">thing</span><span class="p">)</span>
 		<span class="k">else</span><span class="p">:</span>
-			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such thing: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">thing</span><span class="p">))</span></div>
+			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;No such thing: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">thing</span><span class="p">))</span>
 
-
-<div class="viewcode-block" id="Character.add_thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="n">location</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Stat</span><span class="p">,</span> <span class="n">ValueHint</span> <span class="o">|</span> <span class="n">Value</span><span class="p">],</span>
 	<span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new Thing and set its location&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make a new :class:`~.node.Thing` at this location</span>
+
+<span class="sd">		Keyword arguments, if present, will be the initial stats of the</span>
+<span class="sd">		:class:`~.node.Thing` we create.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="n">WorldIntegrityError</span><span class="p">(</span>
 				<span class="s2">&quot;Already have a Thing named </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -1117,11 +1085,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">starter</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">_succ</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjlist_inner_dict_factory</span><span class="p">()</span>
 
-
-<div class="viewcode-block" id="Character.add_things_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_things_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_things_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span>
@@ -1134,23 +1099,27 @@
 		<span class="p">],</span>
 		<span class="o">**</span><span class="n">attrs</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make many new Things&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make many new :class:`~.node.Thing` objects</span>
+
+<span class="sd">		Takes a sequence of pairs, of which item 0 is the name of the new</span>
+<span class="sd">		:class:`~.node.Thing`, and item 1 is the name. Or triples, of which</span>
+<span class="sd">		item 2 is a dictionary of stats that the :class:`~.node.Thing` object</span>
+<span class="sd">		will start with.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">attrs</span><span class="p">:</span> <span class="n">StatDict</span>
 		<span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="n">name</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 			<span class="n">location</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 			<span class="n">kwargs</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">attrs</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_thing</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.place2thing">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.place2thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">place2thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Turn a Place into a Thing with the given location.</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Turn a :class:`~.node.Place` into a :class:`~.node.Thing` at the given location.</span>
 
-<span class="sd">		It will keep all its attached Portals.</span>
+<span class="sd">		All :class:`~.portal.Portal` objects attached to it will stay attached.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">NodeName</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
@@ -1163,13 +1132,10 @@
 				<span class="n">port</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">thing</span>
 			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">preportal</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
 				<span class="n">port</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">thing</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span>
 
-
-<div class="viewcode-block" id="Character.thing2place">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.thing2place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Unset a Thing&#39;s location, and thus turn it into a Place.&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Unset a :class:`~.node.Thing`&#39;s location, and thus turn it into a :class:`~.node.Place`.&quot;&quot;&quot;</span>
 		<span class="n">name</span> <span class="o">=</span> <span class="n">NodeName</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_set_thing_loc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 		<span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">:</span>
@@ -1179,20 +1145,17 @@
 				<span class="n">port</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="n">place</span>
 			<span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">thing</span><span class="o">.</span><span class="n">preportals</span><span class="p">():</span>
 				<span class="n">port</span><span class="o">.</span><span class="n">destination</span> <span class="o">=</span> <span class="n">place</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">place</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_objs</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">place</span>
 
-
-<div class="viewcode-block" id="Character.add_portal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">origin</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="n">destination</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect the origin to the destination with a :class:`Portal`.</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Connect the origin to the destination with a :class:`~.portal.Portal`.</span>
 
-<span class="sd">		Keyword arguments are attributes of the :class:`Portal`.</span>
+<span class="sd">		Keyword arguments will be the initial attributes of the :class:`~.portal.Portal`.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">kwargs</span><span class="p">:</span> <span class="n">StatDict</span>
@@ -1229,27 +1192,25 @@
 			<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">edge_val_set</span><span class="p">(</span>
 				<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="n">v</span>
-			<span class="p">)</span></div>
+			<span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.new_portal">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.new_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">new_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">origin</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="n">destination</span><span class="p">:</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">NodeName</span><span class="p">,</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Portal</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a portal and return it&quot;&quot;&quot;</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a :class:`~.portal.Portal` and return it</span>
+
+<span class="sd">		Keyword arguments will be stats of the new :class:`~.portal.Portal`.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="n">kwargs</span><span class="p">:</span> <span class="n">StatDict</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_get_edge</span><span class="p">(</span>
 			<span class="bp">self</span><span class="p">,</span> <span class="n">NodeName</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">origin</span><span class="p">)),</span> <span class="n">NodeName</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">destination</span><span class="p">))</span>
-		<span class="p">)</span></div>
+		<span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.add_portals_from">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_portals_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_portals_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span>
@@ -1258,20 +1219,18 @@
 		<span class="p">],</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 	<span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make portals for a sequence of (origin, destination) pairs</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Make portals from a sequence of ``(origin, destination)`` pairs</span>
 
 <span class="sd">		Actually, triples are acceptable too, in which case the third</span>
-<span class="sd">		item is a dictionary of stats for the new :class:`Portal`.</span>
+<span class="sd">		item is a dictionary of stats for the new :class:`~.portal.Portal`.</span>
+
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="n">orig</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 			<span class="n">dest</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 			<span class="n">kwarrgs</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">kwargs</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwarrgs</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">add_portal</span><span class="p">(</span><span class="n">orig</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwarrgs</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.add_unit">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.add_unit">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_unit</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">a</span><span class="p">:</span> <span class="n">Place</span> <span class="o">|</span> <span class="n">Thing</span> <span class="o">|</span> <span class="n">Character</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -1329,11 +1288,8 @@
 		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">unit_set</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">True</span>
-		<span class="p">)</span></div>
+		<span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.remove_unit">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.remove_unit">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_unit</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span>
 		<span class="n">a</span><span class="p">:</span> <span class="n">Place</span> <span class="o">|</span> <span class="n">Thing</span> <span class="o">|</span> <span class="n">Character</span> <span class="o">|</span> <span class="n">KeyHint</span><span class="p">,</span>
@@ -1362,11 +1318,8 @@
 		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">database</span><span class="o">.</span><span class="n">unit_set</span><span class="p">(</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">branch</span><span class="p">,</span> <span class="n">turn</span><span class="p">,</span> <span class="n">tick</span><span class="p">,</span> <span class="kc">False</span>
-		<span class="p">)</span></div>
+		<span class="p">)</span>
 
-
-<div class="viewcode-block" id="Character.historical">
-<a class="viewcode-back" href="../../lisien/index.html#lisien.engine.Character.historical">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">historical</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Stat</span> <span class="o">|</span> <span class="n">KeyHint</span> <span class="o">|</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">UnitsAlias</span> <span class="o">|</span> <span class="n">CharacterStatAlias</span><span class="p">:</span>
@@ -1385,7 +1338,6 @@
 		<span class="k">return</span> <span class="n">CharacterStatAlias</span><span class="p">(</span>
 			<span class="n">entity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="p">,</span> <span class="n">stat</span><span class="o">=</span><span class="n">Stat</span><span class="p">(</span><span class="n">Key</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="n">engine</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">engine</span>
 		<span class="p">)</span></div>
-</div>
 
 </pre></div>
 
@@ -1448,7 +1400,7 @@
       &#169;Zachary Spector.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>

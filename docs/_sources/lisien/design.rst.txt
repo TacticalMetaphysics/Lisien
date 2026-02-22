@@ -52,9 +52,9 @@ construct deltas describing the difference between two moments in the
 same branch. When looking up data for use in simulation code, a
 different data structure is used.
 
-:class:`lisien.window.TurnDict` holds a variable's value for
+:class:`.window.AssignmentTimeDict` holds a variable's value for
 each turn in a pair of stacks, which in turn hold the basic
-:class:`lisien.window.WindowDict`, a pair of stacks kept in
+:class:`.window.WindowDict`, a pair of stacks kept in
 order, tracking changes in a variable each tick. Popping from one stack
 and appending to the other is the default way to look up the value at a
 given time. As values are stored in pairs, with their tick as the
@@ -64,16 +64,16 @@ where the most recent value is on top of the one holding past values.
 So, the algorithm for finding the present effective value of some
 variable is as follows:
 
-#. Find the relevant ``TurnDict`` for the desired branch and variable
+#. Find the relevant :class:`.window.AssignmentTimeDict` for the desired branch and variable
    (generally a couple of plain dictionary lookups)
 
-#. Pop/append that ``TurnDict`` until the "past" stack's top entry is
+#. Pop/append that :class:`.window.AssignmentTimeDict` until the "past" stack's top entry is
    before or equal to the desired turn, and the "future" stack is either
    empty, or has a top entry for after the desired turn. If the turn of
    the pair on top of the "past" stack is at or after the previous
    keyframe:
 
-#. Take the ``WindowDict`` from the top of the ``TurnDict``'s "past"
+#. Take the :class:`.window.WindowDict` from the top of the :class:`.window.AssignmentTimeDict`'s "past"
    stack, and pop/append the "past" and "future" stacks as in step 2. If
    the tick of the pair on top of the "past" stack is strictly after the
    previous keyframe, return that value. Otherwise, return the value
@@ -116,7 +116,7 @@ Upon startup, Lisien looks for the "current time," which is a triple of
 a branch name, a turn number, and a tick number, identifying a point
 within a turn. If present, it's stored in the ``engine.eternal`` keys
 ``"branch"``, ``"turn"``, and ``"tick"``, defaulting to the trunk branch
-(``"trunk"``, unless the user has switched to a different trunk branch),
+(which is called ``"trunk"``, by default),
 ``0``, and ``0`` respectively. To decide what to load, Lisien looks for
 the closest keyframe at or before the current time, and the keyframe
 after that, if any. Lisien then loads the earlier keyframe and all facts
@@ -184,10 +184,10 @@ only one argument: the Lisien entity that the rule is applied to.
 By default, trigger functions will be evaluated in parallel. Lisien has
 a process pool, in which worker processes keep copies of the current
 world state for trigger functions to work with. You can run arbitrary
-code in those processes, too, if you like; :class:`lisien.Engine` is an
+code in those processes, too, if you like; :class:`.engine.Engine` is an
 implementation of the standard Python
 :class:`concurrent.futures.Executor`. See
-:keyword:`lisien.examples.pathfind` for a demonstration of using the
+:mod:`lisien.examples.pathfind` for a demonstration of using the
 process pool to find many paths at once, then having things follow them.
 
 Prereq functions, however, are always evaluated serially in the core
@@ -248,8 +248,8 @@ Fast
 
 The fast delta is a collection of facts that were set between two times.
 To make it convenient to iterate over *all* facts, they are copied into
-one big global ``TurnDict`` when they are set or loaded. Then, to make
-the delta, we take a slice of that global ``TurnDict`` and compile the
+one big global :class:`.window.AssignmentTimeDict` when they are set or loaded. Then, to make
+the delta, we take a slice of that global :class:`.window.AssignmentTimeDict` and compile the
 facts in it into a dictionary.
 
 Despite the name, the fast delta is only faster than the slow one when
@@ -257,4 +257,4 @@ the number of facts it needs to use is relatively small. Lisien will
 switch to the slow delta if the number of facts it would need for the
 fast one is larger than the gap between keyframes.
 
-.. _lisien may have such a feature some day: <https://codeberg.org/clayote/Lisien/issues/28>
+.. _Lisien may have such a feature some day: https://codeberg.org/clayote/Lisien/issues/28
