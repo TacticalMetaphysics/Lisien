@@ -50,6 +50,7 @@ extensions = [
 	"sphinx.ext.coverage",
 	"sphinx.ext.viewcode",
 	"sphinx.ext.githubpages",
+	"attrs.sphinx_cached_property",
 ]
 
 autodoc_type_aliases = {"Key": "Key", "DeltaDict": "DeltaDict"}
