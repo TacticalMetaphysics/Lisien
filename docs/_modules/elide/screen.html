@@ -55,6 +55,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">ast</span><span class="w"> </span><span class="kn">import</span> <span class="n">literal_eval</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">kivy.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">App</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">kivy.clock</span><span class="w"> </span><span class="kn">import</span> <span class="n">Clock</span><span class="p">,</span> <span class="n">mainthread</span><span class="p">,</span> <span class="n">triggered</span>
@@ -149,6 +150,8 @@
 <div class="viewcode-block" id="SimulateButton">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.SimulateButton">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SimulateButton</span><span class="p">(</span><span class="n">ToggleButton</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A button that lets the simulation run while toggled on&quot;&quot;&quot;</span>
+
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;SimulateButton&quot;</span><span class="p">)</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">on_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="n">app</span> <span class="o">=</span> <span class="n">App</span><span class="o">.</span><span class="n">get_running_app</span><span class="p">()</span>
@@ -159,6 +162,8 @@
 <div class="viewcode-block" id="OneTurnButton">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.OneTurnButton">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">OneTurnButton</span><span class="p">(</span><span class="n">Button</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A button that runs the simulation for exactly one turn&quot;&quot;&quot;</span>
+
 	<span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;OneTurnButton&quot;</span><span class="p">)</span>
@@ -250,10 +255,10 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">MainScreen</span><span class="p">(</span><span class="n">Screen</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A master layout that contains one graph and some menus.</span>
 
-<span class="sd">	This contains three elements: a scrollview (containing the graph),</span>
+<span class="sd">	This contains three elements: a view on the current character,</span>
 <span class="sd">	a menu, and the time control panel. This class has some support methods</span>
 <span class="sd">	for handling interactions with the menu and the character sheet,</span>
-<span class="sd">	but if neither of those happen, the scrollview handles touches on its</span>
+<span class="sd">	but if neither of those happen, the character view handles touches on its</span>
 <span class="sd">	own.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
@@ -673,6 +678,8 @@
 <div class="viewcode-block" id="CharMenuContainer">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.CharMenuContainer">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CharMenuContainer</span><span class="p">(</span><span class="n">BoxLayout</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Layout containing the right-hand column of Elide&quot;&quot;&quot;</span>
+
 	<span class="n">screen</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">dummyplace</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
 	<span class="n">dummything</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
@@ -799,6 +806,8 @@
 <div class="viewcode-block" id="TurnScroll">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.TurnScroll">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TurnScroll</span><span class="p">(</span><span class="n">Slider</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A slider that travels through time, turn-by-turn&quot;&quot;&quot;</span>
+
 	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;step&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -857,6 +866,8 @@
 <div class="viewcode-block" id="Box">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.Box">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Box</span><span class="p">(</span><span class="n">Widget</span><span class="p">):</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;A rectangle, maybe with padding, rounded corners, and/or text&quot;&quot;&quot;</span>
+
 	<span class="n">padding</span> <span class="o">=</span> <span class="n">VariableListProperty</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
 	<span class="n">border</span> <span class="o">=</span> <span class="n">VariableListProperty</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 	<span class="n">font_size</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s2">&quot;15sp&quot;</span><span class="p">)</span>
@@ -881,9 +892,9 @@
 <div class="viewcode-block" id="MessageBox">
 <a class="viewcode-back" href="../../elide/index.html#elide.screen.MessageBox">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">MessageBox</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;Looks like a TextInput but doesn&#39;t accept any input.</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Looks like a :class:`kivy.uix.textinput.TextInput`, but doesn&#39;t accept input</span>
 
-<span class="sd">	Does support styled text with BBcode.</span>
+<span class="sd">	Supports styled text with BBcode.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
@@ -897,14 +908,18 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">DialogMenu</span><span class="p">(</span><span class="n">Box</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;Some buttons that make the game do things.</span>
 
-<span class="sd">	Set ``options`` to a list of pairs of ``(text, function)`` and the</span>
-<span class="sd">	menu will be populated with buttons that say ``text`` that call</span>
-<span class="sd">	``function`` when pressed.</span>
+<span class="sd">	Usually instantiated by passing options to a :class:`DialogLayout`.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="n">options</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
-<span class="w">	</span><span class="sd">&quot;&quot;&quot;List of pairs of (button_text, callable)&quot;&quot;&quot;</span>
+	<span class="n">options</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;List of pairs of (button_text, callable)</span>
+<span class="sd">	</span>
+<span class="sd">	Set :attr:`options` to a list of pairs of :code:`(text, function)` and the</span>
+<span class="sd">	menu will be populated with buttons that say ``text`` that call</span>
+<span class="sd">	``function`` when pressed.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_set_sv_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_sv</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">padding</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
@@ -958,8 +973,8 @@
 
 <span class="sd">	Set the properties ``message_kwargs`` and ``menu_kwargs``,</span>
 <span class="sd">	respectively, to control them -- but you probably want</span>
-<span class="sd">	to do that by returning a pair of dicts from an action</span>
-<span class="sd">	in lisien.</span>
+<span class="sd">	to do that in :class:`DialogLayout`, by returning a pair of</span>
+<span class="sd">	dictionaries from the Lisien core.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
@@ -1021,26 +1036,42 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">DialogLayout</span><span class="p">(</span><span class="n">FloatLayout</span><span class="p">):</span>
 <span class="w">	</span><span class="sd">&quot;&quot;&quot;A layout, normally empty, that can generate dialogs</span>
 
-<span class="sd">	To make dialogs, set my ``todo`` property to a list. It may contain:</span>
-
-<span class="sd">	* Strings, which will be displayed with an &quot;OK&quot; button to dismiss them</span>
-<span class="sd">	* Lists of pairs of strings and callables, which generate buttons with the</span>
-<span class="sd">	  string on them that, when clicked, call the callable</span>
-<span class="sd">	* Lists of pairs of dictionaries, which are interpreted as keyword</span>
-<span class="sd">	  arguments to :class:`MessageBox` and :class:`DialogMenu`</span>
-
-<span class="sd">	In place of a callable you can use the name of a function in my</span>
-<span class="sd">	``usermod``, a Python module given by name. I&#39;ll import it when I need it.</span>
-
-<span class="sd">	Needs to be instantiated with a lisien ``engine`` -- probably an</span>
-<span class="sd">	:class:`EngineProxy`.</span>
+<span class="sd">	When Lisien code returns values compatible with :attr:`todo`,</span>
+<span class="sd">	those values are put on the end of :attr:`todo`, and we will proceed</span>
+<span class="sd">	to display the dialogs they describe.</span>
 
 <span class="sd">	&quot;&quot;&quot;</span>
 
-	<span class="n">dialog</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
-	<span class="n">todo</span> <span class="o">=</span> <span class="n">ListProperty</span><span class="p">()</span>
+	<span class="n">dialog</span><span class="p">:</span> <span class="n">Dialog</span> <span class="o">=</span> <span class="n">ObjectProperty</span><span class="p">()</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;The :class:`.Dialog` currently displayed. Defaults to an empty one.&quot;&quot;&quot;</span>
+	<span class="n">todo</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Callable</span> <span class="o">|</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]</span> <span class="o">=</span> <span class="p">(</span>
+		<span class="n">ListProperty</span><span class="p">()</span>
+	<span class="p">)</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Instructions for what dialogs to make. May contain:</span>
+<span class="sd">	</span>
+<span class="sd">	* :type:`str`, which will be displayed with an &quot;OK&quot; button to dismiss them</span>
+<span class="sd">	* :type:`tuple[str, Callable]`, which generate buttons with the</span>
+<span class="sd">	    string on them that, when clicked, call the callable</span>
+<span class="sd">	  </span>
+<span class="sd">	    In place of the callable, you can use the :type:`str` name of a function</span>
+<span class="sd">	    in my :attr:`usermod`, a Python module given by name. I&#39;ll import it when</span>
+<span class="sd">	    I need it.</span>
+<span class="sd">	* :type:`tuple[dict, dict]`, which are interpreted as keyword</span>
+<span class="sd">	    arguments to :class:`.MessageBox` and :class:`.DialogMenu`</span>
+<span class="sd">	  </span>
+<span class="sd">	We&#39;ll display one dialog at a time, removing it from the list when we&#39;re</span>
+<span class="sd">	done, and then advance to the next one. When we run out, we&#39;ll switch</span>
+<span class="sd">	to an empty dialog.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 	<span class="n">usermod</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="s2">&quot;user&quot;</span><span class="p">)</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Name of a module with callback functions for use in :attr:`todo`&quot;&quot;&quot;</span>
 	<span class="n">userpkg</span> <span class="o">=</span> <span class="n">StringProperty</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">allownone</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="w">	</span><span class="sd">&quot;&quot;&quot;Name of the package that :attr:`usermod` is in</span>
+<span class="sd">	</span>
+<span class="sd">	Only needed when :attr:`usermod` is not in the same directory as the game.</span>
+<span class="sd">	</span>
+<span class="sd">	&quot;&quot;&quot;</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 		<span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -1083,11 +1114,16 @@
 	<span class="nd">@mainthread</span>
 	<span class="nd">@logwrap</span><span class="p">(</span><span class="n">section</span><span class="o">=</span><span class="s2">&quot;DialogLayout&quot;</span><span class="p">)</span>
 	<span class="k">def</span><span class="w"> </span><span class="nf">advance_dialog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">after_ok</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Try to display the next dialog described in my ``todo``.</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;Try to display the next dialog described in my :attr:`todo`.</span>
+
+<span class="sd">		You normally don&#39;t want to call this directly--Elide takes care of it--</span>
+<span class="sd">		but you might have to, if you&#39;re writing your own Elide-based app.</span>
+<span class="sd">		In that case, you should only have to call this once per turn,</span>
+<span class="sd">		for the very first dialog in :attr:`todo`.</span>
 
 <span class="sd">		:param after_ok: An optional callable. Will be called after the user clicks</span>
-<span class="sd">		a dialog option--as well as after any game-specific code for that option</span>
-<span class="sd">		has run.</span>
+<span class="sd">			a dialog option--as well as after any game-specific code for that option</span>
+<span class="sd">			has run.</span>
 
 <span class="sd">		&quot;&quot;&quot;</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">clear_widgets</span><span class="p">()</span>
@@ -1241,25 +1277,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../manual.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../lisien/design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">cache</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#engine">engine</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#character">character</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#node">node</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#portal">portal</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#rule">rule</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#facade">facade</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#proxy">proxy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#collections">collections</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#db">db</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.enum">enum</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.exc">exc</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#futures">futures</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#id1">proxy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#query">query</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#types">types</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.util">util</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#window">window</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#module-lisien.wrap">wrap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../elide/index.html">Elide</a></li>
 </ul>
 

@@ -350,7 +350,14 @@
 		<span class="k">return</span> <span class="n">PickyDefaultDict</span><span class="p">(</span><span class="n">EntikeySettingsTurnDict</span><span class="p">)</span>
 
 	<span class="nd">@cached_property</span>
-	<span class="k">def</span><span class="w"> </span><span class="nf">time_entity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+	<span class="k">def</span><span class="w"> </span><span class="nf">time_entity</span><span class="p">(</span>
+		<span class="bp">self</span><span class="p">,</span>
+	<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Branch</span><span class="p">,</span> <span class="n">Turn</span><span class="p">,</span> <span class="n">Tick</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="o">*</span><span class="n">_PARENT</span><span class="p">,</span> <span class="n">_ENTITY</span><span class="p">,</span> <span class="n">_KEY</span><span class="p">]]:</span>
+<span class="w">		</span><span class="sd">&quot;&quot;&quot;The parent, entity, and key that were changed at some time</span>
+
+<span class="sd">		We track this so that we can find data to unload.</span>
+
+<span class="sd">		&quot;&quot;&quot;</span>
 		<span class="k">return</span> <span class="p">{}</span>
 
 	<span class="nd">@cached_property</span>

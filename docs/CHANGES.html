@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>2026-02-16 (0.23.3) &#8212; Lisien 0.23.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=10ab35ec"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="id1">
+<h1>2026-02-16 (0.23.3)<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed the Android build by removing its service worker. Android’s service workers really aren’t very good for parallelism, and seem to have gotten even worse in recent updates. Thankfully, as of Python 3.14, we don’t need them anymore! Running Lisien in a thread, and its workers in subinterpreters, works fine.</p></li>
+<li><p>Moved the <code class="docutils literal notranslate"><span class="pre">db</span></code>, <code class="docutils literal notranslate"><span class="pre">sql</span></code> and <code class="docutils literal notranslate"><span class="pre">pqdb</span></code> submodules to the <code class="docutils literal notranslate"><span class="pre">db</span></code> package.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">time</span></code> property of <code class="docutils literal notranslate"><span class="pre">Engine</span></code> acts much more like a normal tuple now. It’s hashable, and if you hold onto one, it doesn’t change when you time travel. You get a new copy each time you access it from <code class="docutils literal notranslate"><span class="pre">Engine</span></code>. You can still register functions to be called when the time changes, using <code class="docutils literal notranslate"><span class="pre">&#64;engine.time.connect</span></code>, as before.</p></li>
+</ul>
+</section>
+<section id="id2">
+<h1>2026-02-07 (0.23.2)<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Converted most of the codebase to <code class="docutils literal notranslate"><span class="pre">attrs</span></code>, which will make initialization easier to understand.</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">reslot</span></code>, because <code class="docutils literal notranslate"><span class="pre">attrs</span></code> already does that.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Engine</span></code> defaults to database-free operation if you don’t give it a directory to work in.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">export</span></code> method of <code class="docutils literal notranslate"><span class="pre">Engine</span></code> now accepts a directory for its second argument, and will use the name of the game as the base name of the archive by default.</p></li>
+<li><p>Elide will now export games to <em>its</em> working directory, which may be different from the directory it was launched in.</p></li>
+<li><p>Fixed crash when resuming a game where rules had run upon <code class="docutils literal notranslate"><span class="pre">Thing</span></code> objects.</p></li>
+<li><p>Fixed various crashes when sending some object types between subinterpreters. This would mainly be a problem on Android, where you have to use subinterpreters to run code parallel.</p></li>
+</ul>
+</section>
+<section id="id3">
+<h1>2025-11-16 (0.23.1)<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed an inconsistency in instantiating ParquetDB that was probably preventing Elide from launching for anybody who wasn’t running the unreleased main branch of ParquetDB. Sorry!</p></li>
+<li><p>Fixed creating and deleting edges on the database</p></li>
+<li><p>Fixed some crashes when trying to make Thing objects travel</p></li>
+<li><p>More type safety</p></li>
+<li><p>The database connector is now the <code class="docutils literal notranslate"><span class="pre">db</span></code> property of the <code class="docutils literal notranslate"><span class="pre">Engine</span></code> object (formerly the <code class="docutils literal notranslate"><span class="pre">query</span></code> property)</p></li>
+<li><p>The hashes in XML exports no longer vary depending on docstrings, formatting, or type annotations. They’re not used for anything yet; at some point, the import feature will check the hashes to make sure you have compatible code.</p></li>
+</ul>
+</section>
+<section id="id4">
+<h1>2025-11-13 (0.23.0)<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Added support for subinterpreter-based parallelism on Python 3.14, which is now the version used for Android.</p></li>
+<li><p>New dependency <code class="docutils literal notranslate"><span class="pre">u-msgpack-python</span></code> is used in those subinterpreters instead of the basic <code class="docutils literal notranslate"><span class="pre">msgpack</span></code>, which doesn’t run in subinterpreters (yet).</p></li>
+<li><p>Refactored the codebase to use modern type hints; dropped support for Python versions before 3.12. The database schema is now generated dynamically from those annotations, which makes it easier to maintain. The import and export methods now live on the database connectors, plus a couple on <code class="docutils literal notranslate"><span class="pre">Engine</span></code>.</p></li>
+<li><p>Improved the database-free mode of operation that you get when you instantiate <code class="docutils literal notranslate"><span class="pre">Engine</span></code> with a prefix of <code class="docutils literal notranslate"><span class="pre">None</span></code>. Now, you can export XML from the engine when it’s run that way. It may become the default mode of operation in a future release.</p></li>
+<li><p>Fixed data loss when you close the engine right after creating a graph.</p></li>
+<li><p>XML exports now group the changes to the world state by which rule caused them. This enables the rule stepper to work with those exports.</p></li>
+<li><p>New dependency <code class="docutils literal notranslate"><span class="pre">reslot</span></code>, maintained by the author, will reduce Lisien’s memory footprint when there are a lot of entities active at once.</p></li>
+<li><p>Dropped the <code class="docutils literal notranslate"><span class="pre">astor</span></code> dependency, which is unmaintained and not compatible with Python 3.14.</p></li>
+</ul>
+</section>
+<section id="id5">
+<h1>2025-10-11 (0.22.5)<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed some data loss when exporting a game without simulating anything on ParquetDB. It made the .lisien files on the itch page kind of weird.</p></li>
+</ul>
+</section>
+<section id="id6">
+<h1>2025-10-03 (0.22.4)<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Added the Method and Function code stores to the Python editor in Elide</p></li>
+<li><p>Switched from astunparse to astor The astunparse package isn’t maintained anymore. astor supports canonicalizing code for comparison.</p></li>
+<li><p>Fixed a crash when quitting out of Elide without opening a game</p></li>
+</ul>
+</section>
+<section id="id7">
+<h1>2025-09-28 (0.22.3)<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed basic entity creation in Elide, which broke in 0.22.2. Sorry…</p></li>
+</ul>
+</section>
+<section id="id8">
+<h1>2025-09-27 (0.22.2)<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed a crash when quitting out of a recently imported game in Elide (meaning the game wouldn’t be saved)</p></li>
+<li><p>Fix occasional loss of user’s Python code, depending on when Elide was closed</p></li>
+<li><p>And fix that code sometimes getting a different function name than intended</p></li>
+<li><p>Fix saving games using ParquetDB in Elide on desktop</p></li>
+</ul>
+</section>
+<section id="id9">
+<h1>2025-09-22 (0.22.1)<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Added an XML schema for the export format.</p></li>
+<li><p>Fixed the exporter to actually follow the schema:</p></li>
+<li><p>Booleans are now standard “true” and “false”, not “T” or “F”</p></li>
+<li><p>Base64 hashes use the standard character set</p></li>
+<li><p>Fixed the importer to accept compliant world.xml. Noncompliant XML from the 0.22.0 release will still work.</p></li>
+</ul>
+</section>
+<section id="id10">
+<h1>2025-09-19 (0.22.0)<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Switch to a new XML-based export format, with .lisien file extension. They’re just zip files, like earlier versions’ exports, but now you can open the file world.xml in a text editor and change the history of the game, if you want. This improves compatibility between desktop and Android, but breaks compatibility with previous versions, including games that haven’t been exported, because of the following item…</p></li>
+<li><p>Ordered all database tables chronologically.</p></li>
+<li><p>Made the rules engine deterministic. It wasn’t consistent about what order rules were applied to many entities, but now it is.</p></li>
+</ul>
+</section>
+<section id="id11">
+<h1>2025-09-04 (0.21.8)<a class="headerlink" href="#id11" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix the import and load game functions on Android <em>again</em>. They weren’t consistently respecting an Elide session running somewhere other than the working directory.</p></li>
+</ul>
+</section>
+<section id="id12">
+<h1>2025-09-03 (0.21.7)<a class="headerlink" href="#id12" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix imported games on Android being extracted to a different directory than what Elide opens, resulting in “imported” games being empty all the time, or, if they shared a name with an existing game, you’d load into that game instead.</p></li>
+<li><p>Rearranged the ↑ and ↓ buttons in the rule builder.</p></li>
+<li><p>Tidied the initial connection to the database a bit. This seemed to fix crashes on starting the game on Android, but I’m not sure why.</p></li>
+</ul>
+</section>
+<section id="id13">
+<h1>2025-08-28 (0.21.6)<a class="headerlink" href="#id13" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix Elide’s rule builder not showing the cards</p></li>
+</ul>
+</section>
+<section id="id14">
+<h1>2025-08-27 (0.21.5)<a class="headerlink" href="#id14" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix “New game” button in a different way</p></li>
+<li><p>Fix a crash that happened when a Lisien engine created state, advanced time, and then closed or otherwise keyframed</p></li>
+</ul>
+</section>
+<section id="id15">
+<h1>2025-08-27 (0.21.4)<a class="headerlink" href="#id15" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix an issue causing some valid exported games not to import right in Elide, causing an empty map and a freeze</p></li>
+<li><p>Add ↑ and ↓ buttons to rules in Elide, for you to reorder them</p></li>
+</ul>
+</section>
+<section id="id16">
+<h1>2025-08-21 (0.21.3)<a class="headerlink" href="#id16" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix Elide’s session management; exiting and resuming a game weren’t always really doing that.</p></li>
+<li><p>Removed the remainder of the parallelism on Android, because that was causing issues with starting the game. I’ll try again once python-for-android can deploy Python 3.14 and its new <code class="docutils literal notranslate"><span class="pre">concurrent.interpreters</span></code> module.</p></li>
+</ul>
+</section>
+<section id="id17">
+<h1>2025-08-13 (0.21.2)<a class="headerlink" href="#id17" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix a packaging issue that was causing Elide’s main menu not to show up. 0.21.1 was meant to fix the same, but didn’t really.</p></li>
+</ul>
+</section>
+<section id="id18">
+<h1>2025-08-10 (0.21.0)<a class="headerlink" href="#id18" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Added the <code class="docutils literal notranslate"><span class="pre">bookmark</span></code> mapping/method. This is a convenient way to store points in time and travel to them. You can call it with whatever name you want to give your bookmark to make a new one, then call it with that name again to travel back to that time. Bookmarks are not versioned. If you want a point in time that changes in response to time travel, store the time in the engine’s <code class="docutils literal notranslate"><span class="pre">universal</span></code> mapping.</p></li>
+<li><p>Added support for storing the value <code class="docutils literal notranslate"><span class="pre">None</span></code>. Values deleted from dictionaries are now represented by the ellipsis object.</p></li>
+<li><p>Renamed the <code class="docutils literal notranslate"><span class="pre">user</span></code> property of nodes to <code class="docutils literal notranslate"><span class="pre">leader</span></code>.</p></li>
+<li><p>Removed what remained of multigraphs, which may never be supported. This changed the database schema, so old playthroughs are incompatible.</p></li>
+<li><p>Generally decrufted the codebase.</p></li>
+</ul>
+</section>
+<section id="id19">
+<h1>2025-08-03 (0.20.2)<a class="headerlink" href="#id19" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Overhauled the internal <code class="docutils literal notranslate"><span class="pre">WindowDict</span></code> class and its relatives, ruling out a bunch of race conditions that caused intermittent crashes</p></li>
+<li><p>Made deltas behave more consistently, ruling out some types of data loss</p></li>
+<li><p>Overhauled the tracking of units and users</p></li>
+<li><p>Made entity deletion <em>really</em> atomic, this time</p></li>
+<li><p>Fixed keyframe snaps sometimes happening after a change had been recorded to the database, but before it had been cached, resulting in the loss of a single change to the game state</p></li>
+<li><p>Fixed deleting keyframes</p></li>
+</ul>
+</section>
+<section id="id20">
+<h1>2025-07-17 (0.20.1)<a class="headerlink" href="#id20" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Unify the fast delta code, fixing some changes getting left out of deltas</p></li>
+<li><p>Fix tracking of units’ users</p></li>
+<li><p>Finish up the proxy interface</p></li>
+<li><p>Fix setting mutable values (like list and dict) in the <code class="docutils literal notranslate"><span class="pre">universal</span></code> mapping</p></li>
+<li><p>Fix tracking which rules were already handled</p></li>
+<li><p>Fix intermittent crash from attempting to serialize Things whose locations aren’t available</p></li>
+</ul>
+</section>
+<section id="id21">
+<h1>2025-07-07 (0.20.0)<a class="headerlink" href="#id21" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Android support. Currently, the Android version supports only SQLite, not ParquetDB. Parallelism is disabled for now, too, because it increases the startup time too much.</p></li>
+<li><p>A main menu for Elide. If you don’t want it, specify the path to your game folder on the command line, and Elide will launch straight into that game.</p></li>
+<li><p>Support Python 3.13.</p></li>
+<li><p>Crash fixes</p></li>
+<li><p>When resuming a game that was closed at the very beginning of a branch</p></li>
+<li><p>Intermittently when deleting entities, if an automatic keyframe snap happened to occur mid-deletion. Fixed by making deletion atomic.</p></li>
+</ul>
+</section>
+<section id="id22">
+<h1>2025-05-23 (0.19.3)<a class="headerlink" href="#id22" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix keyframes sometimes getting made every tick, if the automatic keyframe creation was overridden</p></li>
+<li><p>Require ParquetDB version 1.0.1, fix some freezes that could occur when loading empty ParquetDB tables and a data integrity issue with the rules- handledness tracking</p></li>
+<li><p>Performance improvements when using plans with ParquetDB</p></li>
+<li><p>Fixed worker processes sometimes staying open when there’s nothing left to do</p></li>
+</ul>
+</section>
+<section id="id23">
+<h1>2025-04-26 (0.19.2)<a class="headerlink" href="#id23" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Added the option to run Lisien without connecting to any database. This is mainly useful for testing. Instantiate the engine like <code class="docutils literal notranslate"><span class="pre">Engine(None)</span></code> to use.</p></li>
+<li><p>Rewrote the string store, <code class="docutils literal notranslate"><span class="pre">Engine.string</span></code>, to save any changes you make while the engine is running, like it was supposed to be doing. Use it like a dictionary with both the keys and the values being strings, and set its <code class="docutils literal notranslate"><span class="pre">language</span></code> property to change to another language. These strings don’t react to time travel at all; it’s just a convenient interface to some JSON files.</p></li>
+<li><p>More refactoring.</p></li>
+</ul>
+</section>
+<section id="id24">
+<h1>2025-04-19 (0.19.1)<a class="headerlink" href="#id24" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fixed big rules not resetting the time at the end of a plan block</p></li>
+<li><p>Fixed character rulebooks becoming unset after some time travel operations</p></li>
+<li><p>Fixed picking a starting directory in Elide</p></li>
+<li><p>Removed <code class="docutils literal notranslate"><span class="pre">threaded_triggers</span></code> option; triggers are now serial when there are no workers, parallel if there are workers to go parallel with. I plan to make a kind of worker “process” that’s really a thread.</p></li>
+<li><p>Fixed loading node and portal rulebooks from keyframes</p></li>
+<li><p>Fixed loading things’ locations from keyframes</p></li>
+</ul>
+</section>
+<section id="id25">
+<h1>2025-04-13 (0.19.0)<a class="headerlink" href="#id25" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Core:</p></li>
+<li><p>Switched the default storage backend to ParquetDB, which is far more space-efficient. Use the <code class="docutils literal notranslate"><span class="pre">connect_string</span></code> parameter if you want a SQL database, which is still required for historical queries (for now).</p></li>
+<li><p>The engine’s <code class="docutils literal notranslate"><span class="pre">time</span></code> property now includes the tick, as well as the branch and turn.</p></li>
+<li><p>Added the ability to record “replays” of Elide sessions. They run the same commands on the Lisien core that Elide would. You won’t really be able to play them back, exactly, but if you set a replayfile in elide.ini’s [lisien] section, then send the file to me, I’ll be able to reproduce whatever bug you ran into.</p></li>
+<li><p>When using the proxy interface, you can register functions to be called whenever the time changes, as <code class="docutils literal notranslate"><span class="pre">engine_proxy.time.connect(function)</span></code>; or whenever the rules engine has simulated a turn, as <code class="docutils literal notranslate"><span class="pre">engine_proxy.next_turn.connect(function)</span></code>. Also available in the core proper.</p></li>
+<li><p>Filled in some missing parts of the proxy API.</p></li>
+<li><p>Fixed inconsistent handling of planned changes.</p></li>
+<li><p>Fixed some intermittent interprocess sync issues that could result in crashes or freezes.</p></li>
+<li><p>Database integrity issues, too.</p></li>
+<li><p>Fixed Thing objects sometimes hanging around after deletion, depending on when you closed the engine.</p></li>
+<li><p>The old allegedb submodule no longer exists. Its functionality is now part of Lisien proper. Elide frontend:</p></li>
+<li><p>Fixed stats running off the left of the window.</p></li>
+<li><p>Fixed the grid view not being visible.</p></li>
+<li><p>Fixed configuration of the stat widgets.</p></li>
+</ul>
+</section>
+<section id="id26">
+<h1>2025-02-23 (0.18.3)<a class="headerlink" href="#id26" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix major memory leaks</p></li>
+</ul>
+</section>
+<section id="id27">
+<h1>2025-02-20 (0.18.2)<a class="headerlink" href="#id27" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>A crash fix relating to the unloading code, which was too eager</p></li>
+</ul>
+</section>
+<section id="id28">
+<h1>2025-02-14 (0.18.1)<a class="headerlink" href="#id28" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Crash fixes</p></li>
+</ul>
+</section>
+<section id="id29">
+<h1>2025-02-13 (0.18.0)<a class="headerlink" href="#id29" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Changed name of “LiSE” to “Lisien” – thanks to <a class="reference external" href="https://webb.page">https://webb.page</a> for the name</p></li>
+<li><p>Changed name of “ELiDE” to “Elide” (letters cased like normal English if that’s what you’re writing, “elide” and “lisien” in Python)</p></li>
+<li><p>Rules may now be designated “big,” which will enable an optimization to only write the changes they make to the world after they’re all computed.</p></li>
+<li><p>Neighborhoods get keyframed properly, now, the same as other rule attributes.</p></li>
+<li><p>Added Kenney graphics, and changed the default background to Kenney’s parchment</p></li>
+<li><p>Fixed rules displaying out of order in the stepper</p></li>
+<li><p>Fixed dragged objects dropping when they shouldn’t</p></li>
+<li><p>Improved locking for caches, fixing some intermittent data loss</p></li>
+<li><p>Dropped support for Python 3.8 and 3.9</p></li>
+</ul>
+</section>
+<section id="id30">
+<h1>2024-11-30 (0.17.2)<a class="headerlink" href="#id30" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix rule poller. It only worked for some rulebook types before.</p></li>
+<li><p>Performance improvements as a result of new caching behavior for the above.</p></li>
+</ul>
+</section>
+<section id="id31">
+<h1>2024-11-09 (0.17.1)<a class="headerlink" href="#id31" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Disable editing all throughout ELiDE whenever the simulation is running. It was only disabled sometimes, in some parts of the UI.</p></li>
+<li><p>Add a button to edit a function card without backing out of the rule editor</p></li>
+<li><p>Fix ELiDE crash in Python 3.8 when making more than one new Place or Thing</p></li>
+</ul>
+</section>
+<section id="id32">
+<h1>2024-10-31 (0.17.0)<a class="headerlink" href="#id32" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Overhaul the entire caching infrastructure, which should greatly cut down on crashes. No new features, but it does make some changes to the database schema.</p></li>
+</ul>
+</section>
+<section id="id33">
+<h1>2024-10-18 (0.16.16)<a class="headerlink" href="#id33" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix pawn duplication in ELiDE</p></li>
+</ul>
+</section>
+<section id="id34">
+<h1>2024-10-16 (0.16.15)<a class="headerlink" href="#id34" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix a different way pawns could disappear in ELiDE</p></li>
+</ul>
+</section>
+<section id="id35">
+<h1>2024-10-16 (0.16.14)<a class="headerlink" href="#id35" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix disappearing pawns in ELiDE</p></li>
+</ul>
+</section>
+<section id="id36">
+<h1>2024-10-16 (0.16.13)<a class="headerlink" href="#id36" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix worker process states getting desynchronized when you made a new character</p></li>
+<li><p>Fix methods not being callable in worker processes</p></li>
+<li><p>Improved performance when planning a lot of future state</p></li>
+<li><p>Made the LiSE engine itself an Executor, which I guess breaks compatibility. Whatever, zerover makes no promises. Use <code class="docutils literal notranslate"><span class="pre">Engine.submit(..)</span></code> to schedule computation in worker processes now.</p></li>
+<li><p>Made ELiDE’s stat list scrollable</p></li>
+</ul>
+</section>
+<section id="id37">
+<h1>2024-10-14 (0.16.2 &amp; 0.16.12)<a class="headerlink" href="#id37" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix ELiDE crash when adding graph-shaped world state to a grid-shaped world</p></li>
+</ul>
+</section>
+<section id="id38">
+<h1>2024-10-13 (0.16.1)<a class="headerlink" href="#id38" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix some incoherent world state that could result from doing things on tick zero of turn zero, if you started the world with a NetworkX graph.</p></li>
+<li><p>Fix a rule running when it shouldn’t have in the wolfsheep example</p></li>
+</ul>
+</section>
+<section id="id39">
+<h1>2024-10-11 (0.16.0)<a class="headerlink" href="#id39" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>A process pool. When you’ve stored a function in LiSE, you can <code class="docutils literal notranslate"><span class="pre">submit</span></code> it to <code class="docutils literal notranslate"><span class="pre">Engine.pool.submit(..)</span></code> using the standard Python <code class="docutils literal notranslate"><span class="pre">concurrent.futures.Executor</span></code> API. The worker processes all have read-only views on the state of the simulation.</p></li>
+<li><p>Trigger functions now run in parallel by default. Set the <code class="docutils literal notranslate"><span class="pre">workers</span></code> option to 0 to disable this.</p></li>
+<li><p>Neighborhoods. If your rule only runs when something changes near the Thing or Place it runs on, you can indicate this by setting the rule’s neighborhood property to an integer, and your sim will run faster. See “Getting started” in the README for an example.</p></li>
+<li><p>ELiDE once again updates its graphics in response to events in the LiSE core – set the “_image_paths” of a <code class="docutils literal notranslate"><span class="pre">Thing</span></code> or <code class="docutils literal notranslate"><span class="pre">Place</span></code> object to a list of paths.</p></li>
+</ul>
+</section>
+<section id="id40">
+<h1>2024-09-01 (0.15.9)<a class="headerlink" href="#id40" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>More data corruption fixes</p></li>
+</ul>
+</section>
+<section id="id41">
+<h1>2024-09-01 (0.15.8)<a class="headerlink" href="#id41" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>More concurrency fixes</p></li>
+</ul>
+</section>
+<section id="id42">
+<h1>2024-08-27 (0.15.7)<a class="headerlink" href="#id42" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>A variety of database corruption fixes</p></li>
+</ul>
+</section>
+<section id="id43">
+<h1>2024-08-16 (0.15.6)<a class="headerlink" href="#id43" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix Thing objects occasionally forgetting their location</p></li>
+</ul>
+</section>
+<section id="id44">
+<h1>2024-08-10 (0.15.5)<a class="headerlink" href="#id44" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix a crash when resuming ELiDE in the past of a simulation</p></li>
+<li><p>Fix rules sometimes not triggering, based on when the trigger was set</p></li>
+</ul>
+</section>
+<section id="id45">
+<h1>2024-08-08 (0.15.4)<a class="headerlink" href="#id45" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix time travel via rule stepper</p></li>
+<li><p>Restore the ability to delete Characters</p></li>
+<li><p>Even faster interbranch time travel</p></li>
+<li><p>Fix a crash when time traveling between times with no changes to the world</p></li>
+</ul>
+</section>
+<section id="id46">
+<h1>2024-07-22 (0.15.3)<a class="headerlink" href="#id46" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>More crash fixes</p></li>
+</ul>
+</section>
+<section id="id47">
+<h1>2024-07-05 (0.15.2)<a class="headerlink" href="#id47" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Crash fixes involving time travel</p></li>
+<li><p>Speed up interbranch time travel somewhat</p></li>
+<li><p>Switch to ruff formatter</p></li>
+</ul>
+</section>
+<section id="id48">
+<h1>2024-06-24 (0.15.1)<a class="headerlink" href="#id48" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix another concurrency issue</p></li>
+</ul>
+</section>
+<section id="id49">
+<h1>2024-06-18 (0.15.0)<a class="headerlink" href="#id49" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Automatically unload history, thus minimizing memory usage for long games By default, this happens whenever you commit changes to the database.</p></li>
+<li><p>Improved support for ELiDE widgets in games</p></li>
+<li><p>New example sim, awareness.py, to demonstrate this</p></li>
+<li><p>Moved <code class="docutils literal notranslate"><span class="pre">game_start</span></code> into its own module</p></li>
+<li><p>Dropped support for Python 3.7 and the lz4 module</p></li>
+<li><p>A lot of fixes regarding thread safety and interprocess sync</p></li>
+</ul>
+</section>
+<section id="id50">
+<h1>2023-04-27 (0.14.2)<a class="headerlink" href="#id50" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix the rest of the loader</p></li>
+</ul>
+</section>
+<section id="id51">
+<h1>2023-04-26 (0.14.1)<a class="headerlink" href="#id51" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix a loading error when you make two keyframes and then start the engine before the first</p></li>
+</ul>
+</section>
+<section id="id52">
+<h1>2023-04-07 (0.14.0)<a class="headerlink" href="#id52" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Seek bar for time travel in ELiDE, and some other minor UI improvements</p></li>
+<li><p>Vastly improved performance in ELiDE for large worlds</p></li>
+<li><p>History queries no longer require the whole of history to be loaded, and are faster</p></li>
+<li><p>SQLAlchemy is now a hard dependency</p></li>
+<li><p>numpy is required again</p></li>
+<li><p>Save the state of the randomizer every time you use it, not just on time travel</p></li>
+<li><p>Rule stepper now works when you reopen the sim</p></li>
+<li><p>New example sim, wolfsheep.py</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enforce_end_of_time</span></code> option, so it’s not so trivial to make voids of time by accident</p></li>
+<li><p>Lots of crash fixes</p></li>
+<li><p>yapf formatting, with tabs</p></li>
+<li><p>Improved documentation</p></li>
+</ul>
+</section>
+<section id="id53">
+<h1>2022-07-31 (0.13.2)<a class="headerlink" href="#id53" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix an intermittent error where entity deletion sometimes wouldn’t go through all the way</p></li>
+<li><p>Performance improvements</p></li>
+<li><p>LiSE now saves keyframes on close by default. Change <code class="docutils literal notranslate"><span class="pre">`keyframe_on_close``</span></code> to <code class="docutils literal notranslate"><span class="pre">``False`</span></code> to disable this</p></li>
+<li><p>Renamed “modulus” options to end with “interval” instead</p></li>
+<li><p>Disable the cache arranger by default</p></li>
+</ul>
+</section>
+<section id="id54">
+<h1>2022-07-23 (0.13.0)<a class="headerlink" href="#id54" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>ELiDE now has the Timestream view, easing time travel when history gets complicated</p></li>
+<li><p>Rename “avatar” to “unit”</p></li>
+<li><p>Nodes now support the <code class="docutils literal notranslate"><span class="pre">.user.only</span></code> property, just like characters’ <code class="docutils literal notranslate"><span class="pre">.unit.only</span></code></p></li>
+<li><p>Improve interprocess communication some more, particularly when time travelling between branches</p></li>
+<li><p>Tab indentation, with yapf formatting</p></li>
+<li><p>Rename some Engine methods to use snake_case</p></li>
+<li><p>numpy is no longer required for the LiSE core (will speed up IPC, though)</p></li>
+<li><p>Fix a loading error with changes in branches other than trunk</p></li>
+<li><p>Crash fixes</p></li>
+<li><p>Drop support for Python 3.6</p></li>
+</ul>
+</section>
+<section id="id55">
+<h1>2021-07-04 (0.12.1)<a class="headerlink" href="#id55" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Optimize interprocess synchronization</p></li>
+<li><p>Fix some inconsistencies in the rulebook sync</p></li>
+<li><p>Crush all of a character’s initial state into the one keyframe, fixing integrity problems</p></li>
+<li><p>License change; no longer accept later versions of the AGPL</p></li>
+<li><p>Support networkx 2.5</p></li>
+<li><p>ELiDE changes</p></li>
+<li><p>Rule stepper to help you view the state of the game after one rule’s run, just before the next</p></li>
+<li><p>Don’t crash when resuming the game on non-trunk branches</p></li>
+<li><p>Fix stats configurator</p></li>
+<li><p>Fix rules configurators</p></li>
+<li><p>Accept a prefix on the command line</p></li>
+<li><p>Grid view shows characters other than the one you started with</p></li>
+<li><p>Dialog options from the game itself don’t appear more than requested</p></li>
+<li><p>Fix crash when laying out one-dimensional boards</p></li>
+</ul>
+</section>
+<section id="id56">
+<h1>2021-04-19 (0.11.2)<a class="headerlink" href="#id56" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix the branch input in ELiDE</p></li>
+<li><p>Performance improvements</p></li>
+</ul>
+</section>
+<section id="id57">
+<h1>2021-03-17 (0.11.1)<a class="headerlink" href="#id57" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Fix a flaw in the keyframes implementation that caused them to overwrite each other when several were made in a single session</p></li>
+</ul>
+</section>
+<section id="id58">
+<h1>2021-02-03 (0.11)<a class="headerlink" href="#id58" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Add support for “keyframes,” snapshots of the world state at some specific time. These are currently most useful for supplying the world’s initial state by instantiating a Character with a networkx graph, eg. <code class="docutils literal notranslate"><span class="pre">engine.new_character('new',</span> <span class="pre">nx.grid_2d_graph(3,</span> <span class="pre">3))</span></code></p></li>
+<li><p>Drastically improved load times for large initial world states</p></li>
+<li><p>Removed the would-be world generation API; for now, use [the networkx graph generators](<a class="reference external" href="https://networkx.org/documentation/stable/reference/generators.html">https://networkx.org/documentation/stable/reference/generators.html</a>), and <a href="#id59"><span class="problematic" id="id60">``</span></a>LiSE.character.grid_2d_8graph``if you want a square grid that’s connected at the corners as well as the sides.</p></li>
+<li><p>Removed the “sense” feature. It will need a reimagining at some point. In the meantime you can still use <code class="docutils literal notranslate"><span class="pre">Character.facade()</span></code> to get a transient, mutable view onto a <code class="docutils literal notranslate"><span class="pre">Character</span></code> that won’t be saved</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">allegedb</span></code> is a submodule of <code class="docutils literal notranslate"><span class="pre">LiSE</span></code> now, and will not be published on its own.</p></li>
+<li><p>Dropped support for graph types other than <code class="docutils literal notranslate"><span class="pre">DiGraph</span></code></p></li>
+<li><p>Dropped support for Python versions prior to 3.6</p></li>
+<li><p>Compatibility with msgpack 1.0.0</p></li>
+<li><p>ELiDE changes</p></li>
+<li><p>Grid view</p></li>
+<li><p>File browser</p></li>
+<li><p>Grid generator when starting new simulation</p></li>
+<li><p>Symmetrical portals</p></li>
+<li><p>New agenda widget, for scheduling things in the future The stat list on the left of the default ELiDE view is technically a calendar now, where an agenda is a related widget class that offers more flexibility to interface designers.</p></li>
+<li><p>Require Kivy 2.0</p></li>
+</ul>
+</section>
+<section id="id61">
+<h1>2020-01-08 (0.10.1)<a class="headerlink" href="#id61" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Compatibility with networkx 2.4</p></li>
+<li><p>Smaller database</p></li>
+<li><p>Performance improvements</p></li>
+<li><p>Default database filename is now ‘world.db’, and you can instantiate Engine with no arguments</p></li>
+</ul>
+</section>
+<section id="id62">
+<h1>2019-03-16 (0.10)<a class="headerlink" href="#id62" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Improved documentation.</p></li>
+<li><p>Improved performance.</p></li>
+<li><p>Prevented the user from trying to start the rules engine while it’s already running.</p></li>
+<li><p>Minor API changes. clear_world and clear_code are now one option, clear</p></li>
+<li><p>Any trigger that’s going to run in a given turn is now guaranteed to run prior to any prereq or action. This is mostly to prepare for experiments in parallelism.</p></li>
+<li><p>If you branch the timeline while stuff is planned for the future, the plan will be copied to the new branch, unless the plan has not yet started.</p></li>
+<li><p>Made facades act more like regular characters. They still aren’t very useful… I’m planning to add some new API to them that lets you munge and filter their data lazily</p></li>
+</ul>
+</section>
+<section id="id63">
+<h1>2018-10-29 (0.9)<a class="headerlink" href="#id63" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>This release is for ProcJam 2018.</p></li>
+<li><p>Changed license to AGPL3+, but also waive rights in case of my death.</p></li>
+<li><p>Switched to semantic versioning.</p></li>
+<li><p>Made the frontend experience faster by implementing deltas. Use Engine.get_delta(…) to rapidly generate a dictionary describing changes between two points in time in a single branch.</p></li>
+<li><p>Switched serialization format from an abuse of JSON to msgpack.</p></li>
+<li><p>Improved the API of the ELiDE widgets, making it easier to use them in your own game. See <a class="reference external" href="https://github.com/LogicalDash/DungeonUniversity">https://github.com/LogicalDash/DungeonUniversity</a> for an example.</p></li>
+<li><p>You can zoom the map with the mousewheel now.</p></li>
+<li><p>Reduced memory usage for large worlds. They still take a long time to load; I’ll work on that.</p></li>
+<li><p>Wrote a real tutorial for building LiSE games in Python outside of ELiDE.</p></li>
+<li><p>Made the order of execution for rulebooks easier to understand. Basically, rulebooks are followed in alphabetical order; rules within them go in whatever order they were added.</p></li>
+<li><p>Rearranged the UI a little.</p></li>
+<li><p>You can edit every rulebook in ELiDE now, including the ones that apply to all a character’s avatars and so forth.</p></li>
+<li><p>Rules will only be followed for entities that still exist when they’re run.</p></li>
+<li><p>The turn will always increment <em>before</em> running any rules, and no rules will be run on turn 0.</p></li>
+<li><p>Various little performance improvements and fixes to things like data integrity.</p></li>
+</ul>
+</section>
+<section id="alpha-8">
+<h1>2017-10-06 (Alpha 8)<a class="headerlink" href="#alpha-8" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>This release is for ProcJam 2017.</p></li>
+<li><p>Made the time model more granular. What was formerly called a tick is now a turn, which contains as many ticks as you need.</p></li>
+<li><p>Support a rudimentary form of dialog menu for player interaction.</p></li>
+<li><p>Rules and rulebooks are now journaled, and may change throughout the game.</p></li>
+<li><p>Python source code is no longer stored in SQLite–just plain text files.</p></li>
+<li><p>Changed the rule API so that rule functions are only ever called with a single argument, the entity that they apply to.</p></li>
+<li><p>ELiDE is now a pure Python module.</p></li>
+<li><p>Performance improvements.</p></li>
+</ul>
+</section>
+<section id="alpha-7">
+<h1>2017-05-06 (Alpha 7)<a class="headerlink" href="#alpha-7" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Restructure everything in LiSE around a new caching strategy.</p></li>
+<li><p>Generally cleaner UI.</p></li>
+<li><p>If all your places are named with pairs of integers, you get automatic grid layout in ELiDE.</p></li>
+</ul>
+</section>
+<section id="alpha-6">
+<h1>2016-02-01 (Alpha 6)<a class="headerlink" href="#alpha-6" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Opening a functions editor no longer crashes the app.</p></li>
+<li><p>All the function editors are now in tabs of one screen.</p></li>
+<li><p>Nicer auto layout of spots.</p></li>
+<li><p>Various smaller fixes.</p></li>
+</ul>
+</section>
+<section id="alpha-5">
+<h1>2016-01-03 (Alpha 5)<a class="headerlink" href="#alpha-5" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>A whole new approach to interprocess communication resulting in much more acceptable performance within ELiDE.</p></li>
+<li><p>LiSE caches the whole world state.</p></li>
+<li><p>ELiDE has a new caching scheme as well. This is invisible to the user but rules out some aliasing bugs.</p></li>
+<li><p>Fixed some rules not being polled.</p></li>
+<li><p>A new example, college.py, and some fixes to kobold.py where it hadn’t kept up with API changes.</p></li>
+<li><p>The first sprouts of a world generation API, currently undocumented since I myself don’t know how to work with it. Observe its methods within the class AbstractCharacter in the LiSE.character module. Chain the methods together and play around with the order to the best effect.</p></li>
+<li><p>Lots of refactoring.</p></li>
+<li><p>Some new graphics from Marsh Davies for Procjam 2015. And it’s easier to include your own now, with an atlas and a change in elide.ini (though undocumented).</p></li>
+<li><p>Real version numbers in the Python packages.</p></li>
+</ul>
+</section>
+<section id="alpha-4">
+<h1>2015-08-26 (Alpha 4)<a class="headerlink" href="#alpha-4" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>The rules editor is now usable under normal conditions. After you’ve made Actions and Triggers, check this out by selecting something and pressing the Rules button.</p></li>
+<li><p>The big &gt; button will cause time to pass for so long as it is toggled, as it was always meant to.</p></li>
+<li><p>Improvements to input handling and collision detection.</p></li>
+<li><p>Less cryptic README.</p></li>
+<li><p>Crash fixes.</p></li>
+</ul>
+</section>
+<section id="alpha-3">
+<h1>2015-08-11 (Alpha 3)<a class="headerlink" href="#alpha-3" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Performance improvements.</p></li>
+<li><p>Architectural changes in ELiDE.</p></li>
+<li><p>Many crash bugs fixed.</p></li>
+<li><p>Pop-over windows changed into Screens, making them tidier and enabling transition animations that aren’t much to look at presently.</p></li>
+<li><p>Thing and Place graphics can now be added in the elide.ini configuration file.</p></li>
+</ul>
+</section>
+<section id="alpha-2">
+<h1>2015-03-29 (Alpha 2)<a class="headerlink" href="#alpha-2" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>The core LiSE simulation process and the ELiDE graphical frontend are now running in separate processes.</p></li>
+<li><p>Fixed some UI interactions.</p></li>
+</ul>
+</section>
+<section id="alpha-1">
+<h1>2015-03-06 (Alpha 1)<a class="headerlink" href="#alpha-1" title="Link to this heading">¶</a></h1>
+<ul class="simple">
+<li><p>Initial release.</p></li>
+</ul>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Lisien</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lisien/index.html#internals">Internals</a></li>
+<li class="toctree-l1"><a class="reference internal" href="elide/index.html">Elide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;Zachary Spector.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/CHANGES.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
