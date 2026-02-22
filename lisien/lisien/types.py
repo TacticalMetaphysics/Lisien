@@ -1297,8 +1297,16 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
+class AbstractEntity(ABC):
+	__slots__ = ()
+
+	@property
+	@abstractmethod
+	def engine(self) -> AbstractEngine: ...
+
+
 @define(eq=False)
-class Node(AbstractEntityMapping, ABC):
+class Node(AbstractEntity, AbstractEntityMapping, ABC):
 	__slots__ = ()
 
 	character: AbstractCharacter
@@ -1440,7 +1448,7 @@ class Node(AbstractEntityMapping, ABC):
 
 
 @define(eq=False)
-class Edge(AbstractEntityMapping, ABC):
+class Edge(AbstractEntity, AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
 	__slots__ = ()
@@ -3701,7 +3709,7 @@ class BaseMutableCharacterMapping[_KT, _VT](
 
 
 @define(eq=False)
-class AbstractCharacter(DiGraph, ABC):
+class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
 	Mappings resemble those of a NetworkX digraph:
@@ -4224,7 +4232,7 @@ class AbstractCharacter(DiGraph, ABC):
 			yield from o.values()
 
 
-class AbstractThing(ABC):
+class AbstractThing(AbstractEntity, ABC):
 	__slots__ = ()
 	character: AbstractCharacter
 	name: NodeName
