@@ -4111,6 +4111,9 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		for place in seq:
 			if not isinstance(place, Key):
 				raise TypeError("Invalid node", place)
+			if place not in self.place:
+				raise KeyError("No such place", place)
+		for place in seq:
 			self.remove_place(place)
 
 	@abstractmethod
