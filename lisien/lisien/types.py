@@ -4525,7 +4525,7 @@ class AbstractThing(AbstractEntity, ABC):
 
 	@property
 	def location(self) -> Node:
-		"""The ``Thing`` or ``Place`` I'm in."""
+		"""The :class:`~.node.Thing` or :class:`~.node.Place` I'm in."""
 		locn = self["location"]
 		if locn is None:
 			raise AttributeError("Not really a Thing")
@@ -4543,7 +4543,14 @@ class AbstractThing(AbstractEntity, ABC):
 		self["location"] = NodeName(v)
 
 	@abstractmethod
-	def to_place(self) -> Node: ...
+	def to_place(self) -> Node:
+		"""Convert this to a :class:`~.node.Place`
+
+		Returns a :class:`~.node.Place` object representing the same entity,
+		but without any of the methods or properties that work with its location,
+		since it no longer has one.
+
+		"""
 
 	def go_to_place(
 		self,
