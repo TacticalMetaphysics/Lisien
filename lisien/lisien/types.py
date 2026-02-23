@@ -4590,17 +4590,18 @@ class AbstractThing(AbstractEntity, ABC):
 		weight: KeyHint | Stat | EllipsisType = ...,
 		check: bool = True,
 	) -> int:
-		"""Go to several nodes in succession, deciding how long to
-		spend in each by consulting the ``weight`` stat of the
-		:class:`Portal` connecting the one node to the next,
-		default 1 turn.
+		"""Go to several nodes in succession
 
-		Return the total number of turns the travel will take. Raise
-		:class:`TravelException` if I can't follow the whole path,
-		either because some of its nodes don't exist, or because I'm
-		scheduled to be somewhere else. Set ``check=False`` if
-		you're really sure the path is correct, and this function
-		will be faster.
+		Decide how long to spend in each by consulting the ``weight``
+		stat of the :class:`~.portal.Portal` connecting the one node to the next,
+		defaulting to 1 turn.
+
+		Return the total number of turns the travel will take.
+		Raise :class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist,
+		or because I'm scheduled to be somewhere else.
+		Set ``check=False`` if you're really sure the path is correct,
+		and this method will be faster.
 
 		"""
 		if len(path) < 2:
