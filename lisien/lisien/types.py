@@ -4316,9 +4316,14 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	@property
 	def preportal(self):
-		"""A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by destination and origin
+		"""A two-layer mapping of :class:`~.portal.Portal` objects in me
 
-		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
+		The outer layer is keyed by destination.
+		The inner layer is keyed by origin.
+
+		Has a ``rule`` method for applying new rules
+		to every :class:`~.portal.Portal` here,
+		and a ``rulebook`` property for
 		assigning premade :class:`~.rule.Rulebook`s.
 
 		Alias: :attr:`pred`
