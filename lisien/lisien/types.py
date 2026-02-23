@@ -4105,9 +4105,27 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	@abstractmethod
 	def remove_place(self, place: KeyHint | NodeName):
-		pass
+		r"""Delete a :class:`~.node.Place` from me
+
+		Any :class:`~.node.Thing`\s in the :class:`~.node.Place`,
+		and any :class:`~.portal.Portal` connected to it,
+		will also be deleted.
+
+		:param place: The :class:`~.node.Place`'s name
+
+		"""
 
 	def remove_places_from(self, seq: Iterable[KeyHint | NodeName]):
+		r"""Delete many of my :class:`~.node.Place`\s
+
+		:class:`~.node.Thing`\s in them,
+		and :class:`~.portal.Portal`\s connected to them,
+		will also be deleted.
+
+		:param seq: Iterable of :class:`~.node.Place` names.
+			They must all exist.
+
+		"""
 		for place in seq:
 			if not isinstance(place, Key):
 				raise TypeError("Invalid node", place)
@@ -4118,9 +4136,27 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	@abstractmethod
 	def remove_thing(self, thing: KeyHint | NodeName) -> None:
-		pass
+		r"""Delete a :class:`~.node.Thing` from me
+
+		Other :class:`~.node.Thing`\s in it,
+		and :class:`~.portal.Portal`\s connected to it,
+		will also be deleted.
+
+		:param thing: Name of the :class:`~.node.Thing`
+
+		"""
 
 	def remove_things_from(self, seq: Iterable[KeyHint | NodeName]) -> None:
+		r"""Delete many of my :class:`~.node.Thing`\s
+
+		Any other :class:`~.node.Thing`\s in them,
+		and :class:`~.portal.Portal`\s connected to them,
+		will also be deleted.
+
+		:param seq: Iterable of :class:`~.node.Thing` names.
+			They must all exist.
+
+		"""
 		for thing in seq:
 			if not isinstance(thing, Key):
 				raise TypeError("Invalid thing name", thing)
