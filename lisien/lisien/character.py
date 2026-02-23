@@ -234,8 +234,9 @@ class Character(AbstractCharacter, RuleFollower):
 	has exactly one unit, it may be retrieved as ``unit.only``. When it has
 	more than one unit, but only has any units in a single other
 	:class:`Character`, you can get the mapping of units in that
-	:class:`Character` as ``unit.node``. Add units with the :meth:`add_unit`
-	method and remove them with :meth:`del_unit`.
+	:class:`Character` as ``unit.node``.
+	Add units with the :meth:`~lisien.types.AbstractCharacter.add_unit` method
+	and remove them with :meth:`~lisien.types.AbstractCharacter.remove_unit`.
 
 	You can assign rules to a :class:`Character` with the ``rule`` attribute,
 	typically using it as a decorator (see :mod:`lisien.rule`). You can do the

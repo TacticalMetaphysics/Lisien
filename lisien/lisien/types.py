@@ -3741,11 +3741,11 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	Mappings resemble those of a NetworkX digraph:
 
-	* ``thing`` and ``place`` are subsets of ``node``
-	* ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
-	* ``pred`` is an alias to ``preportal``
-	* ``stat`` is a dict-like mapping of data that changes over game-time,
-	to be used in place of graph attributes
+	* :attr:`thing` and :attr:`place` are subsets of :attr:`node`
+	* :attr:`edge`, :attr:`adj`, and :attr:`succ` are aliases of :attr:`portal`
+	* :attr:`pred` is an alias to :attr:`preportal`
+	* :attr:`stat` is a dict-like mapping of data that changes over game-time,
+		to be used in place of graph attributes
 
 	"""
 
@@ -3769,14 +3769,30 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	@abstractmethod
 	def add_place(self, name: KeyHint | NodeName, **kwargs):
-		pass
+		"""Add a new node of the kind that is not located anywhere else
+
+		Keyword arguments will be used as its initial stats.
+
+		Alias: :meth:`add_node`
+
+		"""
 
 	def add_node(self, name: KeyHint | NodeName, **kwargs):
 		self.add_place(name, **kwargs)
 
 	@abstractmethod
 	def add_places_from(self, seq: Iterable, **attrs):
-		pass
+		r"""Add many :class:`~.node.Place`\s.
+
+		:param seq: An iterable of :class:`~.node.Place` names;
+			or, pairs of ``(name, stats)``,
+			where ``stats`` is a dictionary of that one :class:`.node.Place`'s
+			initial stats.
+			Hashable tuples, however, are valid place names,
+			and will be used as-is.
+		:param attrs: The initial stats of the :class:`~.node.Place`.
+
+		"""
 
 	def add_nodes_from(self, seq: Iterable, **attrs):
 		self.add_places_from(seq, **attrs)
@@ -3786,9 +3802,26 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		name: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		"""Add a Place and return it.
+		r"""Add a :class:`~.node.Place` and return it.
 
-		If there's already a Place by that name, put a number on the end.
+		This consumes more memory than :meth:`add_node`, because it has to
+		create a Python object to represent the :class:`~.node.Place`,
+		which :meth:`add_node` does not.
+		If you're creating many thousands of places,
+		consider sticking with :meth:`add_place`
+		or :meth:`add_places_from`.
+
+		Alias: :meth:`new_node`
+
+		:param name: The :class:`~.node.Place`'s name. It must be both
+			serializable and unique within this character's nodes,
+			including :class:`~.node.Thing`\s.
+			If ``name`` is a :type:`str`,
+			and there is already a node by that name,
+			the new one will have a "0" on the end of its name.
+			If there's a node by that name as well,
+			the integer will increase until there isn't.
+		:param kwargs: The initial stats of the :class:`~.node.Place`.
 
 		"""
 		if not isinstance(name, Key):
@@ -3816,11 +3849,29 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	def add_thing(
 		self, name: KeyHint | NodeName, location: KeyHint | NodeName, **kwargs
 	):
-		pass
+		r"""Add a node that is inside of some other node in this character.
+
+		:param name: The :class:`~.node.Thing`'s name. Must be both serializable
+			and unique within this character's nodes,
+			including :class:`~.none.Place`\s.
+		:param location: The name of the node the new :class:`~.node.Thing` is
+			to be located in. It must already exist.
+
+		"""
 
 	@abstractmethod
 	def add_things_from(self, seq: Iterable, **attrs):
-		pass
+		r"""Add many nodes located in other nodes.
+
+		:param seq: An iterable of tuples. They may be pairs, in which case,
+			item 0 is the name of the new :class:`~.node.Thing`,
+			and item 1 is the name of its initial location,
+			either a :class:`~.node.Place` or a :class:`~.node.Thing`.
+			If there is an additional third item, it is a dictionary
+			of the :class:`~.node.Thing`'s initial stats.
+		:param attrs: Initial stats to use by default.
+
+		"""
 
 	def new_thing(
 		self,
@@ -3828,9 +3879,24 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		location: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		"""Add a Thing and return it.
+		r"""Add a :class:`~.node.Thing` and return it.
 
-		If there's already a Thing by that name, put a number on the end.
+		This consumes more memory than :meth:`add_thing`,
+		because it has to create a Python object to represent it.
+		If you're creating many thousands of things,
+		consider sticking with :meth:`add_thing`
+		or :meth:`add_things_from`.
+
+		:param name: The :class:`~.node.Thing`'s name. Must be both serializable
+			and unique within this character's nodes,
+			including :class:`~.none.Place`\s.
+			If ``name`` is a :type:`str`,
+			and there is already a node by that name,
+			the new one will have a "0" on the end of its name.
+			If there's a node by that name as well, the integer will increase
+			until there isn't.
+		:param location: The name of the initial location of the :class:`~.node.Thing`.
+		:param kwargs: Initial stats.
 
 		"""
 		if not isinstance(name, Key):
@@ -3855,19 +3921,67 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	@abstractmethod
 	def place2thing(
 		self, place: KeyHint | NodeName, location: KeyHint | NodeName
-	) -> None: ...
+	) -> None:
+		"""Convert an existing :class:`~.node.Place` into a :class:`~.node.Thing`.
+
+		If you have a :class:`~.node.Place` object of it already,
+		it will still work,
+		but won't have the additional properties and methods of :class:`~.node.Thing`.
+		Get the :class:`~.node.Thing` out of my :attr:`thing` mapping
+		when you need those.
+
+		:param place: name of an existing :class:`~.node.Place`
+		:param location: name of some other existing node to locate it in
+
+		"""
 
 	@abstractmethod
-	def thing2place(self, thing: KeyHint | NodeName) -> None: ...
+	def thing2place(self, thing: KeyHint | NodeName) -> None:
+		"""Convert an existing :class:`~.node.Thing` into a :class:`~.node.Place`
+
+		If you have a :class:`~.node.Thing` object of it already,
+		many of its properties and methods will be disabled.
+		Get the :class:`~.node.Place` out of my :attr:`place` mapping
+		to reduce confusion.
+
+		:param thing: name of an existing :class:`~.node.Thing`
+
+		"""
 
 	def remove_node(self, node: KeyHint | NodeName):
+		r"""Delete a node from me
+
+		If there are any :class:`~.node.Thing`\s in the node,
+		they'll be deleted as well. So will any :class:`~.portal.Portal`\s
+		leading into or out of here.
+		If you're holding onto their objects, they'll be useless,
+		so their truth value will change to ``False``.
+
+		:param node: name of an existing :class:`~.node.Place` or :class:`~.node.Thing`
+
+		"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
 		node = NodeName(node)
 		if node in self.node:
+			# This may instantiate an object, which isn't great for performance
+			# It'd be better to override it
 			self.node[node].delete()
 
 	def remove_nodes_from(self, nodes: Iterable[KeyHint | NodeName]):
+		r"""Delete several nodes from me
+
+		Any :class:`~.node.Thing`\s located in any of them,
+		and any :class:`~.portal.Portal` connected to them,
+		will be deleted as well.
+		Deleted entities' objects, if still present in your game,
+		will be useless.
+		Their truth value will change to ``False`` to reflect this.
+
+		:param nodes: iterable of names of existing
+			:class:`~.node.Place`\s and/or :class:`~.node.Thing`\s
+
+		"""
 		for node in nodes:
 			if not isinstance(node, Key):
 				raise TypeError("Invalid node", node)
@@ -3882,7 +3996,24 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		dest: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		pass
+		r"""Connect two :class:`~.node.Thing`\s or :class:`~.node.Place`\s with a :class:`~.portal.Portal`
+
+		It's possible to connect a :class:`~.node.Place`
+		to a :class:`~.node.Thing`, or vice versa.
+		This would be a sensible way to model, for instance,
+		a vehicle's door opening, permitting exit.
+		Or, for that matter, wormholes from science fiction,
+		if the start or end point can move.
+
+		Alias: :meth:`add_edge`
+
+		:param orig: Name of an existing node
+			that the :class:`~.portal.Portal` starts from
+		:param dest: Name of an existing node
+			that the :class:`~.portal.Portal` ends at
+		:param kwargs: Initial stats for the :class:`~.portal.Portal`
+
+		"""
 
 	def add_edge(
 		self,
@@ -3898,6 +4029,19 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		dest: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
+		"""Create and return a new :class:`~.portal.Portal`
+
+		This consumes more memory than :meth:`add_portal`,
+		because it makes a Python object to represent the portal.
+		If you're making many thousands of portals,
+		you might want to stick to :meth:`add_portal`
+		or :meth:`add_portals_from`.
+
+		:param orig: Name of the portal's origin. It must already exist.
+		:param dest: Name of the portal's destination. It must already exist.
+		:param kwargs: Initial stats for the :class:`~.portal.Portal`.
+
+		"""
 		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
@@ -3907,7 +4051,14 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		seq: Iterable,
 		**attrs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		pass
+		"""Connect many nodes with many portals
+
+		:param seq: Iterable of tuples, which may be pairs or triples.
+			Item 0 is the name of the origin node,
+			and item 1 is the name of the destination node.
+			If there is an item 2,
+			it is a dictionary of the portal's initial stats.
+		:param attrs: Initial stats to use by default."""
 
 	def add_edges_from(self, seq: Iterable, **attrs):
 		self.add_portals_from(seq, **attrs)
@@ -3916,11 +4067,28 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	def remove_portal(
 		self, origin: KeyHint | NodeName, destination: KeyHint | NodeName
 	):
-		pass
+		"""Delete a portal from the world
+
+		If you have a :class:`~.portal.Portal` object of it,
+		its truth value will be ``False``,
+		and it will be useless.
+
+		"""
 
 	def remove_portals_from(
 		self, seq: Iterable[tuple[KeyHint | NodeName, KeyHint | NodeName]]
 	):
+		r"""Delete many :class:`~.portal.Portal`\s
+
+		If you're still holding onto their objects, they won't work,
+		and their truth value will change to ``False`` to reflect the fact.
+
+		Alias: :meth:`remove_edges_from`
+
+		:param seq: Pairs of names of the origin and the destination of the
+			:class:`~.portal.Portal`\s to delete.
+
+		"""
 		for orig, dest in seq:
 			if not isinstance(orig, Key):
 				raise TypeError("Invalid node", orig)
@@ -3959,7 +4127,16 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		a: KeyHint | CharName | Node,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
-		pass
+		"""Mark a :class:`Node`, probably not one located in me, as my unit
+
+		My units are, in some sense, a part of me; what that means is determined
+		by the rules they follow. Rules assigned to my ``unit`` property
+		are followed by all of them, whatever character they happen to be in.
+
+		May be called with only one argument, the actual :class:`Node` object,
+		or with two, a character's name and the name of a node in it.
+
+		"""
 
 	@abstractmethod
 	def remove_unit(
@@ -3967,7 +4144,15 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		a: KeyHint | CharName | Node,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
-		pass
+		"""Stop considering a :class:`Node` as a part of me
+
+		This just means the node won't follow rules assigned to my ``unit``
+		property anymore. It still exists.
+
+		May be called with only one argument, the actual :class:`Node` object,
+		or with two, a character's name and the name of a node in it.
+
+		"""
 
 	def __iter__(self):
 		return iter(self.node)
@@ -4056,7 +4241,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
 		assigning premade :class:`~.rule.Rulebook`s.
 
-		Aliases:  ``adj``, ``edge``, ``succ``
+		Aliases:  :attr:`adj`, :attr:`edge`, :attr:`succ`
 
 		"""
 		return self._succ
@@ -4092,7 +4277,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
 		assigning premade :class:`~.rule.Rulebook`s.
 
-		Alias: ``pred``
+		Alias: :attr:`pred`
 
 		"""
 		return self._pred
@@ -4132,10 +4317,16 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		return self.graph
 
 	def units(self):
+		"""Iterate over all nodes that are my unit, whatever character they're in"""
 		for units in self.unit.values():
 			yield from units.values()
 
 	def historical(self, stat: Stat):
+		"""Get a historical view on values a stat had in the past
+
+		This is for historical queries. See :meth:`.Engine.turns_when`.
+
+		"""
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
 	def do(self, func: Callable | str, *args, **kwargs) -> Self:
@@ -4144,7 +4335,9 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		Look up the function in the method store if needed. Pass it any
 		arguments given, keyword or positional.
 
-		Useful chiefly when chaining.
+		Useful chiefly when chaining::
+
+			character.do("something").do("something_else")
 
 		"""
 		if not callable(func):
@@ -4183,8 +4376,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		return self
 
 	def become(self, g: AbstractCharacter) -> Self:
-		"""Erase all my nodes and edges. Replace them with a copy of the graph
-		provided.
+		"""Erase all my nodes and edges. Replace them with a copy of the graph provided.
 
 		Return myself.
 
@@ -4195,6 +4387,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		return self
 
 	def clear(self) -> None:
+		"""Delete everything in this, but don't delete this itself"""
 		self.node.clear()
 		self.portal.clear()
 		self.stat.clear()
@@ -4213,10 +4406,12 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
 	) -> Self:
-		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
+		"""Delete nodes whose ``stat >= threshold`` (default 0.5).
 
-		Optional argument ``comparator`` will replace >= as the test
-		for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace ``>=`` as the test
+		for whether to cull.
+		You can use the name of a function in
+		:attr:`.Engine.function<the default function store>`.
 
 		"""
 		comparator = self._lookup_comparator(comparator)
@@ -4234,10 +4429,12 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
 	) -> Self:
-		"""Delete portals whose stat >= ``threshold`` (default 0.5).
+		"""Delete portals whose ``stat >= threshold`` (default 0.5).
 
-		Optional argument ``comparator`` will replace >= as the test
-		for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace ``>=`` as the test
+		for whether to cull.
+		You can use the name of a function in
+		:attr:`.Engine.function<the default function store>`.
 
 		"""
 		comparator = self._lookup_comparator(comparator)

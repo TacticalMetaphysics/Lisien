@@ -355,6 +355,11 @@ extend Lisien's capabilities.
 
 .. automodule:: lisien.types
     :members:
+    :exclude-members: AbstractCharacter
+
+    .. autoclass:: AbstractCharacter
+        :members:
+        :exclude-members: adj, edge, succ, pred, add_node, add_edge, add_nodes_from, add_edges_from
 
 ######
  util
