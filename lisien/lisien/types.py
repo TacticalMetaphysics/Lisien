@@ -4672,25 +4672,26 @@ class AbstractThing(AbstractEntity, ABC):
 		weight: Stat | KeyHint | EllipsisType = ...,
 		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
-		"""Find the shortest path to the given node from where I am
-		now, and follow it.
+		"""Follow the shortest path to ``dest`` from my current location
 
-		If supplied, the ``weight`` stat of each :class:`Portal` along
-		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way. Otherwise, I will stay
-		in each :class:`Place` for 1 turn.
+		If supplied,
+		the ``weight`` stat of each :class:`Portal` along the path
+		will be used in pathfinding,
+		and for deciding how long to stay in each Place along the way.
+		Otherwise, I will stay in each :class:`Place` for 1 turn.
 
-		The ``graph`` argument may be any NetworkX-style graph. It
-		will be used for pathfinding if supplied, otherwise I'll use
-		my :class:`Character`. In either case, however, I will attempt
-		to actually follow the path using my :class:`Character`, which
-		might not be possible if the supplied ``graph`` and my
-		:class:`Character` are too different. If it's not possible,
-		I'll raise a :class:`TravelException`, whose ``subpath``
-		attribute holds the part of the path that I *can* follow. To
-		make me follow it, pass it to my ``follow_path`` method.
+		The ``graph`` argument may be any NetworkX-style graph.
+		It will be used for pathfinding if supplied.
+		Otherwise, I'll use my :class:`Character`.
+		In either case, however,
+		I will attempt to actually follow the path using my :class:`Character`,
+		which might not be possible if the supplied ``graph``
+		and my :class:`Character` are too different.
+		If it's not possible, I'll raise a :class:`TravelException`,
+		whose ``subpath`` attribute holds the part of the path that I *can* follow.
+		To make me follow it, pass it to my ``follow_path`` method.
 
-		Return value is the number of turns the travel will take.
+		:return: The number of turns the travel will take.
 
 		"""
 		if isinstance(dest, Node):
