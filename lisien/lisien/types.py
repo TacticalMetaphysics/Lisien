@@ -4122,6 +4122,11 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	def remove_things_from(self, seq: Iterable[KeyHint | NodeName]) -> None:
 		for thing in seq:
+			if not isinstance(thing, Key):
+				raise TypeError("Invalid thing name", thing)
+			if thing not in self.thing:
+				raise KeyError("Thing does not exist", thing)
+		for thing in seq:
 			self.remove_thing(thing)
 
 	@abstractmethod
