@@ -4432,9 +4432,11 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		return self
 
 	def become(self, g: AbstractCharacter) -> Self:
-		"""Erase all my nodes and edges. Replace them with a copy of the graph provided.
+		"""Replace all my nodes and edges with a copy of the graph provided.
 
-		Return myself.
+		Everything else in me gets erased.
+
+		Return myself, for the next step in the method chain.
 
 		"""
 		self.clear()
