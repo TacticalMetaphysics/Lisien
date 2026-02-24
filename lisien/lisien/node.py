@@ -30,7 +30,7 @@ from attrs import define
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
-from lisien.types import Edge
+from lisien.types import AbstractEdge
 
 from . import rule
 from .exc import AmbiguousLeaderError
@@ -284,7 +284,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: KeyHint) -> Edge:
+	def __getitem__(self, item: KeyHint) -> AbstractEdge:
 		if item not in self:
 			raise KeyError
 		portal, name = self.character.portal, self.node.name

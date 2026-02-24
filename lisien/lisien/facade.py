@@ -75,7 +75,7 @@ from .types import (
 	Branch,
 	CharName,
 	DiGraph,
-	Edge,
+	AbstractEdge,
 	Key,
 	KeyHint,
 	AbstractNode,
@@ -112,7 +112,10 @@ class FacadeEntity(
 	def _real(
 		self,
 	) -> (
-		DiGraph | AbstractNode | Edge | dict[Stat | Literal["rulebook"], Value]
+		DiGraph
+		| AbstractNode
+		| AbstractEdge
+		| dict[Stat | Literal["rulebook"], Value]
 	): ...
 
 	@cached_property
@@ -204,9 +207,10 @@ class FacadeEntity(
 getname = attrgetter("name")
 
 
-class FacadeEntityMapping[_NAME: Key, _CLS: AbstractNode | Edge | DiGraph](
-	MappingUnwrapper[_NAME, _CLS], MutableMapping[_NAME, _CLS], Signal, ABC
-):
+class FacadeEntityMapping[
+	_NAME: Key,
+	_CLS: AbstractNode | AbstractEdge | DiGraph,
+](MappingUnwrapper[_NAME, _CLS], MutableMapping[_NAME, _CLS], Signal, ABC):
 	"""Mapping that contains entities in a Facade.
 
 	All the entities are of the same type, ``cls``, possibly
@@ -712,7 +716,10 @@ class FacadePortal(FacadeEntity):
 	def _real(
 		self,
 	) -> (
-		DiGraph | AbstractNode | Edge | dict[Stat | Literal["rulebook"], Value]
+		DiGraph
+		| AbstractNode
+		| AbstractEdge
+		| dict[Stat | Literal["rulebook"], Value]
 	):
 		try:
 			return self.character.character.portal[self.orig][self.dest]
@@ -730,7 +737,7 @@ class FacadePortal(FacadeEntity):
 		return self.character.node[self.dest]
 
 	@property
-	def _get_real(self) -> Edge:
+	def _get_real(self) -> AbstractEdge:
 		return self.character.character.portal[self.orig][self.dest]
 
 	def _set_plan(self, k, v):

@@ -150,7 +150,7 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 			and all(is_valid_value(elem) for elem in obj)
 		)
 		or isinstance(obj, AbstractNode)
-		or isinstance(obj, Edge)
+		or isinstance(obj, AbstractEdge)
 		or isinstance(obj, DiGraph)
 		or (
 			isinstance(obj, (list, ListWrapper))
@@ -1446,7 +1446,7 @@ class AbstractNode(AbstractEntity, AbstractEntityMapping, ABC):
 
 
 @define(eq=False)
-class Edge(AbstractEntity, AbstractEntityMapping, ABC):
+class AbstractEdge(AbstractEntity, AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
 	__slots__ = ()
@@ -1685,7 +1685,7 @@ class GraphNodeMapping[_K, _V](
 @define(eq=False)
 class GraphEdgeMapping[
 	_ORIG: NodeName,
-	_DEST: MutableMapping[_DEST, Edge] | bool,
+	_DEST: MutableMapping[_DEST, AbstractEdge] | bool,
 ](
 	MutableMapping[_ORIG, _DEST],
 	AttrSignal,
@@ -1728,7 +1728,7 @@ class GraphEdgeMapping[
 
 @define
 class AbstractSuccessors(
-	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+	MutableMapping[NodeName, MutableMapping[NodeName, AbstractEdge]], ABC
 ):
 	__slots__ = ()
 
@@ -1774,10 +1774,10 @@ class AbstractSuccessors(
 			pass
 		return n
 
-	def _make_edge(self, dest: NodeName) -> Edge:
-		return Edge(self.character, *self._order_nodes(dest))
+	def _make_edge(self, dest: NodeName) -> AbstractEdge:
+		return AbstractEdge(self.character, *self._order_nodes(dest))
 
-	def __getitem__(self, dest: KeyHint | NodeName) -> Edge:
+	def __getitem__(self, dest: KeyHint | NodeName) -> AbstractEdge:
 		"""Get the edge between my orig and the given node"""
 		if not isinstance(dest, Key):
 			raise TypeError("Invalid node", dest)
@@ -1914,7 +1914,7 @@ class GraphSuccessorsMapping(
 		__slots__ = ()
 
 		@cached_property
-		def _cache(self) -> dict[NodeName, Edge]:
+		def _cache(self) -> dict[NodeName, AbstractEdge]:
 			return {}
 
 		def _order_nodes(self, dest: NodeName):
@@ -2035,7 +2035,7 @@ class DiGraphSuccessorsMapping(GraphSuccessorsMapping, ABC):
 
 @define
 class DiGraphPredecessorsMapping(
-	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+	MutableMapping[NodeName, MutableMapping[NodeName, AbstractEdge]], ABC
 ):
 	"""Mapping for Predecessors instances, which map to Edges that end at
 	the dest provided to this
@@ -2111,7 +2111,7 @@ class DiGraphPredecessorsMapping(
 		return len(self.character.node)
 
 	@define
-	class Predecessors(MutableMapping[NodeName, Edge]):
+	class Predecessors(MutableMapping[NodeName, AbstractEdge]):
 		"""Mapping of Edges that end at a particular node"""
 
 		__slots__ = ()
@@ -2151,10 +2151,10 @@ class DiGraphPredecessorsMapping(
 				pass
 			return n
 
-		def _make_edge(self, orig: NodeName) -> Edge:
-			return Edge(self.character, orig, self.dest)
+		def _make_edge(self, orig: NodeName) -> AbstractEdge:
+			return AbstractEdge(self.character, orig, self.dest)
 
-		def __getitem__(self, orig: KeyHint | NodeName) -> Edge:
+		def __getitem__(self, orig: KeyHint | NodeName) -> AbstractEdge:
 			"""Get the edge from the given node to mine"""
 			if not isinstance(orig, Key):
 				raise TypeError("Invalid node", orig)
@@ -2265,7 +2265,7 @@ class DiGraph(nx.DiGraph, ABC):
 				ret[orig] = {}
 			origd = ret[orig]
 			dest: NodeName
-			edge: Edge
+			edge: AbstractEdge
 			for dest, edge in dests.items():
 				if ismul:
 					if dest not in origd:
@@ -2582,7 +2582,7 @@ class EntityAccessor(ABC):
 
 	def __init__(
 		self,
-		entity: GraphMapping | AbstractNode | Edge,
+		entity: GraphMapping | AbstractNode | AbstractEdge,
 		stat: Stat,
 		engine: AbstractEngine | None = None,
 		branch: Branch | None = None,
@@ -2780,7 +2780,7 @@ class AbstractEngine(ABC):
 
 	thing_cls: ClassVar[type[AbstractThing]]
 	place_cls: ClassVar[type[AbstractNode]]
-	portal_cls: ClassVar[type[Edge]]
+	portal_cls: ClassVar[type[AbstractEdge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
 
 	@property
@@ -3096,7 +3096,7 @@ class AbstractEngine(ABC):
 					MsgpackExtensionType.place.value,
 					packer([obj.character.name, obj.name]),
 				)
-			elif isinstance(obj, Edge):
+			elif isinstance(obj, AbstractEdge):
 				return msgpack.ExtType(
 					MsgpackExtensionType.portal.value,
 					packer(
@@ -4273,7 +4273,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	PortalSuccessorsMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				NodeName, MutableMapping[NodeName, Edge]
+				NodeName, MutableMapping[NodeName, AbstractEdge]
 			]
 		]
 	]
@@ -4309,7 +4309,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	PortalPredecessorsMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				NodeName, MutableMapping[NodeName, Edge]
+				NodeName, MutableMapping[NodeName, AbstractEdge]
 			]
 		]
 	]
@@ -4512,7 +4512,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 
 	cull_edges = cull_portals
 
-	def portals(self) -> Iterator[Edge]:
+	def portals(self) -> Iterator[AbstractEdge]:
 		"""Iterate over all portals."""
 		for o in self.adj.values():
 			yield from o.values()

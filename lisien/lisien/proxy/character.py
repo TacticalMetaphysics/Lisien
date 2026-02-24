@@ -45,7 +45,7 @@ from lisien.types import (
 	AttrSignal,
 	CharDelta,
 	CharName,
-	Edge,
+	AbstractEdge,
 	EdgeValDict,
 	Key,
 	KeyHint,

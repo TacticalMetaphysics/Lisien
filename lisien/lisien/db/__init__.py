@@ -2602,7 +2602,7 @@ class AbstractDatabaseConnector(ABC):
 				character=repr(value.character.name),
 				name=repr(value.name),
 			)
-		elif isinstance(value, lisien.types.Edge):
+		elif isinstance(value, lisien.types.AbstractEdge):
 			return Element(
 				"portal",
 				character=repr(value.character.name),

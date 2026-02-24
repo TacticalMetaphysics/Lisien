@@ -25,7 +25,7 @@ from .exc import HistoricKeyError
 from .facade import EngineFacade, FacadePortal
 from .rule import RuleFollower
 from .rule import RuleMapping as BaseRuleMapping
-from .types import Edge, EntityStatAlias, Key, Time
+from .types import AbstractEdge, EntityStatAlias, Key, Time
 
 
 class RuleMapping(BaseRuleMapping):
@@ -38,7 +38,7 @@ class RuleMapping(BaseRuleMapping):
 
 
 @define(eq=False)
-class Portal(Edge, RuleFollower):
+class Portal(AbstractEdge, RuleFollower):
 	"""Connection between two nodes that :class:`lisien.node.Thing` travel along"""
 
 	__slots__ = ("_rulebook",)
