@@ -2,13 +2,12 @@
   API
 =======
 
-Here is the portion of Lisien's codebase that game developers should be
-familiar with. Generally, you should access everything through an
-:class:`.Engine` object. The exception is when Lisien is not
-running in the same process, in which case, you'll need
-:class:`~lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
-But :class:`~lisien.proxy.engine.EngineProxy` works just like
-:class:`.Engine`, for the most part.
+Here is the portion of Lisien's codebase that game developers should be familiar with.
+Generally, you should access everything through an :class:`.Engine` object.
+The exception is when Lisien is not running in the same process, in which case,
+you'll need :class:`~lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
+But :class:`~lisien.proxy.engine.EngineProxy` works just like :class:`.Engine`,
+for the most part.
 
 ########
  engine
