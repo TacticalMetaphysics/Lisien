@@ -1307,8 +1307,6 @@ class AbstractEntity(ABC):
 
 @define(eq=False)
 class AbstractNode(AbstractEntity, AbstractEntityMapping, ABC):
-	__slots__ = ()
-
 	character: AbstractCharacter
 	name: NodeName
 
