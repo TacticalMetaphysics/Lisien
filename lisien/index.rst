@@ -168,25 +168,11 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.portal
 
+    .. autoclass:: lisien.types.AbstractEdge
+        :members:
+
     .. autoclass:: Portal
         :members:
-        :exclude-members: origin, destination, character, engine
-
-        .. py:attribute:: origin
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads out from
-
-        .. py:attribute:: destination
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads into
-
-        .. py:property:: character
-
-            The :class:`lisien.character.Character` that this is in
-
-        .. py:property:: engine
-
-            The :class:`lisien.engine.Engine` that this is in
 
 ######
  rule
