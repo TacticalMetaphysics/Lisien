@@ -150,6 +150,9 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.node
 
+    .. autoclass:: lisien.types.AbstractNode
+        :members:
+
     .. autoclass:: lisien.node.Node
         :members:
 
