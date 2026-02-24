@@ -92,7 +92,7 @@ from ..types import (
 	Keyframe,
 	KeyHint,
 	LinearTime,
-	Node,
+	AbstractNode,
 	NodeName,
 	NodesDict,
 	NodeValDict,
@@ -608,7 +608,7 @@ class EngineProxy(AbstractEngine):
 
 	def _get_node(
 		self, char: AbstractCharacter | KeyHint, node: NodeName
-	) -> Node:
+	) -> AbstractNode:
 		return self.character[char].node[node]
 
 	def _worker_check(self):

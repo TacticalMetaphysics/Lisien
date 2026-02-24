@@ -410,7 +410,7 @@ class NeighborMapping(Mapping):
 
 
 @define(eq=False)
-class Node(lisien.types.Node, rule.RuleFollower):
+class Node(lisien.types.AbstractNode, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
 	Every lisien node is either a thing or a place. They share in common

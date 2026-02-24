@@ -149,7 +149,7 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 			isinstance(obj, (list, tuple, set, frozenset))
 			and all(is_valid_value(elem) for elem in obj)
 		)
-		or isinstance(obj, Node)
+		or isinstance(obj, AbstractNode)
 		or isinstance(obj, Edge)
 		or isinstance(obj, DiGraph)
 		or (
@@ -1306,7 +1306,7 @@ class AbstractEntity(ABC):
 
 
 @define(eq=False)
-class Node(AbstractEntity, AbstractEntityMapping, ABC):
+class AbstractNode(AbstractEntity, AbstractEntityMapping, ABC):
 	__slots__ = ()
 
 	character: AbstractCharacter
@@ -1383,14 +1383,14 @@ class Node(AbstractEntity, AbstractEntityMapping, ABC):
 
 	def add_portal(
 		self,
-		other: NodeName | KeyHint | Node,
+		other: NodeName | KeyHint | AbstractNode,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> None:
 		"""Connect a portal from here to another node"""
-		if not isinstance(other, (Key, Node)):
+		if not isinstance(other, (Key, AbstractNode)):
 			raise TypeError("Invalid node", other)
 		name: NodeName
-		if isinstance(other, Node):
+		if isinstance(other, AbstractNode):
 			name = other.name
 		else:
 			name = NodeName(other)
@@ -1398,14 +1398,14 @@ class Node(AbstractEntity, AbstractEntityMapping, ABC):
 
 	def new_portal(
 		self,
-		other: KeyHint | NodeName | Node,
+		other: KeyHint | NodeName | AbstractNode,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> Portal:
 		"""Connect a portal from here to another node, and return it."""
-		if not isinstance(other, (Key, Node)):
+		if not isinstance(other, (Key, AbstractNode)):
 			raise TypeError("Invalid node", other)
 		name: NodeName
-		if isinstance(other, Node):
+		if isinstance(other, AbstractNode):
 			name = other.name
 		else:
 			name = NodeName(other)
@@ -1458,7 +1458,7 @@ class Edge(AbstractEntity, AbstractEntityMapping, ABC):
 	dest: NodeName
 
 	@cached_property
-	def origin(self) -> Node:
+	def origin(self) -> AbstractNode:
 		return self.character.node[self.orig]
 
 	@cached_property
@@ -1552,7 +1552,7 @@ class GraphNodeMapping[_K, _V](
 			if entity in self:
 				yield entity
 
-	def __eq__(self, other: Mapping[NodeName, Node]) -> bool:
+	def __eq__(self, other: Mapping[NodeName, AbstractNode]) -> bool:
 		if not isinstance(other, Mapping):
 			return NotImplemented
 		if self.keys() != other.keys():
@@ -1581,7 +1581,7 @@ class GraphNodeMapping[_K, _V](
 			self.character.name, *self.engine.time
 		)
 
-	def __getitem__(self, node: NodeName | KeyHint) -> Node:
+	def __getitem__(self, node: NodeName | KeyHint) -> AbstractNode:
 		"""If the node exists at present, return it, else throw KeyError"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
@@ -2584,7 +2584,7 @@ class EntityAccessor(ABC):
 
 	def __init__(
 		self,
-		entity: GraphMapping | Node | Edge,
+		entity: GraphMapping | AbstractNode | Edge,
 		stat: Stat,
 		engine: AbstractEngine | None = None,
 		branch: Branch | None = None,
@@ -2781,7 +2781,7 @@ class AbstractEngine(ABC):
 	"""
 
 	thing_cls: ClassVar[type[AbstractThing]]
-	place_cls: ClassVar[type[Node]]
+	place_cls: ClassVar[type[AbstractNode]]
 	portal_cls: ClassVar[type[Edge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
 
@@ -3093,7 +3093,7 @@ class AbstractEngine(ABC):
 					MsgpackExtensionType.thing.value,
 					packer([obj.character.name, obj.name]),
 				)
-			elif isinstance(obj, Node):
+			elif isinstance(obj, AbstractNode):
 				return msgpack.ExtType(
 					MsgpackExtensionType.place.value,
 					packer([obj.character.name, obj.name]),
@@ -3497,7 +3497,9 @@ class AbstractEngine(ABC):
 		return self._generate_pack_handlers(Ext)
 
 	@abstractmethod
-	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
+	def _get_node(
+		self, char: DiGraph | CharName, node: NodeName
+	) -> AbstractNode: ...
 
 	def branches(self) -> KeysView[Branch]:
 		return self._branches_d.keys()
@@ -4168,7 +4170,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	@abstractmethod
 	def add_unit(
 		self,
-		a: KeyHint | CharName | Node,
+		a: KeyHint | CharName | AbstractNode,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
 		"""Mark a :class:`Node`, probably not one located in me, as my unit
@@ -4185,7 +4187,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	@abstractmethod
 	def remove_unit(
 		self,
-		a: KeyHint | CharName | Node,
+		a: KeyHint | CharName | AbstractNode,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
 		"""Stop considering a :class:`Node` as a part of me
@@ -4219,7 +4221,9 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
+	ThingMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
+	]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
@@ -4235,7 +4239,9 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		"""
 		return self.ThingMapping(self)
 
-	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
+	PlaceMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
+	]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
@@ -4251,7 +4257,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 		return self.PlaceMapping(self)
 
 	ThingPlaceMapping: ClassVar[
-		type[BaseMutableCharacterMapping[NodeName, Node]]
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
 	]
 
 	@cached_property
@@ -4338,7 +4344,7 @@ class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	UnitGraphMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				CharName, MutableMapping[NodeName, Node]
+				CharName, MutableMapping[NodeName, AbstractNode]
 			]
 		]
 	]
@@ -4524,7 +4530,7 @@ class AbstractThing(AbstractEntity, ABC):
 		return self.character.engine
 
 	@property
-	def location(self) -> Node:
+	def location(self) -> AbstractNode:
 		"""The :class:`~.node.Thing` or :class:`~.node.Place` I'm in."""
 		locn = self["location"]
 		if locn is None:
@@ -4535,15 +4541,15 @@ class AbstractThing(AbstractEntity, ABC):
 			raise AttributeError("Doesn't really exist") from ex
 
 	@location.setter
-	def location(self, v: KeyHint | Node | NodeName):
-		if isinstance(v, Node):
+	def location(self, v: KeyHint | AbstractNode | NodeName):
+		if isinstance(v, AbstractNode):
 			v = v.name
 		elif not isinstance(v, Key):
 			raise TypeError("Invalid location", v)
 		self["location"] = NodeName(v)
 
 	@abstractmethod
-	def to_place(self) -> Node:
+	def to_place(self) -> AbstractNode:
 		"""Convert this to a :class:`~.node.Place`
 
 		Returns a :class:`~.node.Place` object representing the same entity,
@@ -4554,7 +4560,7 @@ class AbstractThing(AbstractEntity, ABC):
 
 	def go_to_place(
 		self,
-		place: KeyHint | Node | NodeName,
+		place: KeyHint | AbstractNode | NodeName,
 		weight: KeyHint | Stat | EllipsisType = ...,
 	) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
@@ -4566,7 +4572,7 @@ class AbstractThing(AbstractEntity, ABC):
 		Return the number of turns the travel will take.
 
 		"""
-		if isinstance(place, Node):
+		if isinstance(place, AbstractNode):
 			placen = place.name
 		elif not isinstance(place, Key):
 			raise TypeError("Invalid node", place)
@@ -4668,7 +4674,7 @@ class AbstractThing(AbstractEntity, ABC):
 
 	def travel_to(
 		self,
-		dest: Node | KeyHint,
+		dest: AbstractNode | KeyHint,
 		weight: Stat | KeyHint | EllipsisType = ...,
 		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
@@ -4694,7 +4700,7 @@ class AbstractThing(AbstractEntity, ABC):
 		:return: The number of turns the travel will take.
 
 		"""
-		if isinstance(dest, Node):
+		if isinstance(dest, AbstractNode):
 			destn = dest.name
 		elif not isinstance(dest, Key):
 			raise TypeError("Invalid node", dest)

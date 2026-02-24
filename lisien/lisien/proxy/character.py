@@ -49,7 +49,7 @@ from lisien.types import (
 	EdgeValDict,
 	Key,
 	KeyHint,
-	Node,
+	AbstractNode,
 	NodeName,
 	NodeValDict,
 	RulebookName,
@@ -107,7 +107,7 @@ class ProxyLeaderMapping(Mapping):
 		][self.node.name]
 
 
-@Node.register
+@AbstractNode.register
 @define(eq=False)
 class NodeProxy(CachingEntityProxy, RuleFollowerProxy, ABC):
 	name: NodeName

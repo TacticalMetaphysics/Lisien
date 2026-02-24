@@ -78,7 +78,7 @@ from .types import (
 	Edge,
 	Key,
 	KeyHint,
-	Node,
+	AbstractNode,
 	NodeName,
 	RulebookName,
 	RuleName,
@@ -111,7 +111,9 @@ class FacadeEntity(
 	@abstractmethod
 	def _real(
 		self,
-	) -> DiGraph | Node | Edge | dict[Stat | Literal["rulebook"], Value]: ...
+	) -> (
+		DiGraph | AbstractNode | Edge | dict[Stat | Literal["rulebook"], Value]
+	): ...
 
 	@cached_property
 	def _patch(self) -> dict[Stat | Literal["rulebook"], Value | type(...)]:
@@ -202,7 +204,7 @@ class FacadeEntity(
 getname = attrgetter("name")
 
 
-class FacadeEntityMapping[_NAME: Key, _CLS: Node | Edge | DiGraph](
+class FacadeEntityMapping[_NAME: Key, _CLS: AbstractNode | Edge | DiGraph](
 	MappingUnwrapper[_NAME, _CLS], MutableMapping[_NAME, _CLS], Signal, ABC
 ):
 	"""Mapping that contains entities in a Facade.
@@ -420,7 +422,7 @@ class FacadeNode(FacadeEntity, ABC):
 				raise AttributeError("No user, or more than one")
 			return self[next(iter(self))]
 
-		def __init__(self, node: Node):
+		def __init__(self, node: AbstractNode):
 			self._entity = node
 
 		def __iter__(self):
@@ -501,7 +503,7 @@ class FacadeNode(FacadeEntity, ABC):
 		return self.character.portal[self.name]
 
 	@property
-	def _real(self) -> Node:
+	def _real(self) -> AbstractNode:
 		return self.character.character.node[self.name]
 
 	def successors(self):
@@ -565,7 +567,7 @@ class FacadeNode(FacadeEntity, ABC):
 		return False
 
 
-Node.register(FacadeNode)
+AbstractNode.register(FacadeNode)
 
 
 class FacadeThing(AbstractThing, FacadeNode):
@@ -576,7 +578,7 @@ class FacadeThing(AbstractThing, FacadeNode):
 		self,
 		character: CharacterFacade,
 		name: NodeName,
-		location: Node | NodeName,
+		location: AbstractNode | NodeName,
 		**kwargs,
 	):
 		if hasattr(location, "name"):
@@ -613,7 +615,7 @@ class FacadePlace(FacadeNode):
 	"""Lightweight analogue of Place for Facade use."""
 
 	@property
-	def _real(self) -> Node:
+	def _real(self) -> AbstractNode:
 		try:
 			return self.character.character.place[self.name]
 		except KeyError as ex:
@@ -709,7 +711,9 @@ class FacadePortal(FacadeEntity):
 	@property
 	def _real(
 		self,
-	) -> DiGraph | Node | Edge | dict[Stat | Literal["rulebook"], Value]:
+	) -> (
+		DiGraph | AbstractNode | Edge | dict[Stat | Literal["rulebook"], Value]
+	):
 		try:
 			return self.character.character.portal[self.orig][self.dest]
 		except KeyError as ex:
@@ -844,7 +848,7 @@ class CharacterFacade(AbstractCharacter):
 			self.add_portal(*it, **attrs)
 
 	def remove_unit(
-		self, a: Node | NodeName | KeyHint, b: FacadeNode | None = None
+		self, a: AbstractNode | NodeName | KeyHint, b: FacadeNode | None = None
 	):
 		if b is None:
 			if not isinstance(a, FacadeNode):
@@ -939,8 +943,8 @@ class CharacterFacade(AbstractCharacter):
 		for ds in self.portal.values():
 			yield from ds.values()
 
-	class UnitGraphMapping(Mapping[CharName, Mapping[NodeName, Node]]):
-		class UnitMapping(Mapping[NodeName, Node]):
+	class UnitGraphMapping(Mapping[CharName, Mapping[NodeName, AbstractNode]]):
+		class UnitMapping(Mapping[NodeName, AbstractNode]):
 			def __init__(self, character, graph_name):
 				self.character = character
 				self.graph_name = graph_name
@@ -1817,7 +1821,7 @@ class EngineFacade(AbstractEngine):
 
 	def _get_node(
 		self, char: AbstractCharacter | CharName, node: NodeName
-	) -> Node:
+	) -> AbstractNode:
 		return self.character[char].node[node]
 
 	def _btt(self):

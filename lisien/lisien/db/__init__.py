@@ -2596,7 +2596,7 @@ class AbstractDatabaseConnector(ABC):
 			# keys and also serialize to msgpack, I don't think there's any name
 			# an entity can have that can't be repr'd
 			return Element("character", name=repr(value.name))
-		elif isinstance(value, lisien.types.Node):
+		elif isinstance(value, lisien.types.AbstractNode):
 			return Element(
 				"node",
 				character=repr(value.character.name),
