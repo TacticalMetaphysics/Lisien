@@ -18,13 +18,12 @@ import tomllib
 
 sys.path.insert(0, os.path.abspath("elide"))
 sys.path.insert(0, os.path.abspath("lisien"))
-sys.path.insert(0, os.path.abspath("./allegedb"))
 os.environ["KIVY_DOC"] = "1"
 
 # -- Project information -----------------------------------------------------
 
 project = "Lisien"
-copyright = "Zachary Spector"
+copyright = "Zachary Avram Spector"
 author = "Zachary Spector"
 
 with open("lisien/pyproject.toml", "rb") as inf:
@@ -50,6 +49,7 @@ extensions = [
 	"sphinx.ext.coverage",
 	"sphinx.ext.viewcode",
 	"sphinx.ext.githubpages",
+	"attrs.sphinx_cached_property",
 ]
 
 autodoc_type_aliases = {"Key": "Key", "DeltaDict": "DeltaDict"}
@@ -154,7 +154,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "lise", "lisien Documentation", [author], 1)]
+man_pages = [(master_doc, "lisien", "lisien Documentation", [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -175,4 +175,9 @@ texinfo_documents = [
 
 # -- Extension configuration -------------------------------------------------
 
-intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
+intersphinx_mapping = {
+	"python": ("https://docs.python.org/3", None),
+	"sqlalchemy": ("https://docs.sqlalchemy.org/en/20/", None),
+	"blinker": ("https://blinker.readthedocs.io/en/stable/", None),
+	"networkx": ("https://networkx.org/documentation/stable/", None),
+}

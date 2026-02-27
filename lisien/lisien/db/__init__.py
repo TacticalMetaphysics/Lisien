@@ -413,9 +413,13 @@ class Batch(list):
 
 	signature: inspect.Signature = field(converter=_convert_sig)
 	cached_properties: ClassVar[dict[str, cached_property]] = {}
-	"""`cached_property` objects produced by `@batched`"""
+	"""A dictionary mapping table names to their :class:`functools.cached_property` objects."""
 	serializers: ClassVar[dict[str, Callable[[Value], bytes]]] = {}
-	"""Serialization functions decorated by `@batched`"""
+	"""A dictionary mapping table names to their serializer functions
+    
+    The same functions decorated with :deco:`~.db.batched`.
+
+    """
 	validate: ClassVar[bool] = True
 	"""Whether to check that records added to the batch are correctly typed tuples"""
 
@@ -2592,13 +2596,13 @@ class AbstractDatabaseConnector(ABC):
 			# keys and also serialize to msgpack, I don't think there's any name
 			# an entity can have that can't be repr'd
 			return Element("character", name=repr(value.name))
-		elif isinstance(value, lisien.types.Node):
+		elif isinstance(value, lisien.types.AbstractNode):
 			return Element(
 				"node",
 				character=repr(value.character.name),
 				name=repr(value.name),
 			)
-		elif isinstance(value, lisien.types.Edge):
+		elif isinstance(value, lisien.types.AbstractEdge):
 			return Element(
 				"portal",
 				character=repr(value.character.name),

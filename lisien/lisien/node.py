@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""The nodes of lisien's character graphs.
+"""The nodes of Lisien's character graphs.
 
 Every node that actually exists is either a Place or a Thing, but they
 have a lot in common.
@@ -30,7 +30,7 @@ from attrs import define
 from networkx import shortest_path, shortest_path_length
 
 import lisien.types
-from lisien.types import Edge
+from lisien.types import AbstractEdge
 
 from . import rule
 from .exc import AmbiguousLeaderError
@@ -284,7 +284,7 @@ class Origs(Mapping):
 			pass
 		return n
 
-	def __getitem__(self, item: KeyHint) -> Edge:
+	def __getitem__(self, item: KeyHint) -> AbstractEdge:
 		if item not in self:
 			raise KeyError
 		portal, name = self.character.portal, self.node.name
@@ -410,7 +410,7 @@ class NeighborMapping(Mapping):
 
 
 @define(eq=False)
-class Node(lisien.types.Node, rule.RuleFollower):
+class Node(lisien.types.AbstractNode, rule.RuleFollower):
 	"""The fundamental graph component, which portals go between.
 
 	Every lisien node is either a thing or a place. They share in common

@@ -303,7 +303,14 @@ class Cache[*_PARENT, _ENTITY: Key, _KEY: Key, _VALUE: Value, _KEYFRAME: dict](
 		return PickyDefaultDict(EntikeySettingsTurnDict)
 
 	@cached_property
-	def time_entity(self):
+	def time_entity(
+		self,
+	) -> dict[tuple[Branch, Turn, Tick], tuple[*_PARENT, _ENTITY, _KEY]]:
+		"""The parent, entity, and key that were changed at some time
+
+		We track this so that we can find data to unload.
+
+		"""
 		return {}
 
 	@cached_property

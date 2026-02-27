@@ -1,14 +1,21 @@
+.. Copyright (C)  2026  Zachary Avram Spector.
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the section entitled "GNU
+    Free Documentation License".
+
 =======
   API
 =======
 
-Here is the portion of Lisien's codebase that game developers should be
-familiar with. Generally, you should access everything through an
-:class:`lisien.engine.Engine` object. The exception is when Lisien is not
-running in the same process, in which case, you'll need
-:class:`lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
-But :class:`lisien.proxy.engine.EngineProxy` works just like
-:class:`lisien.engine.Engine`, for the most part.
+Here is the portion of Lisien's codebase that game developers should be familiar with.
+Generally, you should access everything through an :class:`.Engine` object.
+The exception is when Lisien is not running in the same process, in which case,
+you'll need :class:`~lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
+But :class:`~lisien.proxy.engine.EngineProxy` works just like :class:`.Engine`,
+for the most part.
 
 ########
  engine
@@ -16,9 +23,11 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.engine
 
-   .. autoclass:: Engine
+   .. autoclass:: Engine(prefix: Path | PathLike[str] | None = None)
     :members:
-    :exclude-members: RulesTodoType, branch, turn, tick, is_ancestor_of, thing_cls, portal_cls, place_cls, new_character, add_character, get_delta
+    :exclude-members: RulesTodoType, branch, turn, tick, is_ancestor_of, thing_cls, portal_cls, place_cls, new_character, add_character, get_delta, trigger, prereq, action, from_archive
+
+    .. automethod:: from_archive(archive_path: PathLike[str] | Path, prefix: PathLike[str] | Path)
 
     .. autoproperty:: branch
 
@@ -52,37 +61,6 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
         It will be passed the time object itself, as well as tuples of the
         previous time ``then`` and the current time ``now``.
-    .. py:property:: rule
-
-        A mapping of all :class:`lisien.rule.Rule` objects that have been made.
-
-        It's possible to make new rules with this. It works the same way as the
-        ``rule`` decorator that all Lisien entities have, but doesn't result
-        in the rule being assigned to anything::
-
-            @engine.rule
-            def do_something(obj):
-                ...
-
-            print(type(do_something))
-
-        This prints ``<class 'lisien.rule.Rule'>``. You'll need to put the rule
-        in a rulebook yourself.
-
-    .. py:property:: rulebook
-
-        A mapping of :class:`lisien.rule.Rulebook` objects that exist.
-
-        Rulebooks must be assigned to entities' ``rulebook`` property before
-        they will run, but each entity gets its own rulebook by default.
-        Those rulebooks appear here when the entity is created.
-
-        Rules created with an entity's ``@rule`` decorator go on the end of
-        the entity's rulebook. You can reorder that rulebook the same way as
-        a Python list, or put :class:`lisien.rule.Rule` objects in it yourself.
-        For convenience, :class:`lisien.rule.Rulebook` will interpret
-        the names of rules as if they were the :class:`lisien.rule.Rule`
-        by that name.
 
     .. py:property:: eternal
 
@@ -129,20 +107,13 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
     .. autoattribute:: function
 
-    .. py:property:: rule
-
-         A mapping of :class:`lisien.rule.Rule` objects, whether applied to an entity or not.
-
-         Can also be used as a decorator on functions to make them into new rules, with the decorated function as
-         their initial action.
-
     .. py:method:: next_turn() -> tuple[list, DeltaDict]
 
          Make time move forward in the simulation.
 
          Stops when the turn has ended, or a rule returns something non-``None``.
 
-         This is also a :class:`blinker.Signal`, so you can register functions to be
+         This is also a :class:`~blinker.Signal`, so you can register functions to be
          called when the simulation runs. Pass them in like::
 
             from lisien import Engine
@@ -172,81 +143,22 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
  character
 ###########
 
+.. autoclass:: lisien.types.AbstractCharacter
+    :members:
+    :exclude-members: adj, edge, succ, pred, add_node, add_edge, add_nodes_from, add_edges_from
+
 .. automodule:: lisien.character
 
     .. autoclass:: Character
-        :members:
-        :exclude-members: stat, place, thing, node, unit, portal, preportal
-
-        .. py:property:: stat
-
-            A mapping of game-time-sensitive data.
-
-        .. py:property:: place
-
-            A mapping of :class:`lisien.node.Place` objects in this :class:`Character`.
-            :class:`lisien.node.Thing` objects may be located in these.
-
-            This mapping has a ``rule`` method for applying new rules to every
-            :class:`Place` here, and a ``rulebook`` property for assigning premade
-            rulebooks.
-
-        .. py:property:: thing
-
-            A mapping of :class:`lisien.node.Thing` objects in this :class:`Character`,
-            representing the type of node that can be located in another node--either
-            a :class:`lisien.node.Place` or a :class:`lisien.node.Thing`.
-
-            This mapping a ``rule`` method for applying new rules to every
-            :class:`Thing` here, and a ``rulebook`` property for
-            assigning premade rulebooks.
-
-        .. py:property:: node
-
-            A mapping of :class:`lisien.node.Thing` and :class:`lisien.node.Place`
-            objects in this :class:`Character`.
-
-            This mapping has a ``rule`` method for applying new rules to every
-            :class:`Node` here, and a ``rulebook`` property for
-            assigning premade rulebooks.
-
-        .. py:property:: unit
-
-            A two-layer mapping of this character's units in other characters.
-
-            Units are nodes in other characters that are in some sense part of this one. A common example in strategy
-            games is when a general leads an army: the general is one :class:`Character`, with a graph representing the
-            state of their AI; the battle map is another :class:`Character`; and the general's units, though not in the
-            general's :class:`Character`, are still under their command, and therefore follow rules defined on the
-            general's ``unit.rule`` subproperty.
-
-            The outer layer is the name of the character. The inner layer is the name
-            of the unit, which may be a :class:`lisien.node.Place` or a
-            :class:`lisien.node.Thing`.
-
-        .. py:property:: portal
-
-            A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by origin and destination
-
-            Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
-            assigning premade rulebooks.
-
-            Aliases:  ``adj``, ``edge``, ``succ``
-
-        .. py:property:: preportal
-
-            A two-layer mapping of :class:`lisien.portal.Portal` objects in this :class:`Character`, by destination and origin
-
-            Has a ``rule`` method for applying new rules to every :class:`Portal` here, and a ``rulebook`` property for
-            assigning premade rulebooks.
-
-            Alias: ``pred``
 
 ######
  node
 ######
 
 .. automodule:: lisien.node
+
+    .. autoclass:: lisien.types.AbstractNode
+        :members:
 
     .. autoclass:: lisien.node.Node
         :members:
@@ -263,25 +175,11 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.portal
 
+    .. autoclass:: lisien.types.AbstractEdge
+        :members:
+
     .. autoclass:: Portal
         :members:
-        :exclude-members: origin, destination, character, engine
-
-        .. py:attribute:: origin
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads out from
-
-        .. py:attribute:: destination
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads into
-
-        .. py:property:: character
-
-            The :class:`lisien.character.Character` that this is in
-
-        .. py:property:: engine
-
-            The :class:`lisien.engine.Engine` that this is in
 
 ######
  rule
@@ -301,6 +199,7 @@ But :class:`lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.facade
 
+.. _proxy:
 #######
  proxy
 #######
@@ -351,17 +250,12 @@ extend Lisien's capabilities.
         :members:
         :exclude-members: cached_properties, serializers
 
-        .. py:attribute:: cached_properties
-            :type: dict[str, functools.cached_property]
+        .. autoattribute:: cached_properties
+            :no-value:
 
-            A dictionary mapping table names to their
-            :class:`functools.cached_property` objects.
+        .. autoattribute:: serializers
+            :no-value:
 
-        .. py:attribute:: serializers
-            :type: dict[str, Callable]
-
-            A dictionary mapping table names to their serializer functions,
-            decorated with :deco:`lisien.db.batched`
 
 -----
  sql
@@ -461,6 +355,7 @@ extend Lisien's capabilities.
 
 .. automodule:: lisien.types
     :members:
+    :exclude-members: AbstractCharacter
 
 ######
  util

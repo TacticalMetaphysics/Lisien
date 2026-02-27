@@ -149,8 +149,8 @@ def is_valid_value(obj: Any) -> TypeGuard[Value]:
 			isinstance(obj, (list, tuple, set, frozenset))
 			and all(is_valid_value(elem) for elem in obj)
 		)
-		or isinstance(obj, Node)
-		or isinstance(obj, Edge)
+		or isinstance(obj, AbstractNode)
+		or isinstance(obj, AbstractEdge)
 		or isinstance(obj, DiGraph)
 		or (
 			isinstance(obj, (list, ListWrapper))
@@ -1297,10 +1297,16 @@ class GraphMapping(AbstractEntityMapping[Stat, Value], ABC):
 		return me == other
 
 
-@define(eq=False)
-class Node(AbstractEntityMapping, ABC):
+class AbstractEntity(ABC):
 	__slots__ = ()
 
+	@property
+	@abstractmethod
+	def engine(self) -> AbstractEngine: ...
+
+
+@define(eq=False)
+class AbstractNode(AbstractEntity, AbstractEntityMapping, ABC):
 	character: AbstractCharacter
 	name: NodeName
 
@@ -1375,14 +1381,14 @@ class Node(AbstractEntityMapping, ABC):
 
 	def add_portal(
 		self,
-		other: NodeName | KeyHint | Node,
+		other: NodeName | KeyHint | AbstractNode,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> None:
 		"""Connect a portal from here to another node"""
-		if not isinstance(other, (Key, Node)):
+		if not isinstance(other, (Key, AbstractNode)):
 			raise TypeError("Invalid node", other)
 		name: NodeName
-		if isinstance(other, Node):
+		if isinstance(other, AbstractNode):
 			name = other.name
 		else:
 			name = NodeName(other)
@@ -1390,14 +1396,14 @@ class Node(AbstractEntityMapping, ABC):
 
 	def new_portal(
 		self,
-		other: KeyHint | NodeName | Node,
+		other: KeyHint | NodeName | AbstractNode,
 		**stats: dict[Stat | KeyHint, Value | ValueHint],
 	) -> Portal:
 		"""Connect a portal from here to another node, and return it."""
-		if not isinstance(other, (Key, Node)):
+		if not isinstance(other, (Key, AbstractNode)):
 			raise TypeError("Invalid node", other)
 		name: NodeName
-		if isinstance(other, Node):
+		if isinstance(other, AbstractNode):
 			name = other.name
 		else:
 			name = NodeName(other)
@@ -1440,7 +1446,7 @@ class Node(AbstractEntityMapping, ABC):
 
 
 @define(eq=False)
-class Edge(AbstractEntityMapping, ABC):
+class AbstractEdge(AbstractEntity, AbstractEntityMapping, ABC):
 	"""Mapping for edge attributes"""
 
 	__slots__ = ()
@@ -1450,7 +1456,7 @@ class Edge(AbstractEntityMapping, ABC):
 	dest: NodeName
 
 	@cached_property
-	def origin(self) -> Node:
+	def origin(self) -> AbstractNode:
 		return self.character.node[self.orig]
 
 	@cached_property
@@ -1544,7 +1550,7 @@ class GraphNodeMapping[_K, _V](
 			if entity in self:
 				yield entity
 
-	def __eq__(self, other: Mapping[NodeName, Node]) -> bool:
+	def __eq__(self, other: Mapping[NodeName, AbstractNode]) -> bool:
 		if not isinstance(other, Mapping):
 			return NotImplemented
 		if self.keys() != other.keys():
@@ -1573,7 +1579,7 @@ class GraphNodeMapping[_K, _V](
 			self.character.name, *self.engine.time
 		)
 
-	def __getitem__(self, node: NodeName | KeyHint) -> Node:
+	def __getitem__(self, node: NodeName | KeyHint) -> AbstractNode:
 		"""If the node exists at present, return it, else throw KeyError"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
@@ -1679,7 +1685,7 @@ class GraphNodeMapping[_K, _V](
 @define(eq=False)
 class GraphEdgeMapping[
 	_ORIG: NodeName,
-	_DEST: MutableMapping[_DEST, Edge] | bool,
+	_DEST: MutableMapping[_DEST, AbstractEdge] | bool,
 ](
 	MutableMapping[_ORIG, _DEST],
 	AttrSignal,
@@ -1722,7 +1728,7 @@ class GraphEdgeMapping[
 
 @define
 class AbstractSuccessors(
-	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+	MutableMapping[NodeName, MutableMapping[NodeName, AbstractEdge]], ABC
 ):
 	__slots__ = ()
 
@@ -1768,10 +1774,10 @@ class AbstractSuccessors(
 			pass
 		return n
 
-	def _make_edge(self, dest: NodeName) -> Edge:
-		return Edge(self.character, *self._order_nodes(dest))
+	def _make_edge(self, dest: NodeName) -> AbstractEdge:
+		return AbstractEdge(self.character, *self._order_nodes(dest))
 
-	def __getitem__(self, dest: KeyHint | NodeName) -> Edge:
+	def __getitem__(self, dest: KeyHint | NodeName) -> AbstractEdge:
 		"""Get the edge between my orig and the given node"""
 		if not isinstance(dest, Key):
 			raise TypeError("Invalid node", dest)
@@ -1908,7 +1914,7 @@ class GraphSuccessorsMapping(
 		__slots__ = ()
 
 		@cached_property
-		def _cache(self) -> dict[NodeName, Edge]:
+		def _cache(self) -> dict[NodeName, AbstractEdge]:
 			return {}
 
 		def _order_nodes(self, dest: NodeName):
@@ -2029,7 +2035,7 @@ class DiGraphSuccessorsMapping(GraphSuccessorsMapping, ABC):
 
 @define
 class DiGraphPredecessorsMapping(
-	MutableMapping[NodeName, MutableMapping[NodeName, Edge]], ABC
+	MutableMapping[NodeName, MutableMapping[NodeName, AbstractEdge]], ABC
 ):
 	"""Mapping for Predecessors instances, which map to Edges that end at
 	the dest provided to this
@@ -2105,7 +2111,7 @@ class DiGraphPredecessorsMapping(
 		return len(self.character.node)
 
 	@define
-	class Predecessors(MutableMapping[NodeName, Edge]):
+	class Predecessors(MutableMapping[NodeName, AbstractEdge]):
 		"""Mapping of Edges that end at a particular node"""
 
 		__slots__ = ()
@@ -2145,10 +2151,10 @@ class DiGraphPredecessorsMapping(
 				pass
 			return n
 
-		def _make_edge(self, orig: NodeName) -> Edge:
-			return Edge(self.character, orig, self.dest)
+		def _make_edge(self, orig: NodeName) -> AbstractEdge:
+			return AbstractEdge(self.character, orig, self.dest)
 
-		def __getitem__(self, orig: KeyHint | NodeName) -> Edge:
+		def __getitem__(self, orig: KeyHint | NodeName) -> AbstractEdge:
 			"""Get the edge from the given node to mine"""
 			if not isinstance(orig, Key):
 				raise TypeError("Invalid node", orig)
@@ -2228,6 +2234,7 @@ def unwrapped_dict(d) -> dict:
 	return ret
 
 
+@define(eq=False)
 class DiGraph(nx.DiGraph, ABC):
 	"""A version of the networkx.DiGraph class that stores its state in a
 	database.
@@ -2238,15 +2245,6 @@ class DiGraph(nx.DiGraph, ABC):
 	pred_cls: ClassVar = DiGraphPredecessorsMapping
 	graph_map_cls: ClassVar = GraphMapping
 	node_map_cls: ClassVar = GraphNodeMapping
-
-	def __new__(
-		cls,
-		engine: AbstractEngine | None = None,
-		name: CharName | None = None,
-		*,
-		init_rulebooks: bool = False,
-	):
-		return super().__new__(cls)
 
 	def _nodes_state(self) -> dict[NodeName, dict[Stat, Value]]:
 		return {
@@ -2267,7 +2265,7 @@ class DiGraph(nx.DiGraph, ABC):
 				ret[orig] = {}
 			origd = ret[orig]
 			dest: NodeName
-			edge: Edge
+			edge: AbstractEdge
 			for dest, edge in dests.items():
 				if ismul:
 					if dest not in origd:
@@ -2584,7 +2582,7 @@ class EntityAccessor(ABC):
 
 	def __init__(
 		self,
-		entity: GraphMapping | Node | Edge,
+		entity: GraphMapping | AbstractNode | AbstractEdge,
 		stat: Stat,
 		engine: AbstractEngine | None = None,
 		branch: Branch | None = None,
@@ -2781,8 +2779,8 @@ class AbstractEngine(ABC):
 	"""
 
 	thing_cls: ClassVar[type[AbstractThing]]
-	place_cls: ClassVar[type[Node]]
-	portal_cls: ClassVar[type[Edge]]
+	place_cls: ClassVar[type[AbstractNode]]
+	portal_cls: ClassVar[type[AbstractEdge]]
 	char_cls: ClassVar[type[AbstractCharacter]]
 
 	@property
@@ -3093,12 +3091,12 @@ class AbstractEngine(ABC):
 					MsgpackExtensionType.thing.value,
 					packer([obj.character.name, obj.name]),
 				)
-			elif isinstance(obj, Node):
+			elif isinstance(obj, AbstractNode):
 				return msgpack.ExtType(
 					MsgpackExtensionType.place.value,
 					packer([obj.character.name, obj.name]),
 				)
-			elif isinstance(obj, Edge):
+			elif isinstance(obj, AbstractEdge):
 				return msgpack.ExtType(
 					MsgpackExtensionType.portal.value,
 					packer(
@@ -3497,7 +3495,9 @@ class AbstractEngine(ABC):
 		return self._generate_pack_handlers(Ext)
 
 	@abstractmethod
-	def _get_node(self, char: DiGraph | CharName, node: NodeName) -> Node: ...
+	def _get_node(
+		self, char: DiGraph | CharName, node: NodeName
+	) -> AbstractNode: ...
 
 	def branches(self) -> KeysView[Branch]:
 		return self._branches_d.keys()
@@ -3575,7 +3575,29 @@ class AbstractEngine(ABC):
 		node: NodeValDict | None = None,
 		edge: EdgeValDict | None = None,
 		**kwargs,
-	): ...
+	):
+		"""Create a new character.
+
+		You'll be able to access it as a :class:`Character` object by
+		looking up ``name`` in my ``character`` property.
+
+		``data``, if provided, should be a :class:`networkx.Graph`
+		or :class:`networkx.DiGraph` object. The character will be
+		a copy of it.
+
+		``node`` may be a dictionary of dictionaries representing either
+		``Thing`` objects, if they have a ``"location"`` key, or else
+		``Place`` objects.
+
+		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,
+		connecting mainly ``Place`` objects together.
+
+		With ``layout=True``, compute a layout to make the
+		graph show up nicely in elide.
+
+		Any keyword arguments will be set as stats of the new character.
+
+		"""
 
 	def new_character(
 		self,
@@ -3586,6 +3608,11 @@ class AbstractEngine(ABC):
 		edge: EdgeValDict | None = None,
 		**kwargs,
 	):
+		"""Create and return a new :class:`Character`.
+
+		See :meth:`add_character` for details.
+
+		"""
 		self.add_character(name, data)
 		return self.character[name]
 
@@ -3709,16 +3736,16 @@ class BaseMutableCharacterMapping[_KT, _VT](
 
 
 @define(eq=False)
-class AbstractCharacter(DiGraph, ABC):
+class AbstractCharacter(DiGraph, AbstractEntity, ABC):
 	"""The Character API, with all requisite mappings and graph generators.
 
 	Mappings resemble those of a NetworkX digraph:
 
-	* ``thing`` and ``place`` are subsets of ``node``
-	* ``edge``, ``adj``, and ``succ`` are aliases of ``portal``
-	* ``pred`` is an alias to ``preportal``
-	* ``stat`` is a dict-like mapping of data that changes over game-time,
-	to be used in place of graph attributes
+	* :attr:`thing` and :attr:`place` are subsets of :attr:`node`
+	* :attr:`edge`, :attr:`adj`, and :attr:`succ` are aliases of :attr:`portal`
+	* :attr:`pred` is an alias to :attr:`preportal`
+	* :attr:`stat` is a dict-like mapping of data that changes over game-time,
+		to be used in place of graph attributes
 
 	"""
 
@@ -3742,14 +3769,30 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@abstractmethod
 	def add_place(self, name: KeyHint | NodeName, **kwargs):
-		pass
+		"""Add a new node of the kind that is not located anywhere else
+
+		Keyword arguments will be used as its initial stats.
+
+		Alias: :meth:`add_node`
+
+		"""
 
 	def add_node(self, name: KeyHint | NodeName, **kwargs):
 		self.add_place(name, **kwargs)
 
 	@abstractmethod
 	def add_places_from(self, seq: Iterable, **attrs):
-		pass
+		r"""Add many :class:`~.node.Place`\s.
+
+		:param seq: An iterable of :class:`~.node.Place` names;
+			or, pairs of ``(name, stats)``,
+			where ``stats`` is a dictionary of that one :class:`.node.Place`'s
+			initial stats.
+			Hashable tuples, however, are valid place names,
+			and will be used as-is.
+		:param attrs: The initial stats of the :class:`~.node.Place`.
+
+		"""
 
 	def add_nodes_from(self, seq: Iterable, **attrs):
 		self.add_places_from(seq, **attrs)
@@ -3759,9 +3802,26 @@ class AbstractCharacter(DiGraph, ABC):
 		name: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		"""Add a Place and return it.
+		r"""Add a :class:`~.node.Place` and return it.
 
-		If there's already a Place by that name, put a number on the end.
+		This consumes more memory than :meth:`add_node`, because it has to
+		create a Python object to represent the :class:`~.node.Place`,
+		which :meth:`add_node` does not.
+		If you're creating many thousands of places,
+		consider sticking with :meth:`add_place`
+		or :meth:`add_places_from`.
+
+		Alias: :meth:`new_node`
+
+		:param name: The :class:`~.node.Place`'s name. It must be both
+			serializable and unique within this character's nodes,
+			including :class:`~.node.Thing`\s.
+			If ``name`` is a :type:`str`,
+			and there is already a node by that name,
+			the new one will have a "0" on the end of its name.
+			If there's a node by that name as well,
+			the integer will increase until there isn't.
+		:param kwargs: The initial stats of the :class:`~.node.Place`.
 
 		"""
 		if not isinstance(name, Key):
@@ -3789,11 +3849,29 @@ class AbstractCharacter(DiGraph, ABC):
 	def add_thing(
 		self, name: KeyHint | NodeName, location: KeyHint | NodeName, **kwargs
 	):
-		pass
+		r"""Add a node that is inside of some other node in this character.
+
+		:param name: The :class:`~.node.Thing`'s name. Must be both serializable
+			and unique within this character's nodes,
+			including :class:`~.none.Place`\s.
+		:param location: The name of the node the new :class:`~.node.Thing` is
+			to be located in. It must already exist.
+
+		"""
 
 	@abstractmethod
 	def add_things_from(self, seq: Iterable, **attrs):
-		pass
+		r"""Add many nodes located in other nodes.
+
+		:param seq: An iterable of tuples. They may be pairs, in which case,
+			item 0 is the name of the new :class:`~.node.Thing`,
+			and item 1 is the name of its initial location,
+			either a :class:`~.node.Place` or a :class:`~.node.Thing`.
+			If there is an additional third item, it is a dictionary
+			of the :class:`~.node.Thing`'s initial stats.
+		:param attrs: Initial stats to use by default.
+
+		"""
 
 	def new_thing(
 		self,
@@ -3801,9 +3879,24 @@ class AbstractCharacter(DiGraph, ABC):
 		location: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		"""Add a Thing and return it.
+		r"""Add a :class:`~.node.Thing` and return it.
 
-		If there's already a Thing by that name, put a number on the end.
+		This consumes more memory than :meth:`add_thing`,
+		because it has to create a Python object to represent it.
+		If you're creating many thousands of things,
+		consider sticking with :meth:`add_thing`
+		or :meth:`add_things_from`.
+
+		:param name: The :class:`~.node.Thing`'s name. Must be both serializable
+			and unique within this character's nodes,
+			including :class:`~.none.Place`\s.
+			If ``name`` is a :type:`str`,
+			and there is already a node by that name,
+			the new one will have a "0" on the end of its name.
+			If there's a node by that name as well, the integer will increase
+			until there isn't.
+		:param location: The name of the initial location of the :class:`~.node.Thing`.
+		:param kwargs: Initial stats.
 
 		"""
 		if not isinstance(name, Key):
@@ -3828,19 +3921,67 @@ class AbstractCharacter(DiGraph, ABC):
 	@abstractmethod
 	def place2thing(
 		self, place: KeyHint | NodeName, location: KeyHint | NodeName
-	) -> None: ...
+	) -> None:
+		"""Convert an existing :class:`~.node.Place` into a :class:`~.node.Thing`.
+
+		If you have a :class:`~.node.Place` object of it already,
+		it will still work,
+		but won't have the additional properties and methods of :class:`~.node.Thing`.
+		Get the :class:`~.node.Thing` out of my :attr:`thing` mapping
+		when you need those.
+
+		:param place: name of an existing :class:`~.node.Place`
+		:param location: name of some other existing node to locate it in
+
+		"""
 
 	@abstractmethod
-	def thing2place(self, thing: KeyHint | NodeName) -> None: ...
+	def thing2place(self, thing: KeyHint | NodeName) -> None:
+		"""Convert an existing :class:`~.node.Thing` into a :class:`~.node.Place`
+
+		If you have a :class:`~.node.Thing` object of it already,
+		many of its properties and methods will be disabled.
+		Get the :class:`~.node.Place` out of my :attr:`place` mapping
+		to reduce confusion.
+
+		:param thing: name of an existing :class:`~.node.Thing`
+
+		"""
 
 	def remove_node(self, node: KeyHint | NodeName):
+		r"""Delete a node from me
+
+		If there are any :class:`~.node.Thing`\s in the node,
+		they'll be deleted as well. So will any :class:`~.portal.Portal`\s
+		leading into or out of here.
+		If you're holding onto their objects, they'll be useless,
+		so their truth value will change to ``False``.
+
+		:param node: name of an existing :class:`~.node.Place` or :class:`~.node.Thing`
+
+		"""
 		if not isinstance(node, Key):
 			raise TypeError("Invalid node", node)
 		node = NodeName(node)
 		if node in self.node:
+			# This may instantiate an object, which isn't great for performance
+			# It'd be better to override it
 			self.node[node].delete()
 
 	def remove_nodes_from(self, nodes: Iterable[KeyHint | NodeName]):
+		r"""Delete several nodes from me
+
+		Any :class:`~.node.Thing`\s located in any of them,
+		and any :class:`~.portal.Portal` connected to them,
+		will be deleted as well.
+		Deleted entities' objects, if still present in your game,
+		will be useless.
+		Their truth value will change to ``False`` to reflect this.
+
+		:param nodes: iterable of names of existing
+			:class:`~.node.Place`\s and/or :class:`~.node.Thing`\s
+
+		"""
 		for node in nodes:
 			if not isinstance(node, Key):
 				raise TypeError("Invalid node", node)
@@ -3855,7 +3996,24 @@ class AbstractCharacter(DiGraph, ABC):
 		dest: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		pass
+		r"""Connect two :class:`~.node.Thing`\s or :class:`~.node.Place`\s with a :class:`~.portal.Portal`
+
+		It's possible to connect a :class:`~.node.Place`
+		to a :class:`~.node.Thing`, or vice versa.
+		This would be a sensible way to model, for instance,
+		a vehicle's door opening, permitting exit.
+		Or, for that matter, wormholes from science fiction,
+		if the start or end point can move.
+
+		Alias: :meth:`add_edge`
+
+		:param orig: Name of an existing node
+			that the :class:`~.portal.Portal` starts from
+		:param dest: Name of an existing node
+			that the :class:`~.portal.Portal` ends at
+		:param kwargs: Initial stats for the :class:`~.portal.Portal`
+
+		"""
 
 	def add_edge(
 		self,
@@ -3871,6 +4029,19 @@ class AbstractCharacter(DiGraph, ABC):
 		dest: KeyHint | NodeName,
 		**kwargs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
+		"""Create and return a new :class:`~.portal.Portal`
+
+		This consumes more memory than :meth:`add_portal`,
+		because it makes a Python object to represent the portal.
+		If you're making many thousands of portals,
+		you might want to stick to :meth:`add_portal`
+		or :meth:`add_portals_from`.
+
+		:param orig: Name of the portal's origin. It must already exist.
+		:param dest: Name of the portal's destination. It must already exist.
+		:param kwargs: Initial stats for the :class:`~.portal.Portal`.
+
+		"""
 		self.add_portal(orig, dest, **kwargs)
 		return self.portal[orig][dest]
 
@@ -3880,7 +4051,14 @@ class AbstractCharacter(DiGraph, ABC):
 		seq: Iterable,
 		**attrs: dict[Stat, Value] | dict[KeyHint, ValueHint],
 	):
-		pass
+		"""Connect many nodes with many portals
+
+		:param seq: Iterable of tuples, which may be pairs or triples.
+			Item 0 is the name of the origin node,
+			and item 1 is the name of the destination node.
+			If there is an item 2,
+			it is a dictionary of the portal's initial stats.
+		:param attrs: Initial stats to use by default."""
 
 	def add_edges_from(self, seq: Iterable, **attrs):
 		self.add_portals_from(seq, **attrs)
@@ -3889,11 +4067,28 @@ class AbstractCharacter(DiGraph, ABC):
 	def remove_portal(
 		self, origin: KeyHint | NodeName, destination: KeyHint | NodeName
 	):
-		pass
+		"""Delete a portal from the world
+
+		If you have a :class:`~.portal.Portal` object of it,
+		its truth value will be ``False``,
+		and it will be useless.
+
+		"""
 
 	def remove_portals_from(
 		self, seq: Iterable[tuple[KeyHint | NodeName, KeyHint | NodeName]]
 	):
+		r"""Delete many :class:`~.portal.Portal`\s
+
+		If you're still holding onto their objects, they won't work,
+		and their truth value will change to ``False`` to reflect the fact.
+
+		Alias: :meth:`remove_edges_from`
+
+		:param seq: Pairs of names of the origin and the destination of the
+			:class:`~.portal.Portal`\s to delete.
+
+		"""
 		for orig, dest in seq:
 			if not isinstance(orig, Key):
 				raise TypeError("Invalid node", orig)
@@ -3910,37 +4105,98 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@abstractmethod
 	def remove_place(self, place: KeyHint | NodeName):
-		pass
+		r"""Delete a :class:`~.node.Place` from me
+
+		Any :class:`~.node.Thing`\s in the :class:`~.node.Place`,
+		and any :class:`~.portal.Portal` connected to it,
+		will also be deleted.
+
+		:param place: The :class:`~.node.Place`'s name
+
+		"""
 
 	def remove_places_from(self, seq: Iterable[KeyHint | NodeName]):
+		r"""Delete many of my :class:`~.node.Place`\s
+
+		:class:`~.node.Thing`\s in them,
+		and :class:`~.portal.Portal`\s connected to them,
+		will also be deleted.
+
+		:param seq: Iterable of :class:`~.node.Place` names.
+			They must all exist.
+
+		"""
 		for place in seq:
 			if not isinstance(place, Key):
 				raise TypeError("Invalid node", place)
+			if place not in self.place:
+				raise KeyError("No such place", place)
+		for place in seq:
 			self.remove_place(place)
 
 	@abstractmethod
 	def remove_thing(self, thing: KeyHint | NodeName) -> None:
-		pass
+		r"""Delete a :class:`~.node.Thing` from me
+
+		Other :class:`~.node.Thing`\s in it,
+		and :class:`~.portal.Portal`\s connected to it,
+		will also be deleted.
+
+		:param thing: Name of the :class:`~.node.Thing`
+
+		"""
 
 	def remove_things_from(self, seq: Iterable[KeyHint | NodeName]) -> None:
+		r"""Delete many of my :class:`~.node.Thing`\s
+
+		Any other :class:`~.node.Thing`\s in them,
+		and :class:`~.portal.Portal`\s connected to them,
+		will also be deleted.
+
+		:param seq: Iterable of :class:`~.node.Thing` names.
+			They must all exist.
+
+		"""
+		for thing in seq:
+			if not isinstance(thing, Key):
+				raise TypeError("Invalid thing name", thing)
+			if thing not in self.thing:
+				raise KeyError("Thing does not exist", thing)
 		for thing in seq:
 			self.remove_thing(thing)
 
 	@abstractmethod
 	def add_unit(
 		self,
-		a: KeyHint | CharName | Node,
+		a: KeyHint | CharName | AbstractNode,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
-		pass
+		"""Mark a :class:`Node`, probably not one located in me, as my unit
+
+		My units are, in some sense, a part of me; what that means is determined
+		by the rules they follow. Rules assigned to my ``unit`` property
+		are followed by all of them, whatever character they happen to be in.
+
+		May be called with only one argument, the actual :class:`Node` object,
+		or with two, a character's name and the name of a node in it.
+
+		"""
 
 	@abstractmethod
 	def remove_unit(
 		self,
-		a: KeyHint | CharName | Node,
+		a: KeyHint | CharName | AbstractNode,
 		b: Optional[KeyHint | NodeName] = None,
 	) -> None:
-		pass
+		"""Stop considering a :class:`Node` as a part of me
+
+		This just means the node won't follow rules assigned to my ``unit``
+		property anymore. It still exists.
+
+		May be called with only one argument, the actual :class:`Node` object,
+		or with two, a character's name and the name of a node in it.
+
+		"""
 
 	def __iter__(self):
 		return iter(self.node)
@@ -3963,20 +4219,43 @@ class AbstractCharacter(DiGraph, ABC):
 	def __getitem__(self, k: KeyHint | NodeName):
 		return self.adj[k]
 
-	ThingMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
+	ThingMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
+	]
 
 	@cached_property
 	def thing(self) -> ThingMapping:
+		"""A mapping of :class:`~.node.Thing` objects in this :class:`Character`
+
+		They represent the type of node that can be located in another node--either
+		a :class:`~.node.Place` or a :class:`~.node.Thing`.
+
+		This mapping has a ``rule`` method for applying new rules to every
+		:class:`~.node.Thing` here, and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		"""
 		return self.ThingMapping(self)
 
-	PlaceMapping: ClassVar[type[BaseMutableCharacterMapping[NodeName, Node]]]
+	PlaceMapping: ClassVar[
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
+	]
 
 	@cached_property
 	def place(self) -> PlaceMapping:
+		"""A mapping of :class:`~.node.Place` objects in this :class:`Character`
+
+		:class:`~.node.Thing` objects may be located in these.
+
+		This mapping has a ``rule`` method for applying new rules to every
+		:class:`Place` here, and a ``rulebook`` property for assigning premade
+		rulebooks.
+
+		"""
 		return self.PlaceMapping(self)
 
 	ThingPlaceMapping: ClassVar[
-		type[BaseMutableCharacterMapping[NodeName, Node]]
+		type[BaseMutableCharacterMapping[NodeName, AbstractNode]]
 	]
 
 	@cached_property
@@ -3994,7 +4273,7 @@ class AbstractCharacter(DiGraph, ABC):
 	PortalSuccessorsMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				NodeName, MutableMapping[NodeName, Edge]
+				NodeName, MutableMapping[NodeName, AbstractEdge]
 			]
 		]
 	]
@@ -4005,6 +4284,14 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@property
 	def portal(self):
+		"""A two-layer mapping of :class:`~.portal.Portal` objects in this :class:`Character`, by origin and destination
+
+		Has a ``rule`` method for applying new rules to every :class:`~.portal.Portal` here, and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		Aliases:  :attr:`adj`, :attr:`edge`, :attr:`succ`
+
+		"""
 		return self._succ
 
 	@property
@@ -4022,7 +4309,7 @@ class AbstractCharacter(DiGraph, ABC):
 	PortalPredecessorsMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				NodeName, MutableMapping[NodeName, Edge]
+				NodeName, MutableMapping[NodeName, AbstractEdge]
 			]
 		]
 	]
@@ -4033,6 +4320,19 @@ class AbstractCharacter(DiGraph, ABC):
 
 	@property
 	def preportal(self):
+		"""A two-layer mapping of :class:`~.portal.Portal` objects in me
+
+		The outer layer is keyed by destination.
+		The inner layer is keyed by origin.
+
+		Has a ``rule`` method for applying new rules
+		to every :class:`~.portal.Portal` here,
+		and a ``rulebook`` property for
+		assigning premade :class:`~.rule.Rulebook`s.
+
+		Alias: :attr:`pred`
+
+		"""
 		return self._pred
 
 	@property
@@ -4042,24 +4342,51 @@ class AbstractCharacter(DiGraph, ABC):
 	UnitGraphMapping: ClassVar[
 		type[
 			BaseMutableCharacterMapping[
-				CharName, MutableMapping[NodeName, Node]
+				CharName, MutableMapping[NodeName, AbstractNode]
 			]
 		]
 	]
 
 	@cached_property
 	def unit(self) -> UnitGraphMapping:
+		"""A two-layer mapping of this character's units in other characters.
+
+		Units are nodes in other characters that are,
+		in some sense, part of this one.
+		A common example in strategy games is when a general leads an army:
+		the general is one :class:`Character`,
+		with a graph representing the state of their AI;
+		the battle map is another :class:`Character`;
+		and the general's units,
+		though not in the general's :class:`Character`,
+		are still under their command,
+		and therefore follow rules defined
+		on the general's ``unit.rule`` subproperty.
+
+		The outer layer is the name of the character.
+		The inner layer is the name of the unit,
+		which may be a :class:`~.node.Place` or a
+		:class:`~.node.Thing`.
+
+		"""
 		return self.UnitGraphMapping(self)
 
 	@property
 	def stat(self):
+		"""A mapping of arbitrary data, sensitive to game time"""
 		return self.graph
 
 	def units(self):
+		"""Iterate over all nodes that are my unit, whatever character they're in"""
 		for units in self.unit.values():
 			yield from units.values()
 
 	def historical(self, stat: Stat):
+		"""Get a historical view on values a stat had in the past
+
+		This is for historical queries. See :meth:`.Engine.turns_when`.
+
+		"""
 		return EntityStatAlias(entity=self.stat, stat=stat)
 
 	def do(self, func: Callable | str, *args, **kwargs) -> Self:
@@ -4068,7 +4395,9 @@ class AbstractCharacter(DiGraph, ABC):
 		Look up the function in the method store if needed. Pass it any
 		arguments given, keyword or positional.
 
-		Useful chiefly when chaining.
+		Useful chiefly when chaining::
+
+			character.do("something").do("something_else")
 
 		"""
 		if not callable(func):
@@ -4107,10 +4436,11 @@ class AbstractCharacter(DiGraph, ABC):
 		return self
 
 	def become(self, g: AbstractCharacter) -> Self:
-		"""Erase all my nodes and edges. Replace them with a copy of the graph
-		provided.
+		"""Replace all my nodes and edges with a copy of the graph provided.
 
-		Return myself.
+		Everything else in me gets erased.
+
+		Return myself, for the next step in the method chain.
 
 		"""
 		self.clear()
@@ -4119,6 +4449,7 @@ class AbstractCharacter(DiGraph, ABC):
 		return self
 
 	def clear(self) -> None:
+		"""Delete everything in this, but don't delete this itself"""
 		self.node.clear()
 		self.portal.clear()
 		self.stat.clear()
@@ -4137,10 +4468,12 @@ class AbstractCharacter(DiGraph, ABC):
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
 	) -> Self:
-		"""Delete nodes whose stat >= ``threshold`` (default 0.5).
+		"""Delete nodes whose ``stat >= threshold`` (default 0.5).
 
-		Optional argument ``comparator`` will replace >= as the test
-		for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace ``>=`` as the test
+		for whether to cull.
+		You can use the name of a function in
+		:attr:`.Engine.function<the default function store>`.
 
 		"""
 		comparator = self._lookup_comparator(comparator)
@@ -4158,10 +4491,12 @@ class AbstractCharacter(DiGraph, ABC):
 		threshold: float = 0.5,
 		comparator: Callable | str = ge,
 	) -> Self:
-		"""Delete portals whose stat >= ``threshold`` (default 0.5).
+		"""Delete portals whose ``stat >= threshold`` (default 0.5).
 
-		Optional argument ``comparator`` will replace >= as the test
-		for whether to cull. You can use the name of a stored function.
+		Optional argument ``comparator`` will replace ``>=`` as the test
+		for whether to cull.
+		You can use the name of a function in
+		:attr:`.Engine.function<the default function store>`.
 
 		"""
 		comparator = self._lookup_comparator(comparator)
@@ -4177,13 +4512,13 @@ class AbstractCharacter(DiGraph, ABC):
 
 	cull_edges = cull_portals
 
-	def portals(self) -> Iterator[Edge]:
+	def portals(self) -> Iterator[AbstractEdge]:
 		"""Iterate over all portals."""
 		for o in self.adj.values():
 			yield from o.values()
 
 
-class AbstractThing(ABC):
+class AbstractThing(AbstractEntity, ABC):
 	__slots__ = ()
 	character: AbstractCharacter
 	name: NodeName
@@ -4193,8 +4528,8 @@ class AbstractThing(ABC):
 		return self.character.engine
 
 	@property
-	def location(self) -> Node:
-		"""The ``Thing`` or ``Place`` I'm in."""
+	def location(self) -> AbstractNode:
+		"""The :class:`~.node.Thing` or :class:`~.node.Place` I'm in."""
 		locn = self["location"]
 		if locn is None:
 			raise AttributeError("Not really a Thing")
@@ -4204,19 +4539,26 @@ class AbstractThing(ABC):
 			raise AttributeError("Doesn't really exist") from ex
 
 	@location.setter
-	def location(self, v: KeyHint | Node | NodeName):
-		if isinstance(v, Node):
+	def location(self, v: KeyHint | AbstractNode | NodeName):
+		if isinstance(v, AbstractNode):
 			v = v.name
 		elif not isinstance(v, Key):
 			raise TypeError("Invalid location", v)
 		self["location"] = NodeName(v)
 
 	@abstractmethod
-	def to_place(self) -> Node: ...
+	def to_place(self) -> AbstractNode:
+		"""Convert this to a :class:`~.node.Place`
+
+		Returns a :class:`~.node.Place` object representing the same entity,
+		but without any of the methods or properties that work with its location,
+		since it no longer has one.
+
+		"""
 
 	def go_to_place(
 		self,
-		place: KeyHint | Node | NodeName,
+		place: KeyHint | AbstractNode | NodeName,
 		weight: KeyHint | Stat | EllipsisType = ...,
 	) -> int:
 		"""Assuming I'm in a node that has a :class:`Portal` direct
@@ -4228,7 +4570,7 @@ class AbstractThing(ABC):
 		Return the number of turns the travel will take.
 
 		"""
-		if isinstance(place, Node):
+		if isinstance(place, AbstractNode):
 			placen = place.name
 		elif not isinstance(place, Key):
 			raise TypeError("Invalid node", place)
@@ -4252,17 +4594,18 @@ class AbstractThing(ABC):
 		weight: KeyHint | Stat | EllipsisType = ...,
 		check: bool = True,
 	) -> int:
-		"""Go to several nodes in succession, deciding how long to
-		spend in each by consulting the ``weight`` stat of the
-		:class:`Portal` connecting the one node to the next,
-		default 1 turn.
+		"""Go to several nodes in succession
 
-		Return the total number of turns the travel will take. Raise
-		:class:`TravelException` if I can't follow the whole path,
-		either because some of its nodes don't exist, or because I'm
-		scheduled to be somewhere else. Set ``check=False`` if
-		you're really sure the path is correct, and this function
-		will be faster.
+		Decide how long to spend in each by consulting the ``weight``
+		stat of the :class:`~.portal.Portal` connecting the one node to the next,
+		defaulting to 1 turn.
+
+		Return the total number of turns the travel will take.
+		Raise :class:`TravelException` if I can't follow the whole path,
+		either because some of its nodes don't exist,
+		or because I'm scheduled to be somewhere else.
+		Set ``check=False`` if you're really sure the path is correct,
+		and this method will be faster.
 
 		"""
 		if len(path) < 2:
@@ -4329,32 +4672,33 @@ class AbstractThing(ABC):
 
 	def travel_to(
 		self,
-		dest: Node | KeyHint,
+		dest: AbstractNode | KeyHint,
 		weight: Stat | KeyHint | EllipsisType = ...,
 		graph: nx.DiGraph | EllipsisType = ...,
 	) -> int:
-		"""Find the shortest path to the given node from where I am
-		now, and follow it.
+		"""Follow the shortest path to ``dest`` from my current location
 
-		If supplied, the ``weight`` stat of each :class:`Portal` along
-		the path will be used in pathfinding, and for deciding how
-		long to stay in each Place along the way. Otherwise, I will stay
-		in each :class:`Place` for 1 turn.
+		If supplied,
+		the ``weight`` stat of each :class:`Portal` along the path
+		will be used in pathfinding,
+		and for deciding how long to stay in each Place along the way.
+		Otherwise, I will stay in each :class:`Place` for 1 turn.
 
-		The ``graph`` argument may be any NetworkX-style graph. It
-		will be used for pathfinding if supplied, otherwise I'll use
-		my :class:`Character`. In either case, however, I will attempt
-		to actually follow the path using my :class:`Character`, which
-		might not be possible if the supplied ``graph`` and my
-		:class:`Character` are too different. If it's not possible,
-		I'll raise a :class:`TravelException`, whose ``subpath``
-		attribute holds the part of the path that I *can* follow. To
-		make me follow it, pass it to my ``follow_path`` method.
+		The ``graph`` argument may be any NetworkX-style graph.
+		It will be used for pathfinding if supplied.
+		Otherwise, I'll use my :class:`Character`.
+		In either case, however,
+		I will attempt to actually follow the path using my :class:`Character`,
+		which might not be possible if the supplied ``graph``
+		and my :class:`Character` are too different.
+		If it's not possible, I'll raise a :class:`TravelException`,
+		whose ``subpath`` attribute holds the part of the path that I *can* follow.
+		To make me follow it, pass it to my ``follow_path`` method.
 
-		Return value is the number of turns the travel will take.
+		:return: The number of turns the travel will take.
 
 		"""
-		if isinstance(dest, Node):
+		if isinstance(dest, AbstractNode):
 			destn = dest.name
 		elif not isinstance(dest, Key):
 			raise TypeError("Invalid node", dest)

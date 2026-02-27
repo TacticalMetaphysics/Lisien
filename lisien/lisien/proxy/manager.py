@@ -46,8 +46,8 @@ class EngineProxyManager:
 
 	Make sure the :class:`EngineProxyManager` instance lasts as long as the
 	:class:`lisien.proxy.EngineProxy` returned from its :method:`start`
-	method. Call the :method:`EnginePrxyManager.shutdown` method
-	when you're done with the :class:`lisien.proxy.EngineProxy`. That way,
+	method. Call the :method:`~EngineProxyManager.shutdown` method
+	when you're done with the :class:`~lisien.proxy.EngineProxy`. That way,
 	we can join the thread that listens to the subprocess's logs.
 
 	You can import this from :mod:`lisien.proxy` for convenience::
