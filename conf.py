@@ -48,7 +48,6 @@ extensions = [
 	"sphinx.ext.intersphinx",
 	"sphinx.ext.coverage",
 	"sphinx.ext.viewcode",
-	"sphinx.ext.githubpages",
 	"attrs.sphinx_cached_property",
 ]
 
