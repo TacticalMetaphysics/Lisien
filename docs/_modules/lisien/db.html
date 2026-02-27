@@ -2644,13 +2644,13 @@
 			<span class="c1"># keys and also serialize to msgpack, I don&#39;t think there&#39;s any name</span>
 			<span class="c1"># an entity can have that can&#39;t be repr&#39;d</span>
 			<span class="k">return</span> <span class="n">Element</span><span class="p">(</span><span class="s2">&quot;character&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lisien</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">AbstractNode</span><span class="p">):</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lisien</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Node</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">Element</span><span class="p">(</span>
 				<span class="s2">&quot;node&quot;</span><span class="p">,</span>
 				<span class="n">character</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
 				<span class="n">name</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
 			<span class="p">)</span>
-		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lisien</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">AbstractEdge</span><span class="p">):</span>
+		<span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">lisien</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Edge</span><span class="p">):</span>
 			<span class="k">return</span> <span class="n">Element</span><span class="p">(</span>
 				<span class="s2">&quot;portal&quot;</span><span class="p">,</span>
 				<span class="n">character</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">character</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>

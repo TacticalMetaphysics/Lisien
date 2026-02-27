@@ -78,11 +78,11 @@
 	<span class="n">AttrSignal</span><span class="p">,</span>
 	<span class="n">CharDelta</span><span class="p">,</span>
 	<span class="n">CharName</span><span class="p">,</span>
-	<span class="n">AbstractEdge</span><span class="p">,</span>
+	<span class="n">Edge</span><span class="p">,</span>
 	<span class="n">EdgeValDict</span><span class="p">,</span>
 	<span class="n">Key</span><span class="p">,</span>
 	<span class="n">KeyHint</span><span class="p">,</span>
-	<span class="n">AbstractNode</span><span class="p">,</span>
+	<span class="n">Node</span><span class="p">,</span>
 	<span class="n">NodeName</span><span class="p">,</span>
 	<span class="n">NodeValDict</span><span class="p">,</span>
 	<span class="n">RulebookName</span><span class="p">,</span>
@@ -145,7 +145,7 @@
 
 <div class="viewcode-block" id="NodeProxy">
 <a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.NodeProxy">[docs]</a>
-<span class="nd">@AbstractNode</span><span class="o">.</span><span class="n">register</span>
+<span class="nd">@Node</span><span class="o">.</span><span class="n">register</span>
 <span class="nd">@define</span><span class="p">(</span><span class="n">eq</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">NodeProxy</span><span class="p">(</span><span class="n">CachingEntityProxy</span><span class="p">,</span> <span class="n">RuleFollowerProxy</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
 	<span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span>
@@ -1586,8 +1586,6 @@
 					<span class="n">graph_units</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">unit</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">stat</span><span class="o">.</span><span class="n">_apply_delta</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CharacterProxy.add_place">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">StatDict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
@@ -1598,11 +1596,8 @@
 			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 		<span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_stat_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_stat_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.add_places_from">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_places_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_places_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
@@ -1619,8 +1614,7 @@
 				<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pln</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
 					<span class="n">nodestatcache</span><span class="p">[</span><span class="n">pln</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">pln</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
 			<span class="k">else</span><span class="p">:</span>
-				<span class="n">placecache</span><span class="p">[</span><span class="n">pln</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pln</span><span class="p">)</span></div>
-
+				<span class="n">placecache</span><span class="p">[</span><span class="n">pln</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pln</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CharacterProxy.add_nodes_from">
 <a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_nodes_from">[docs]</a>
@@ -1629,8 +1623,6 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_places_from</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="CharacterProxy.add_thing">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_thing</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">StatDict</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1646,14 +1638,11 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span> <span class="o">=</span> <span class="n">ThingProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_node_stat_cache</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
-
+		<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">_worker_check</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 
-<div class="viewcode-block" id="CharacterProxy.add_things_from">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_things_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_things_from</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">NodeName</span><span class="p">],</span> <span class="o">**</span><span class="n">attrs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
@@ -1665,11 +1654,8 @@
 		<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span> <span class="ow">in</span> <span class="n">seq</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">thing</span> <span class="o">=</span> <span class="n">ThingProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-			<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+			<span class="bp">self</span><span class="o">.</span><span class="n">node</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.place2thing">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.place2thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">place2thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">location</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
@@ -1684,11 +1670,8 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">place</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">place</span><span class="p">]</span> <span class="o">=</span> <span class="n">ThingProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">place</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.thing2place">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.thing2place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">thing2place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
@@ -1702,8 +1685,7 @@
 		<span class="bp">self</span><span class="o">.</span><span class="n">thing</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">thing</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">)</span>
-		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
-
+		<span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">thing</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CharacterProxy.remove_node">
 <a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.remove_node">[docs]</a>
@@ -1763,8 +1745,6 @@
 			<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">predecessors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="CharacterProxy.remove_place">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.remove_place">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="n">placemap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">place</span>
@@ -1775,11 +1755,8 @@
 		<span class="k">del</span> <span class="n">placemap</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">place</span><span class="p">]</span>
 		<span class="n">portscache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_character_portals_cache</span>
 		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">successors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">place</span><span class="p">]</span>
-		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">predecessors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">place</span><span class="p">]</span></div>
+		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">predecessors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">place</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.remove_thing">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.remove_thing">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="n">thingmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thing</span>
@@ -1790,11 +1767,8 @@
 		<span class="k">del</span> <span class="n">thingmap</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">thing</span><span class="p">]</span>
 		<span class="n">portscache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_character_portals_cache</span>
 		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">successors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">thing</span><span class="p">]</span>
-		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">predecessors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">thing</span><span class="p">]</span></div>
+		<span class="k">del</span> <span class="n">portscache</span><span class="o">.</span><span class="n">predecessors</span><span class="p">[</span><span class="n">name</span><span class="p">][</span><span class="n">thing</span><span class="p">]</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.add_portal">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_portal</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">StatDict</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1830,11 +1804,8 @@
 		<span class="k">if</span> <span class="n">origin</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
 			<span class="n">placecache</span><span class="p">[</span><span class="n">origin</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">destination</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
-			<span class="n">placecache</span><span class="p">[</span><span class="n">destination</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span></div>
+			<span class="n">placecache</span><span class="p">[</span><span class="n">destination</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlaceProxy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.remove_portal">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.remove_portal">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_portal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">,</span> <span class="n">destination</span><span class="p">:</span> <span class="n">NodeName</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">_worker_check</span><span class="p">()</span>
 		<span class="n">char_port_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">_character_portals_cache</span>
@@ -1850,13 +1821,10 @@
 			<span class="n">dest</span><span class="o">=</span><span class="n">destination</span><span class="p">,</span>
 			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 		<span class="p">)</span>
-		<span class="n">char_port_cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span></div>
-
+		<span class="n">char_port_cache</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
 
 	<span class="n">remove_edge</span> <span class="o">=</span> <span class="n">remove_portal</span>
 
-<div class="viewcode-block" id="CharacterProxy.add_portals_from">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_portals_from">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_portals_from</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">seq</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">NodeName</span><span class="p">,</span> <span class="n">NodeName</span><span class="p">]],</span> <span class="n">symmetrical</span><span class="o">=</span><span class="kc">False</span>
 	<span class="p">):</span>
@@ -1876,8 +1844,7 @@
 				<span class="p">)</span>
 			<span class="bp">self</span><span class="o">.</span><span class="n">portal</span><span class="p">[</span><span class="n">origin</span><span class="p">]</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">destination</span><span class="p">]</span> <span class="o">=</span> <span class="n">PortalProxy</span><span class="p">(</span>
 				<span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">,</span> <span class="n">destination</span>
-			<span class="p">)</span></div>
-
+			<span class="p">)</span>
 
 <div class="viewcode-block" id="CharacterProxy.portals">
 <a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.portals">[docs]</a>
@@ -1886,8 +1853,6 @@
 			<span class="k">yield from</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="CharacterProxy.add_unit">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.add_unit">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">add_unit</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">CharName</span> <span class="o">|</span> <span class="n">CharacterProxy</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1907,11 +1872,8 @@
 			<span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span>
 			<span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
 			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-		<span class="p">)</span></div>
+		<span class="p">)</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.remove_unit">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.remove_unit">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">remove_unit</span><span class="p">(</span>
 		<span class="bp">self</span><span class="p">,</span> <span class="n">graph</span><span class="p">:</span> <span class="n">CharName</span> <span class="o">|</span> <span class="n">CharacterProxy</span><span class="p">,</span> <span class="n">node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NodeName</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1925,16 +1887,12 @@
 			<span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span>
 			<span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span>
 			<span class="n">branching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-		<span class="p">)</span></div>
+		<span class="p">)</span>
 
-
-<div class="viewcode-block" id="CharacterProxy.units">
-<a class="viewcode-back" href="../../../lisien/index.html#lisien.proxy.character.CharacterProxy.units">[docs]</a>
 	<span class="k">def</span><span class="w"> </span><span class="nf">units</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">NodeProxy</span><span class="p">]:</span>
 		<span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">handle</span><span class="p">(</span>
 			<span class="n">command</span><span class="o">=</span><span class="s2">&quot;character_units&quot;</span><span class="p">,</span> <span class="n">char</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span>
-		<span class="p">)</span></div>
-
+		<span class="p">)</span>
 
 	<span class="k">def</span><span class="w"> </span><span class="nf">facade</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CharacterFacade</span><span class="p">:</span>
 		<span class="k">return</span> <span class="n">CharacterFacade</span><span class="p">(</span>
