@@ -18,7 +18,6 @@ import tomllib
 
 sys.path.insert(0, os.path.abspath("elide"))
 sys.path.insert(0, os.path.abspath("lisien"))
-sys.path.insert(0, os.path.abspath("./allegedb"))
 os.environ["KIVY_DOC"] = "1"
 
 # -- Project information -----------------------------------------------------
