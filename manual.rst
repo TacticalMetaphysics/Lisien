@@ -9,42 +9,44 @@ Life sims all seem to have two problems in common:
 **********************
 
 The number of variables the game is tracking --
-just for game logic, not graphics or physics or anything -- is very large.
-Like how The Sims tracks sims' opinions of one another,
+just for game logic, not graphics or physics -- is very large.
+The Sims, for example, tracks sims' opinions of one another,
 their likes and dislikes and so forth,
-even for the ones you never talk to and have shown no interest in.
+even for the sims you never talk to and have shown no interest in.
 If you streamline a life sim to where it doesn't have extraneous detail,
 you lose a huge part of what makes it lifelike.
 This causes trouble for developers when even *they* don't understand why sims hate each other.
 
 To address all those problems, Lisien provides a persistent state container.
-Everything that ever happens in a game gets recorded,
+Everything that ever happens in a Lisien game is recorded,
 so that you can pick through the whole history
-and find out exactly when the butterfly flapped its wings to cause the cyclone.
+and find out exactly when a butterfly flapped its wings to cause a cyclone.
 Time travel is aggressively optimized,
 so that the experience of browsing a playthrough's history is as smooth
-as if you were browsing a video.
+as browsing a video.
 All of that history gets saved in a database,
 which is used in place of traditional save files.
-This means that if your testers discover something strange and want you to know about it,
+If your testers discover something strange, and want you to know about it,
 they can send you their database,
-and you'll know everything they did and everything that happened in their game.
+and you'll know everything they did, and everything that happened, in their game.
 
 ****************
  Too many rules
 ****************
 
-Fans of life sims tend to appreciate complexity.
-Developers are best served by reducing complexity as much as possible.
-So Lisien makes it easy to compartmentalize complexity
-and choose what of it you want to deal with and when.
+Fans of life sims appreciate complexity.
+Developers want to reduce complexity as much as possible.
+So Lisien makes it easy to compartmentalize complexity,
+and choose what of it you want to deal with, and when.
 
 It is a rules engine,
 an old concept from business software
-that lets you determine what conditions cause what effects.
-Though you'll still need to write some Python code for
+that lets you configure what conditions cause what effects.
+Although you'll still need to write some Python code for
 the conditions and the effects that they have,
-the connections between them and the objects that follow the rule are defined in data.
+the connections between the conditions and the effects,
+along with the set of objects that follow that rule,
+are defined in data.
 Once you've written a short Python function that works in the rules engine,
 it's easy to reuse it for another rule on another object.
 Changing the rules while the game is running is just as easy,
@@ -56,27 +58,24 @@ so you can experiment with ideas for rules as soon as you have them.
 
 Lisien is a tool for constructing turn-based simulations
 following rules in a directed graph-based world model.
-It has special affordances for the kinds of things you might need to simulate
-in the life simulation genre.
 
 :class:`~.rule.Rule`\s are things the game should do in certain conditions.
-In Lisien, the "things to do" are called "actions,"
-and are functions that can run arbitrary Python code.
+In Lisien, the "things to do" are called "actions."
+These are functions that take an entity in the world,
+and change it -- or possibly anything else in the world -- as you see fit.
 The conditions are divided into "triggers" and "prereqs,"
 of which only triggers are truly necessary:
-they are also functions,
-but one of a rule's triggers must return ``True`` for the action to proceed.
+they are Boolean functions, taking the same entity,
+one of which must return ``True`` for the action to proceed.
 
 A directed graph is made of nodes and edges.
-The nodes are points without fixed locations--
-when drawing a graph, you may arrange the nodes however you like,
-as long as the edges connect them the same way.
+The nodes are points without fixed locations.
 Edges in a directed graph connect one node to another node,
 but not vice-versa,
 so you can have nodes A and B where A is connected to B,
 but B is not connected to A.
-But you can have edges going in both directions between A and B.
-They're usually drawn as arrows.
+Edges are usually drawn as arrows.
+There can be edges going in both directions between A and B.
 
 In Lisien, edges are called :class:`~.portal.Portal`\s,
 and nodes may be :class:`~.node.Place`\s or :class:`~.node.Thing`\s.
@@ -90,7 +89,7 @@ Regardless, you can keep any data you like in a :class:`~.node.Thing`,
 Lisien's directed graphs are called :class:`~.character.Character`\s.
 Every time something about a :class:`~.character.Character` changes,
 Lisien remembers when it happened -- that is,
-which turn of the simulation.
+which turn of the simulation, and which tick within the turn.
 This allows the developer to look up the state of the world at some point in the past.
 This time travel is nearly real-time in most cases,
 to make it convenient to flip back and forth
