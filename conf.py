@@ -24,7 +24,7 @@ os.environ["KIVY_DOC"] = "1"
 # -- Project information -----------------------------------------------------
 
 project = "Lisien"
-copyright = "Zachary Spector"
+copyright = "Zachary Avram Spector"
 author = "Zachary Spector"
 
 with open("lisien/pyproject.toml", "rb") as inf:
