@@ -6961,11 +6961,7 @@
 		<span class="n">edge</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EdgeValDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Character</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Create and return a new :class:`Character`.</span>
-
-<span class="sd">		See :meth:`add_character` for details.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">AbstractEngine</span><span class="o">.</span><span class="n">new_character</span><span class="o">.</span><span class="vm">__doc__</span>
 		<span class="bp">self</span><span class="o">.</span><span class="n">add_character</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">node</span><span class="o">=</span><span class="n">node</span><span class="p">,</span> <span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="n">CharName</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span>
 
@@ -6978,28 +6974,7 @@
 		<span class="n">edge</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EdgeValDict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 		<span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 	<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">		</span><span class="sd">&quot;&quot;&quot;Create a new character.</span>
-
-<span class="sd">		You&#39;ll be able to access it as a :class:`Character` object by</span>
-<span class="sd">		looking up ``name`` in my ``character`` property.</span>
-
-<span class="sd">		``data``, if provided, should be a :class:`networkx.Graph`</span>
-<span class="sd">		or :class:`networkx.DiGraph` object. The character will be</span>
-<span class="sd">		a copy of it.</span>
-
-<span class="sd">		``node`` may be a dictionary of dictionaries representing either</span>
-<span class="sd">		``Thing`` objects, if they have a ``&quot;location&quot;`` key, or else</span>
-<span class="sd">		``Place`` objects.</span>
-
-<span class="sd">		``edge`` may be a 3-layer dictionary representing ``Portal`` objects,</span>
-<span class="sd">		connecting mainly ``Place`` objects together.</span>
-
-<span class="sd">		With ``layout=True``, compute a layout to make the</span>
-<span class="sd">		graph show up nicely in elide.</span>
-
-<span class="sd">		Any keyword arguments will be set as stats of the new character.</span>
-
-<span class="sd">		&quot;&quot;&quot;</span>
+		<span class="vm">__doc__</span> <span class="o">=</span> <span class="n">AbstractEngine</span><span class="o">.</span><span class="n">add_character</span><span class="o">.</span><span class="vm">__doc__</span>
 		<span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">:</span>
 			<span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Already have that character&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 		<span class="k">if</span> <span class="n">layout</span> <span class="ow">and</span> <span class="p">(</span><span class="n">data</span> <span class="ow">or</span> <span class="n">node</span> <span class="ow">or</span> <span class="n">edge</span><span class="p">):</span>
