@@ -731,12 +731,6 @@ class EngineProxyManager:
 					for funk in parsed.body:
 						code[funk.name] = ast.unparse(funk)
 		self._config_logger(kwargs)
-		try:
-			import android
-
-			self._start_osc(prefix, **kwargs)
-		except ModuleNotFoundError:
-			pass
 		match self.sub_mode:
 			case Sub.interpreter:
 				self._start_subinterpreter(prefix, **kwargs)
