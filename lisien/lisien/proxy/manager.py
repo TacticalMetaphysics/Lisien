@@ -48,15 +48,33 @@ class EngineProxyManager:
 	in a subthread, subprocess, or subinterpreter,
 	depending on :attr:`sub_mode`, and returns :class:`EngineProxy`,
 
-	Make sure the :class:`EngineProxyManager` instance lasts as long as the
-	:class:`lisien.proxy.EngineProxy` returned from its :method:`start`
-	method. Call the :method:`~EngineProxyManager.shutdown` method
-	when you're done with the :class:`~lisien.proxy.EngineProxy`. That way,
-	we can join the thread that listens to the subprocess's logs.
+	Make sure the :class:`EngineProxyManager` instance
+	lasts as long as the :class:`lisien.proxy.EngineProxy`
+	returned from its :method:`start` method.
+	Call the :method:`~EngineProxyManager.shutdown` method
+	when you're done with the :class:`~lisien.proxy.EngineProxy`,
+	or use it as a context manager::
 
-	You can import this from :mod:`lisien.proxy` for convenience::
+	    from threading import Thread
 
-		from lisien.proxy import EngineProxyManager
+	    from lisien.proxy import EngineProxyManager
+
+	    from my_excellent_game import display_menu, apply_delta
+
+	    with EngineProxyManager() as manager, manager.start() as engine_proxy:
+
+	        @engine_proxy.next_turn.connect
+	        def update_from_next_turn(engine, menu_info, delta):
+	            display_menu(*menu_info)
+	            apply_delta(delta)
+
+	        subthread = Thread(target=engine_proxy.next_turn)
+	        subthread.start()
+
+	        # do some UI work here
+
+	        subthread.join()
+
 
 	"""
 
