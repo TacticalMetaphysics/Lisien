@@ -81,6 +81,7 @@ exclude_patterns = [
 	"docs",
 	"elide_icon",
 	".buildozer",
+	"pages",
 ]
 
 # The name of the Pygments (syntax highlighting) style to use.
