@@ -42,7 +42,11 @@ TIMEOUT = 60
 
 @define(slots=False)
 class EngineProxyManager:
-	"""Container for a Lisien proxy and a logger for it
+	"""Run Lisien somewhere other than the current Python thread
+
+	:meth:`EngineProxyManager.start` will start a subroutine to run Lisien
+	in a subthread, subprocess, or subinterpreter,
+	depending on :attr:`sub_mode`, and returns :class:`EngineProxy`,
 
 	Make sure the :class:`EngineProxyManager` instance lasts as long as the
 	:class:`lisien.proxy.EngineProxy` returned from its :method:`start`
@@ -57,12 +61,12 @@ class EngineProxyManager:
 	"""
 
 	sub_mode: Sub = field(converter=Sub, default=Sub.thread)
-	"""What form the subprocess should take. ``Sub.thread``
-	is the most widely available, and is therefore the default, but doesn't
-	allow true parallelism unless you're running a GIL-less build of Python.
+	"""What to run the subroutine in.
+	``Sub.thread`` is the most widely available, and is therefore the default,
+	but doesn't allow true parallelism unless you're running a GIL-less build of Python.
 	``Sub.process`` does allow true parallelism, but isn't available on Android.
-	``Sub.interpreter`` is, and allows true parallelism as well, but is only
-	available on Python 3.14 or later."""
+	``Sub.interpreter`` is, and allows true parallelism as well,
+	but is only available on Python 3.14 or later."""
 
 	@sub_mode.validator
 	def _validate_sub_mode(self, _, sub_mode):
@@ -74,9 +78,7 @@ class EngineProxyManager:
 	loglevel: int = logging.DEBUG
 	"""What level to log at"""
 	reuse: bool = field(default=False)
-	"""Whether to keep the subprocess running after closing the engine proxy.
-	
-	Or the subthread, or the subinterpreter. Whatever you're using.
+	"""Whether to keep the subroutine running after closing the engine proxy
 	
 	Starting a new engine in the same subprocess is often faster.
 	
@@ -90,6 +92,11 @@ class EngineProxyManager:
 	)
 
 	def start(self, prefix: str | None = None, **kwargs):
+		"""Start Lisien and return a proxy to it
+
+		Keyword arguments are the same as for :class:`~.Engine`.
+
+		"""
 		self._config_logger(kwargs)
 		if "sub_mode" in kwargs:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
@@ -161,7 +168,12 @@ class EngineProxyManager:
 		self.logger.log(level, msg)
 
 	def shutdown(self):
-		"""Close the engine in the subprocess, then join the subprocess"""
+		"""Close Lisien, then join its subroutine
+
+		We'll join it in the appropriate way for however it's running,
+		whether in a subthread, subprocess, or subinterpreter.
+
+		"""
 		if hasattr(self, "engine_proxy"):
 			if not self.engine_proxy.closed:
 				self.engine_proxy.close()
@@ -710,7 +722,15 @@ class EngineProxyManager:
 		prefix: str | os.PathLike,
 		**kwargs,
 	) -> EngineProxy:
-		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
+		"""Load a game from a .lisien archive in a subroutine
+
+		Once the subroutine is running, it will make an :class:`~.Engine`
+		with :meth:`.Engine.from_archive`.
+		Keyword arguments are the same as :meth:`.Engine.from_archive`.
+
+		:return: A proxy to the :class:`~.Engine` running the loaded game.
+
+		"""
 		if isinstance(archive_path, Path):
 			if not archive_path.name.endswith(".lisien"):
 				raise RuntimeError("Not a .lisien archive")
