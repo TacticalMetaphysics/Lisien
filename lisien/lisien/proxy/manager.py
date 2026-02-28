@@ -73,8 +73,6 @@ class EngineProxyManager:
 
 	loglevel: int = logging.DEBUG
 	"""What level to log at"""
-	android: bool = field(default=False)
-	"""Are we running on Android?"""
 	reuse: bool = field(default=False)
 	"""Whether to keep the subprocess running after closing the engine proxy.
 	
@@ -96,18 +94,15 @@ class EngineProxyManager:
 		if "sub_mode" in kwargs:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
-		if self.android:
-			self._start_subthread(prefix, **kwargs)
-		else:
-			match self.sub_mode:
-				case Sub.process:
-					self._start_subprocess(prefix, **kwargs)
-				case Sub.thread:
-					self._start_subthread(prefix, **kwargs)
-				case Sub.interpreter:
-					self._start_subinterpreter(prefix, **kwargs)
-				case Sub.none:
-					raise NotImplementedError("Just use Engine")
+		match self.sub_mode:
+			case Sub.process:
+				self._start_subprocess(prefix, **kwargs)
+			case Sub.thread:
+				self._start_subthread(prefix, **kwargs)
+			case Sub.interpreter:
+				self._start_subinterpreter(prefix, **kwargs)
+			case Sub.none:
+				raise NotImplementedError("Just use Engine")
 		if prefix and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", prefix, kwargs["prefix"]

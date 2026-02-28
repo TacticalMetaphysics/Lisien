@@ -397,11 +397,9 @@ class ElideApp(App):
 			self.android = False
 		Logger.debug(
 			"ElideApp: About to start EngineProxyManager with"
-			f" sub_mode {self.sub_mode}, android={self.android}, reuse=True"
+			f" sub_mode {self.sub_mode}, reuse=True"
 		)
-		self.procman = EngineProxyManager(
-			self.sub_mode, android=self.android, reuse=True
-		)
+		self.procman = EngineProxyManager(self.sub_mode, reuse=True)
 		self.mainmenu = MainMenuScreen(toggle=self.toggler("main"))
 		self.manager.add_widget(self.mainmenu)
 		if self.immediate_start:
