@@ -805,23 +805,8 @@ class EngineProxyManager:
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
-	def close(self):
-		self.shutdown()
-		if hasattr(self, "_client"):
-			self._client.send_message("127.0.0.1/shutdown")
-			self.logger.debug(
-				"EngineProxyManager: joining input sender thread"
-			)
-			self._input_sender_thread.join()
-			self.logger.debug("EngineProxyManager: joined input sender thread")
-			self.logger.debug("EngineProxyManager: stopping core service")
-			self._core_service.stop()
-			self.logger.debug("EngineProxyManager: stopped core service")
-		if hasattr(self, "logger"):
-			self.logger.debug("EngineProxyManager: closed")
-
 	def __enter__(self):
 		return self
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.close()
+		self.shutdown()
