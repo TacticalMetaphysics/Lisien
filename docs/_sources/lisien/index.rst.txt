@@ -1,14 +1,21 @@
+.. Copyright (C)  2026  Zachary Avram Spector.
+    Permission is granted to copy, distribute and/or modify this document
+    under the terms of the GNU Free Documentation License, Version 1.3
+    or any later version published by the Free Software Foundation;
+    with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+    A copy of the license is included in the section entitled "GNU
+    Free Documentation License".
+
 =======
   API
 =======
 
-Here is the portion of Lisien's codebase that game developers should be
-familiar with. Generally, you should access everything through an
-:class:`.Engine` object. The exception is when Lisien is not
-running in the same process, in which case, you'll need
-:class:`~lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
-But :class:`~lisien.proxy.engine.EngineProxy` works just like
-:class:`.Engine`, for the most part.
+Here is the portion of Lisien's codebase that game developers should be familiar with.
+Generally, you should access everything through an :class:`.Engine` object.
+The exception is when Lisien is not running in the same process, in which case,
+you'll need :class:`~lisien.proxy.manager.EngineProxyManager` to make you a proxy to it.
+But :class:`~lisien.proxy.engine.EngineProxy` works just like :class:`.Engine`,
+for the most part.
 
 ########
  engine
@@ -136,6 +143,10 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
  character
 ###########
 
+.. autoclass:: lisien.types.AbstractCharacter
+    :members:
+    :exclude-members: adj, edge, succ, pred, add_node, add_edge, add_nodes_from, add_edges_from
+
 .. automodule:: lisien.character
 
     .. autoclass:: Character
@@ -145,6 +156,9 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 ######
 
 .. automodule:: lisien.node
+
+    .. autoclass:: lisien.types.AbstractNode
+        :members:
 
     .. autoclass:: lisien.node.Node
         :members:
@@ -161,25 +175,11 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.portal
 
+    .. autoclass:: lisien.types.AbstractEdge
+        :members:
+
     .. autoclass:: Portal
         :members:
-        :exclude-members: origin, destination, character, engine
-
-        .. py:attribute:: origin
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads out from
-
-        .. py:attribute:: destination
-
-            The :class:`lisien.node.Place` or :class:`lisien.node.Thing` that this leads into
-
-        .. py:property:: character
-
-            The :class:`lisien.character.Character` that this is in
-
-        .. py:property:: engine
-
-            The :class:`lisien.engine.Engine` that this is in
 
 ######
  rule
@@ -199,6 +199,7 @@ But :class:`~lisien.proxy.engine.EngineProxy` works just like
 
 .. automodule:: lisien.facade
 
+.. _proxy:
 #######
  proxy
 #######
@@ -354,6 +355,7 @@ extend Lisien's capabilities.
 
 .. automodule:: lisien.types
     :members:
+    :exclude-members: AbstractCharacter
 
 ######
  util

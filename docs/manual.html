@@ -38,155 +38,182 @@
 <p>Life sims all seem to have two problems in common:</p>
 <section id="too-much-world-state">
 <h2>Too much world state<a class="headerlink" href="#too-much-world-state" title="Link to this heading">¶</a></h2>
-<p>The number of variables the game is tracking – just for game logic, not
-graphics or physics or anything – is very large. Like how The Sims
-tracks sims’ opinions of one another, their likes and dislikes and so
-forth, even for the ones you never talk to and have shown no interest
-in. If you streamline a life sim to where it doesn’t have extraneous
-detail, you lose a huge part of what makes it lifelike. This causes
-trouble for developers when even <em>they</em> don’t understand why sims hate
-each other.</p>
+<p>The number of variables the game is tracking –
+just for game logic, not graphics or physics – is very large.
+The Sims, for example, tracks sims’ opinions of one another,
+their likes and dislikes and so forth,
+even for the sims you never talk to and have shown no interest in.
+If you streamline a life sim to where it doesn’t have extraneous detail,
+you lose a huge part of what makes it lifelike.
+This causes trouble for developers when even <em>they</em> don’t understand why sims hate each other.</p>
 <p>To address all those problems, Lisien provides a persistent state container.
-Everything that ever happens in a game gets recorded, so that you can
-pick through the whole history and find out exactly when the butterfly
-flapped its wings to cause the cyclone. Time travel is aggressively optimized,
+Everything that ever happens in a Lisien game is recorded,
+so that you can pick through the whole history
+and find out exactly when a butterfly flapped its wings to cause a cyclone.
+Time travel is aggressively optimized,
 so that the experience of browsing a playthrough’s history is as smooth
-as if you were browsing a video. All of that history gets saved
-in a database, which is used in place of traditional save files. This
-means that if your testers discover something strange and want you to
-know about it, they can send you their database, and you’ll know
-everything they did and everything that happened in their game.</p>
+as browsing a video.
+All of that history gets saved in a database,
+which is used in place of traditional save files.
+If your testers discover something strange, and want you to know about it,
+they can send you their database,
+and you’ll know everything they did, and everything that happened, in their game.</p>
 </section>
 <section id="too-many-rules">
 <h2>Too many rules<a class="headerlink" href="#too-many-rules" title="Link to this heading">¶</a></h2>
-<p>Fans of life sims tend to appreciate complexity. Developers are best
-served by reducing complexity as much as possible. So Lisien makes it
-easy to compartmentalize complexity and choose what of it you want to
-deal with and when.</p>
-<p>It is a rules engine, an old concept from business software that lets
-you determine what conditions cause what effects. Though you’ll still
-need to write some Python code for the conditions and the effects that
-they have, the connections between them and the objects that follow the
-rule are defined in data. Once you’ve written a short Python function
-that works in the rules engine, it’s easy to reuse it for another rule
-on another object. Changing the rules while the game is running is just
-as easy, so you can experiment with ideas for rules as soon as you have
-them.</p>
+<p>Fans of life sims appreciate complexity.
+Developers want to reduce complexity as much as possible.
+So Lisien makes it easy to compartmentalize complexity,
+and choose what of it you want to deal with, and when.</p>
+<p>It is a rules engine,
+an old concept from business software
+that lets you configure what conditions cause what effects.
+Although you’ll still need to write some Python code for
+the conditions and the effects that they have,
+the connections between the conditions and the effects,
+along with the set of objects that follow that rule,
+are defined in data.
+Once you’ve written a short Python function that works in the rules engine,
+it’s easy to reuse it for another rule on another object.
+Changing the rules while the game is running is just as easy,
+so you can experiment with ideas for rules as soon as you have them.</p>
 </section>
 <section id="concepts">
 <h2>Concepts<a class="headerlink" href="#concepts" title="Link to this heading">¶</a></h2>
-<p>Lisien is a tool for constructing turn-based simulations following rules
-in a directed graph-based world model. It has special affordances for
-the kinds of things you might need to simulate in the life simulation
-genre.</p>
-<p>Rules are things the game should do in certain conditions. In Lisien,
-the “things to do” are called Actions, and are functions that can run
-arbitrary Python code. The conditions are divided into Triggers and
-Prereqs, of which only Triggers are truly necessary: they are also
-functions, but one of a rule’s Triggers must return True for the Action
-to proceed.</p>
-<p>A directed graph is made of nodes and edges. The nodes are points
-without fixed locations–when drawing a graph, you may arrange the nodes
-however you like, as long as the edges connect them the same way. Edges
-in a directed graph connect one node to another node, but not
-vice-versa, so you can have nodes A and B where A is connected to B, but
-B is not connected to A. But you can have edges going in both directions
-between A and B. They’re usually drawn as arrows.</p>
-<p>In Lisien, edges are called Portals, and nodes may be Places or Things.
-You can use these to represent whatever you want, but they have special
-properties to make it easier to model physical space: in particular,
-each Thing is located in exactly one node at a time (usually a Place).
-Regardless, you can keep any data you like in a Thing, Place, or Portal
-by treating it like a dictionary.</p>
-<p>Lisien’s directed graphs are called Characters. Every time something
-about a Character changes, Lisien remembers when it happened – that is,
-which turn of the simulation. This allows the developer to look up the
-state of the world at some point in the past. This time travel is nearly
-real-time in most cases, to make it convenient to flip back and forth
-between a correct world state and an incorrect one and use your
-intuition to spot exactly what went wrong.</p>
+<p>Lisien is a tool for constructing turn-based simulations
+following rules in a directed graph-based world model.</p>
+<p><a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a>s are things the game should do in certain conditions.
+In Lisien, the “things to do” are called “actions.”
+These are functions that take an entity in the world,
+and change it – or possibly anything else in the world – as you see fit.
+The conditions are divided into “triggers” and “prereqs,”
+of which only triggers are truly necessary:
+they are Boolean functions, taking the same entity,
+one of which must return <code class="docutils literal notranslate"><span class="pre">True</span></code> for the action to proceed.</p>
+<p>A directed graph is made of nodes and edges.
+The nodes are points without fixed locations.
+Edges in a directed graph connect one node to another node,
+but not vice-versa,
+so you can have nodes A and B where A is connected to B,
+but B is not connected to A.
+Edges are usually drawn as arrows.
+There can be edges going in both directions between A and B.</p>
+<p>In Lisien, edges are called <a class="reference internal" href="lisien/index.html#lisien.portal.Portal" title="lisien.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code></a>s,
+and nodes may be <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>s or <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s.
+You can use these to represent whatever you want,
+but they have special properties to make it easier to model physical space:
+in particular, each <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a> is located in exactly one node at a time
+(usually a <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>).
+Regardless, you can keep any data you like in a <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>,
+<a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>, or <a class="reference internal" href="lisien/index.html#lisien.portal.Portal" title="lisien.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code></a> by treating it like a dictionary.</p>
+<p>Lisien’s directed graphs are called <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>s.
+Every time something about a <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> changes,
+Lisien remembers when it happened – that is,
+which turn of the simulation, and which tick within the turn.
+This allows the developer to look up the state of the world at some point in the past.
+This time travel is nearly real-time in most cases,
+to make it convenient to flip back and forth
+between a correct world state and an incorrect one
+and use your intuition to spot exactly what went wrong.</p>
 <p>See <a class="reference internal" href="lisien/design.html"><span class="doc">Design</span></a> for details.</p>
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<p>The only Lisien class that you should ever instantiate yourself is
-<a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>. All simulation objects should be created
-and accessed through it. By default, it keeps the simulation code and
-world state in the working directory, but you can pass in another
-directory if you prefer. Either use it with a context manager (<code class="docutils literal notranslate"><span class="pre">with</span>
-<span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>) or call its <code class="docutils literal notranslate"><span class="pre">.close()</span></code> method when you’re done.</p>
+<p>The only Lisien class that you should ever instantiate yourself is <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>.
+All simulation objects should be created and accessed through it.
+By default, it keeps the simulation code and world state in the working directory,
+but you can pass in another directory if you prefer.
+Either use it with a context manager (<code class="docutils literal notranslate"><span class="pre">with</span> <span class="pre">Engine()</span> <span class="pre">as</span> <span class="pre">eng:</span></code>)
+or call its <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.close" title="lisien.engine.Engine.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> method when you’re done.</p>
 <section id="world-modelling">
 <h3>World Modelling<a class="headerlink" href="#world-modelling" title="Link to this heading">¶</a></h3>
-<p>Start by calling the engine’s <code class="docutils literal notranslate"><span class="pre">new_character</span></code> method with a string
-<code class="docutils literal notranslate"><span class="pre">name</span></code> to get a character object. Draw a graph by calling the method
-<code class="docutils literal notranslate"><span class="pre">new_place</span></code> with many different <code class="docutils literal notranslate"><span class="pre">name</span></code> s, then linking them together
-with the method <code class="docutils literal notranslate"><span class="pre">new_portal(origin,</span> <span class="pre">destination)</span></code>.</p>
-<p>To store data pertaining to some specific place, retrieve the place from
-the <code class="docutils literal notranslate"><span class="pre">place</span></code> mapping of the character: if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code>
-and the place name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>, you might do it like <code class="docutils literal notranslate"><span class="pre">home</span> <span class="pre">=</span>
-<span class="pre">world.place['home']</span></code>. Portals are retrieved from the <code class="docutils literal notranslate"><span class="pre">portal</span></code>
-mapping, where you’ll need the origin and the destination: if there’s a
-portal from <code class="docutils literal notranslate"><span class="pre">'home'</span></code> to <code class="docutils literal notranslate"><span class="pre">'narnia'</span></code>, you can get it like <code class="docutils literal notranslate"><span class="pre">wardrobe</span> <span class="pre">=</span>
-<span class="pre">world.portal['home']['narnia']</span></code>, but if you haven’t also made another
-portal going the other way, <code class="docutils literal notranslate"><span class="pre">world.portal['narnia']['home']</span></code> will
-raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>.</p>
-<p>Things, usually being located in places (but possibly in other things),
-are most conveniently created by the <code class="docutils literal notranslate"><span class="pre">new_thing</span></code> method of Place
-objects: <code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span> <span class="pre">home.new_thing('alice')</span></code> gets you a new Thing object
-located in <code class="docutils literal notranslate"><span class="pre">home</span></code>. Things can be retrieved like <code class="docutils literal notranslate"><span class="pre">alice</span> <span class="pre">=</span>
-<span class="pre">world.thing['alice']</span></code>. Ultimately, things and places are both just
-nodes, and both can be retrieved in a character’s <code class="docutils literal notranslate"><span class="pre">node</span></code> mapping, but
-only things have methods like <code class="docutils literal notranslate"><span class="pre">travel_to</span></code>, which finds a path to a
-destination and schedules movement along it.</p>
-<p>You can store data in things, places, and portals by treating them like
-dictionaries. If you want to store data in a character, use its <code class="docutils literal notranslate"><span class="pre">stat</span></code>
-property as a dictionary instead. Data stored in these objects, and in
-the <code class="docutils literal notranslate"><span class="pre">universal</span></code> property of the engine, can vary over time, and be
-rewound by setting <code class="docutils literal notranslate"><span class="pre">turn</span></code> to some time before. The engine’s
-<code class="docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive, and is mainly for storing
-settings, not simulation data.</p>
+<p>Start by calling the <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>’s <code class="xref py py-meth docutils literal notranslate"><span class="pre">new_character()</span></code> method
+with a <code class="docutils literal notranslate"><span class="pre">name</span></code> to get a <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> object.
+Draw a graph in the <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> by calling its method
+<a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.new_place" title="lisien.types.AbstractCharacter.new_place"><code class="xref py py-meth docutils literal notranslate"><span class="pre">new_place()</span></code></a> with many different <code class="docutils literal notranslate"><span class="pre">name</span></code>s to get some <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>s,
+then linking them together with their method <code class="xref py py-meth docutils literal notranslate"><span class="pre">new_portal()</span></code>.</p>
+<p>To store data pertaining to some specific place,
+retrieve the place from the <a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.place" title="lisien.types.AbstractCharacter.place"><code class="xref py py-attr docutils literal notranslate"><span class="pre">place</span></code></a> mapping of the character:
+if the character is <code class="docutils literal notranslate"><span class="pre">world</span></code> and the place name is <code class="docutils literal notranslate"><span class="pre">'home'</span></code>,
+you might do it like <code class="docutils literal notranslate"><span class="pre">home</span> <span class="pre">=</span> <span class="pre">world.place['home']</span></code>.
+Portals are retrieved from the <code class="docutils literal notranslate"><span class="pre">portal</span></code> mapping,
+where you’ll need the origin and the destination:
+if there’s a portal from <code class="docutils literal notranslate"><span class="pre">'home'</span></code> to <code class="docutils literal notranslate"><span class="pre">'narnia'</span></code>,
+you can get it like <code class="docutils literal notranslate"><span class="pre">wardrobe</span> <span class="pre">=</span> <span class="pre">world.portal['home']['narnia']</span></code>,
+but if you haven’t also made another portal going the other way,
+<code class="docutils literal notranslate"><span class="pre">world.portal['narnia']['home']</span></code> will raise <code class="docutils literal notranslate"><span class="pre">KeyError</span></code>.</p>
+<p><a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s, usually being located in <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>s
+(but possibly in other <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s),
+are most conveniently created by the <code class="xref py py-meth docutils literal notranslate"><span class="pre">new_thing()</span></code> method of node objects
+(shared by <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a> and <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>):
+<code class="docutils literal notranslate"><span class="pre">dorothy</span> <span class="pre">=</span> <span class="pre">home.new_thing('dorothy')</span></code> gets you a new <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a> object located in <code class="docutils literal notranslate"><span class="pre">home</span></code>.
+<a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s can be retrieved like <code class="docutils literal notranslate"><span class="pre">dorothy</span> <span class="pre">=</span> <span class="pre">world.thing['dorothy']</span></code>.
+Ultimately, <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s and <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>s are both just nodes,
+and both can be retrieved in a <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">character.Character</span></code></a>’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">node</span></code> mapping,
+but only <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s have methods like <code class="xref py py-meth docutils literal notranslate"><span class="pre">travel_to()</span></code>,
+which finds a path to a destination and schedules movement along it.</p>
+<p>You can store data in <a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>s, <a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">node.Place</span></code></a>s, and <a class="reference internal" href="lisien/index.html#lisien.portal.Portal" title="lisien.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code></a>s
+by treating them like dictionaries.
+If you want to store data in a <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>,
+use its <a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.stat" title="lisien.types.AbstractCharacter.stat"><code class="xref py py-attr docutils literal notranslate"><span class="pre">stat</span></code></a> property as a dictionary instead.
+Data stored in these objects, and in the <code class="xref py py-attr docutils literal notranslate"><span class="pre">universal</span></code> property of the engine,
+can vary over time, and be rewound by setting <code class="xref py py-attr docutils literal notranslate"><span class="pre">turn</span></code> to some time before.
+The <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>’s <code class="xref py py-attr docutils literal notranslate"><span class="pre">eternal</span></code> property is not time-sensitive,
+and is mainly for storing settings,
+not simulation data.</p>
 </section>
 <section id="rule-creation">
 <h3>Rule Creation<a class="headerlink" href="#rule-creation" title="Link to this heading">¶</a></h3>
-<p>To create a rule, first decide what objects the rule should apply to.
-You can put a rule on a character, thing, place, or portal; and you can
-put a rule on a character’s <code class="docutils literal notranslate"><span class="pre">thing</span></code>, <code class="docutils literal notranslate"><span class="pre">place</span></code>, and <code class="docutils literal notranslate"><span class="pre">portal</span></code>
-mappings, meaning the rule will be applied to <em>every</em> such entity within
-the character, even if it didn’t exist when the rule was declared.</p>
-<p>All these items have a property <code class="docutils literal notranslate"><span class="pre">rule</span></code> that can be used as a
-decorator. Use this to decorate a function that performs the rule’s
-action by making some change to the world state. The function should
-take only one argument, the item itself.</p>
-<p>At first, the rule object will not have any triggers, meaning the action
-will never happen. If you want it to run on <em>every</em> tick, pass the
-decorator <code class="docutils literal notranslate"><span class="pre">always=True</span></code> and think no more of it. But if you want to be
-more selective, use the rule’s <code class="docutils literal notranslate"><span class="pre">trigger</span></code> decorator on another function
+<p>To create a <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a>, first decide what objects the <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a> should apply to.
+You can put a <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a> on a
+<a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>,
+<a class="reference internal" href="lisien/index.html#lisien.node.Thing" title="lisien.node.Thing"><code class="xref py py-class docutils literal notranslate"><span class="pre">Thing</span></code></a>,
+<a class="reference internal" href="lisien/index.html#lisien.node.Place" title="lisien.node.Place"><code class="xref py py-class docutils literal notranslate"><span class="pre">Place</span></code></a>, or
+<a class="reference internal" href="lisien/index.html#lisien.portal.Portal" title="lisien.portal.Portal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Portal</span></code></a>;
+and you can put a rule on a <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>’s
+<a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.thing" title="lisien.types.AbstractCharacter.thing"><code class="xref py py-attr docutils literal notranslate"><span class="pre">thing</span></code></a>,
+<a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.place" title="lisien.types.AbstractCharacter.place"><code class="xref py py-attr docutils literal notranslate"><span class="pre">place</span></code></a>, and
+<a class="reference internal" href="lisien/index.html#lisien.types.AbstractCharacter.portal" title="lisien.types.AbstractCharacter.portal"><code class="xref py py-attr docutils literal notranslate"><span class="pre">portal</span></code></a> mappings,
+meaning the <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a> will be applied to <em>every</em> such entity within the <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a>,
+even if it didn’t exist when the rule was declared.</p>
+<p>All these items have a property <code class="xref py py-attr docutils literal notranslate"><span class="pre">rule</span></code>
+that can be used as a decorator.
+Use this to decorate a function that performs the <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a>’s action
+by making some change to the world state.
+The function should take only one argument, the item itself.</p>
+<p>At first, the <a class="reference internal" href="lisien/index.html#lisien.rule.Rule" title="lisien.rule.Rule"><code class="xref py py-class docutils literal notranslate"><span class="pre">Rule</span></code></a> object will not have any triggers,
+meaning the action will never happen.
+If you want it to run on <em>every</em> tick,
+pass the decorator <code class="docutils literal notranslate"><span class="pre">always=True</span></code> and think no more of it.
+But if you want to be more selective,
+use the rule’s <a class="reference internal" href="lisien/index.html#lisien.rule.Rule.trigger" title="lisien.rule.Rule.trigger"><code class="xref py py-attr docutils literal notranslate"><span class="pre">trigger</span></code></a> decorator on another function
 with the same signature, and have it return <code class="docutils literal notranslate"><span class="pre">True</span></code> if the world is in
 such a state that the rule ought to run. Triggers must never mutate the
 world or use any randomness.</p>
-<p>If you like, you can also add prerequisites. These are like triggers,
-but use the <code class="docutils literal notranslate"><span class="pre">prereq</span></code> decorator, and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em>
-the action should <em>not</em> happen; if a single prerequisite returns
-<code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled. Prereqs may involve random elements.
-Use the <code class="docutils literal notranslate"><span class="pre">engine</span></code> property of any Lisien entity to get the engine, then
-use methods such as <code class="docutils literal notranslate"><span class="pre">percent_chance</span></code> and <code class="docutils literal notranslate"><span class="pre">dice_check</span></code>.</p>
-<p>A prerequisite may return a value that is not Boolean. This indicates that
-the game should stop and ask the user for input. If you’re using Elide,
-the appropriate return type is described in <a class="reference internal" href="elide/index.html#elide.screen.DialogLayout.todo" title="elide.screen.DialogLayout.todo"><code class="xref py py-attr docutils literal notranslate"><span class="pre">elide.screen.DialogLayout.todo</span></code></a>.</p>
+<p>If you like, you can also add prerequisites.
+These are like triggers, but use the <a class="reference internal" href="lisien/index.html#lisien.rule.Rule.prereq" title="lisien.rule.Rule.prereq"><code class="xref py py-attr docutils literal notranslate"><span class="pre">prereq</span></code></a> decorator,
+and should return <code class="docutils literal notranslate"><span class="pre">True</span></code> <em>unless</em> the action should <em>not</em> happen;
+if a single prerequisite returns <code class="docutils literal notranslate"><span class="pre">False</span></code>, the action is cancelled.
+Prereqs may involve random elements.
+Use the <code class="xref py py-attr docutils literal notranslate"><span class="pre">engine</span></code> property of any Lisien entity to get the <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>,
+then use methods such as <a class="reference internal" href="lisien/index.html#lisien.types.AbstractEngine.percent_chance" title="lisien.types.AbstractEngine.percent_chance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">percent_chance()</span></code></a> and <a class="reference internal" href="lisien/index.html#lisien.types.AbstractEngine.dice_check" title="lisien.types.AbstractEngine.dice_check"><code class="xref py py-meth docutils literal notranslate"><span class="pre">dice_check()</span></code></a>.</p>
+<p>A prerequisite may return a value that is not <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code>.
+This indicates that the game should stop and ask the user for input.
+If you’re using <a class="reference internal" href="elide/index.html#elide"><span class="std std-ref">Elide</span></a>, the appropriate return type is described in <a class="reference internal" href="elide/index.html#elide.screen.DialogLayout.todo" title="elide.screen.DialogLayout.todo"><code class="xref py py-attr docutils literal notranslate"><span class="pre">elide.screen.DialogLayout.todo</span></code></a>.</p>
 </section>
 <section id="time-control">
 <h3>Time Control<a class="headerlink" href="#time-control" title="Link to this heading">¶</a></h3>
-<p>The current time is always accessible from the engine’s <code class="docutils literal notranslate"><span class="pre">branch</span></code> and
-<code class="docutils literal notranslate"><span class="pre">turn</span></code> properties. In the common case where time is advancing forward
-one tick at a time, it should be done with the engine’s <code class="docutils literal notranslate"><span class="pre">next_turn</span></code>
-method, which polls all the game rules before going to the next turn;
-but you can also change the time whenever you want, as long as
-<code class="docutils literal notranslate"><span class="pre">branch</span></code> is a string and <code class="docutils literal notranslate"><span class="pre">turn</span></code> is an integer. The rules will never
-be followed in response to your changing the time “by hand”.</p>
-<p>It is possible to change the time as part of the action of a rule. This
-is how you would make something happen after a delay. Say you want a
-rule that puts the character <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep, then wakes her up after
-eight turns (presumably hour-long):</p>
+<p>The current time is always accessible from the <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>’s <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.time" title="lisien.engine.Engine.time"><code class="xref py py-attr docutils literal notranslate"><span class="pre">time</span></code></a> property.
+In the common case where time is advancing forward one tick at a time,
+it should be done with the <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a>’s <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.next_turn" title="lisien.engine.Engine.next_turn"><code class="xref py py-attr docutils literal notranslate"><span class="pre">next_turn</span></code></a> method,
+which polls all the game rules before going to the next turn;
+but you can also change the time whenever you want,
+as long as <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.branch" title="lisien.engine.Engine.branch"><code class="xref py py-attr docutils literal notranslate"><span class="pre">branch</span></code></a> is a string and <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.turn" title="lisien.engine.Engine.turn"><code class="xref py py-attr docutils literal notranslate"><span class="pre">turn</span></code></a> is an integer.
+The rules will never be followed in response to your changing the time “by hand”.</p>
+<p>It is possible to change the time as part of the action of a rule.
+This is how you would make something happen after a delay.
+Say you want a rule that puts the <a class="reference internal" href="lisien/index.html#lisien.character.Character" title="lisien.character.Character"><code class="xref py py-class docutils literal notranslate"><span class="pre">Character</span></code></a> <code class="docutils literal notranslate"><span class="pre">alice</span></code> to sleep,
+then wakes her up after eight turns (presumably hour-long):</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">alice</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span>
 
 <span class="nd">@alice</span><span class="o">.</span><span class="n">rule</span>
@@ -199,19 +226,19 @@ eight turns (presumably hour-long):</p>
     <span class="n">character</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;wake_plan&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">plan_num</span>
 </pre></div>
 </div>
-<p>At the end of a <code class="docutils literal notranslate"><span class="pre">plan():</span></code> block, the game-time will be reset to its
-position at the start of that block. You can use the plan’s ID number,
-<code class="docutils literal notranslate"><span class="pre">plan_num</span></code> in the above, to cancel it yourself – some other rule
-could call
-<code class="docutils literal notranslate"><span class="pre">engine.delete_plan(engine.character['alice'].stat['wake_plan'])</span></code>.</p>
+<p>At the end of a <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.plan" title="lisien.engine.Engine.plan"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Engine.plan()</span></code></a> block,
+the game-time will be reset to its position at the start of that block.
+You can use the plan’s ID number, <code class="docutils literal notranslate"><span class="pre">plan_num</span></code> in the above,
+to cancel it yourself – some other rule could call
+<code class="code docutils literal notranslate"><span class="pre">engine.delete_plan(engine.character['alice'].stat['wake_plan'])</span></code>.</p>
 </section>
 <section id="input-prompts">
 <h3>Input Prompts<a class="headerlink" href="#input-prompts" title="Link to this heading">¶</a></h3>
-<p>Lisien itself doesn’t know what a player is or how to accept input from
-them, but does use some conventions for communicating with a user
-interface such as Elide.</p>
-<p>To ask the player to make a decision, first define a method for them to
-call, then return a menu description like this one:</p>
+<p>Lisien itself doesn’t know what a player is or how to accept input from them,
+but does use some conventions for communicating with a user interface such as Elide.</p>
+<p>To ask the player to make a decision,
+first define a method for them to call,
+then return a menu description like this one:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@engine</span><span class="o">.</span><span class="n">method</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">wake_alice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">character</span><span class="p">[</span><span class="s1">&#39;alice&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">[</span><span class="s1">&#39;awake&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
@@ -226,16 +253,15 @@ call, then return a menu description like this one:</p>
     <span class="p">]</span>
 </pre></div>
 </div>
-<p>Only methods defined with the <code class="docutils literal notranslate"><span class="pre">&#64;engine.method</span></code> function store may be
-used in a menu. In Elide, that means you have to define them in the Method
-tab of the Python editor.</p>
+<p>Only methods defined with the <code class="xref py py-deco docutils literal notranslate"><span class="pre">&#64;method</span></code> function store may be used in a menu.
+In <a class="reference internal" href="elide/index.html#elide"><span class="std std-ref">Elide</span></a>, that means you have to define them in the Method tab of the <span class="xref std std-ref">Python Editor</span>.</p>
 </section>
 </section>
 <section id="proxies">
 <h2>Proxies<a class="headerlink" href="#proxies" title="Link to this heading">¶</a></h2>
-<p>Lisien may be run in a separate process from Elide, or any other frontend you may write for it.
-To ease the process of writing such frontends in Python, Lisien provides proxy objects that reflect and control
-their corresponding objects in the Lisien core.</p>
+<p>Lisien may be run in a separate process from <a class="reference internal" href="elide/index.html#elide"><span class="std std-ref">Elide</span></a>, or any other frontend you may write for it.
+To ease the process of writing such frontends in Python,
+Lisien provides <a class="reference internal" href="lisien/index.html#proxy"><span class="std std-ref">proxy objects</span></a> that reflect and control their corresponding objects in the Lisien core.</p>
 <p>Use <a class="reference internal" href="lisien/index.html#lisien.proxy.manager.EngineProxyManager" title="lisien.proxy.manager.EngineProxyManager"><code class="xref py py-class docutils literal notranslate"><span class="pre">EngineProxyManager</span></code></a> to start Lisien in a subprocess and get a
 proxy to the engine:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProxyManager</span>
@@ -248,11 +274,12 @@ proxy to the engine:</p>
 <span class="n">manager</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>You can pass <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a> arguments to the <code class="docutils literal notranslate"><span class="pre">start</span></code> method.</p>
+<p>You can pass <a class="reference internal" href="lisien/index.html#lisien.engine.Engine" title="lisien.engine.Engine"><code class="xref py py-class docutils literal notranslate"><span class="pre">Engine</span></code></a> arguments to the <a class="reference internal" href="lisien/index.html#lisien.proxy.manager.EngineProxyManager.start" title="lisien.proxy.manager.EngineProxyManager.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> method.</p>
 <p>The proxy objects are mostly the same as what they represent, with affordances for when you
-have to do some work in the user interface while waiting for the core to finish something. Generally, you
-can pass a callback function to the relevant object’s <code class="docutils literal notranslate"><span class="pre">connect</span></code> method, and Lisien will call the callback
-at the relevant time. Here’s how you’d run some code whenever <code class="docutils literal notranslate"><span class="pre">next_turn</span></code> finishes running the rules engine:</p>
+have to do some work in the user interface while waiting for the core to finish something.
+Generally, you can pass a callback function to the relevant object’s <a class="reference external" href="https://blinker.readthedocs.io/en/stable/#blinker.Signal.connect" title="(in Blinker v1.9)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">connect()</span></code></a> method,
+and Lisien will call the callback at the relevant time.
+Here’s how you’d run some code whenever <a class="reference internal" href="lisien/index.html#lisien.engine.Engine.next_turn" title="lisien.engine.Engine.next_turn"><code class="xref py py-attr docutils literal notranslate"><span class="pre">next_turn</span></code></a> finishes running the rules engine:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">lisien.proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">EngineProxyManager</span>
@@ -325,6 +352,7 @@ at the relevant time. Here’s how you’d run some code whenever <code class="d
 <li class="toctree-l1"><a class="reference internal" href="lisien/index.html">API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lisien/index.html#internals">Internals</a></li>
 <li class="toctree-l1"><a class="reference internal" href="elide/index.html">Elide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fdl-1.3.html">GNU Free Documentation License</a></li>
 </ul>
 
 <div class="relations">
@@ -349,7 +377,7 @@ at the relevant time. Here’s how you’d run some code whenever <code class="d
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &#169;Zachary Spector.
+      &#169;Zachary Avram Spector.
       
       |
       Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
