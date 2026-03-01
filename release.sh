@@ -51,13 +51,6 @@ python -m build lisien/
 python -m build elide/
 twine check lisien/dist/* elide/dist/*
 unix2dos -n CHANGES.rst lisien_windows/CHANGES.txt
-cd pages/docs
-git add .
-git commit -m "Release v${VERSION}"
-git tag -f "v${VERSION}"
-git push ssh://git@codeberg.org/clayote/Lisien.git HEAD:pages
-git push --tags ssh://git@codeberg.org/clayote/Lisien.git HEAD:pages
-cd ../..
 git commit -am "Release v${VERSION}"
 git tag -f "v${VERSION}"
 git push
