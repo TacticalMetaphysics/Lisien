@@ -41,7 +41,7 @@ pyclean --debris=tox .
 if [ ! -d lisien_windows ]; then
   mkdir lisien_windows
 fi
-tar -C lisien_windows -xf lisien-windows.tar.xz
+tar xf lisien-windows.tar.xz
 rm -rf bin lisien/dist elide/dist
 buildozer android clean update debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
