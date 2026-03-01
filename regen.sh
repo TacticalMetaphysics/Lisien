@@ -1,4 +1,5 @@
 set -euxo
+python -m pip install https://github.com/clayote/attrs/archive/refs/heads/main.zip
 python -m sphinx --version
 pyclean --version
 pyclean --debris=all .
