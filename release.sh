@@ -36,12 +36,12 @@ isort lisien
 isort elide
 ruff format lisien
 ruff format elide
+. required_env.sh
 pyclean --debris=tox .
-PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 if [ ! -d lisien_windows ]; then
   mkdir lisien_windows
 fi
-tar -C lisien_windows -xf lisien-windows.tar.xz
+tar xf lisien-windows.tar.xz
 rm -rf bin lisien/dist elide/dist
 buildozer android clean update debug
 wine lisien_windows/python/python.exe -m pip install --force-reinstall lisien/ elide/ 'parquetdb @ git+https://github.com/lllangWV/ParquetDB.git'
