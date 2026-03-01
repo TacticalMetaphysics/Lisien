@@ -1,5 +1,5 @@
 set -euxo
-python -m pip install https://github.com/clayote/attrs/archive/refs/heads/sphinx-attr-getter-ext.zip
+python -m pip install git+https://github.com/clayote/attrs.git@sphinx-attr-getter-ext
 python -m sphinx --version
 pyclean --version
 pyclean --debris=all .
