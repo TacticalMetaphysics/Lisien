@@ -2,7 +2,7 @@ set -euxo
 python -m sphinx --version
 pyclean --version
 pyclean --debris=all .
-PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx html . pages/docs/
+PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 cd pages/docs
 git add .
 git commit -m "Regen docs"
