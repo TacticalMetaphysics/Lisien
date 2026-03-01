@@ -3,7 +3,7 @@ when:
     branch: main
 
 steps:
-  - name: regen-docs
+  - name: regen
     image: zacharyspector/elide:latest
     pull: false
-    entrypoint: ["/bin/bash", "make-docs.sh"]
+    entrypoint: ["/bin/bash", "regen.sh"]
