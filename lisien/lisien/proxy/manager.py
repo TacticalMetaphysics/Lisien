@@ -109,7 +109,7 @@ class EngineProxyManager:
 		init=False, factory=partial(logging.getLogger, __name__)
 	)
 
-	def start(self, prefix: str | None = None, **kwargs):
+	def start(self, prefix: str | None = None, **kwargs) -> EngineProxy:
 		"""Start Lisien and return a proxy to it
 
 		Keyword arguments are the same as for :class:`~.Engine`.
