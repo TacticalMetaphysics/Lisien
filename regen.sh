@@ -1,5 +1,6 @@
 set -euxo
-python -m pip install git+https://github.com/clayote/attrs.git@sphinx-attr-getter-ext
+python -m pip wheel --no-deps git+https://github.com/clayote/attrs.git@sphinx-attr-getter-ext
+python -m pip install attrs-*.whl
 python -m sphinx --version
 pyclean --version
 pyclean --debris=all .
