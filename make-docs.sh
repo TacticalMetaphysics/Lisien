@@ -2,7 +2,7 @@ set -euxo
 python -m sphinx --version
 pyclean --version
 pyclean --debris=all .
-if [ -z "$VERSION" ]; then
+if [ -z "${VERSION+x}" ]; then
   VERSION=$(python check_version.py)
 fi
 PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx html . pages/docs/
