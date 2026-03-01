@@ -42,27 +42,49 @@ TIMEOUT = 60
 
 @define(slots=False)
 class EngineProxyManager:
-	"""Container for a Lisien proxy and a logger for it
+	"""Run Lisien somewhere other than the current Python thread
 
-	Make sure the :class:`EngineProxyManager` instance lasts as long as the
-	:class:`lisien.proxy.EngineProxy` returned from its :method:`start`
-	method. Call the :method:`~EngineProxyManager.shutdown` method
-	when you're done with the :class:`~lisien.proxy.EngineProxy`. That way,
-	we can join the thread that listens to the subprocess's logs.
+	:meth:`EngineProxyManager.start` will start a subroutine to run Lisien
+	in a subthread, subprocess, or subinterpreter,
+	depending on :attr:`sub_mode`, and returns :class:`EngineProxy`,
 
-	You can import this from :mod:`lisien.proxy` for convenience::
+	Make sure the :class:`EngineProxyManager` instance
+	lasts as long as the :class:`lisien.proxy.EngineProxy`
+	returned from its :method:`start` method.
+	Call the :method:`~EngineProxyManager.shutdown` method
+	when you're done with the :class:`~lisien.proxy.EngineProxy`,
+	or use it as a context manager::
 
-		from lisien.proxy import EngineProxyManager
+	    from threading import Thread
+
+	    from lisien.proxy import EngineProxyManager
+
+	    from my_excellent_game import display_menu, apply_delta
+
+	    with EngineProxyManager() as manager, manager.start() as engine_proxy:
+
+	        @engine_proxy.next_turn.connect
+	        def update_from_next_turn(engine, menu_info, delta):
+	            display_menu(*menu_info)
+	            apply_delta(delta)
+
+	        subthread = Thread(target=engine_proxy.next_turn)
+	        subthread.start()
+
+	        # do some UI work here
+
+	        subthread.join()
+
 
 	"""
 
 	sub_mode: Sub = field(converter=Sub, default=Sub.thread)
-	"""What form the subprocess should take. ``Sub.thread``
-	is the most widely available, and is therefore the default, but doesn't
-	allow true parallelism unless you're running a GIL-less build of Python.
+	"""What to run the subroutine in.
+	``Sub.thread`` is the most widely available, and is therefore the default,
+	but doesn't allow true parallelism unless you're running a GIL-less build of Python.
 	``Sub.process`` does allow true parallelism, but isn't available on Android.
-	``Sub.interpreter`` is, and allows true parallelism as well, but is only
-	available on Python 3.14 or later."""
+	``Sub.interpreter`` is, and allows true parallelism as well,
+	but is only available on Python 3.14 or later."""
 
 	@sub_mode.validator
 	def _validate_sub_mode(self, _, sub_mode):
@@ -73,12 +95,8 @@ class EngineProxyManager:
 
 	loglevel: int = logging.DEBUG
 	"""What level to log at"""
-	android: bool = field(default=False)
-	"""Are we running on Android?"""
 	reuse: bool = field(default=False)
-	"""Whether to keep the subprocess running after closing the engine proxy.
-	
-	Or the subthread, or the subinterpreter. Whatever you're using.
+	"""Whether to keep the subroutine running after closing the engine proxy
 	
 	Starting a new engine in the same subprocess is often faster.
 	
@@ -91,23 +109,25 @@ class EngineProxyManager:
 		init=False, factory=partial(logging.getLogger, __name__)
 	)
 
-	def start(self, prefix: str | None = None, **kwargs):
+	def start(self, prefix: str | None = None, **kwargs) -> EngineProxy:
+		"""Start Lisien and return a proxy to it
+
+		Keyword arguments are the same as for :class:`~.Engine`.
+
+		"""
 		self._config_logger(kwargs)
 		if "sub_mode" in kwargs:
 			kwargs["sub_mode"] = Sub(kwargs["sub_mode"]).value
 
-		if self.android:
-			self._start_subthread(prefix, **kwargs)
-		else:
-			match self.sub_mode:
-				case Sub.process:
-					self._start_subprocess(prefix, **kwargs)
-				case Sub.thread:
-					self._start_subthread(prefix, **kwargs)
-				case Sub.interpreter:
-					self._start_subinterpreter(prefix, **kwargs)
-				case Sub.none:
-					raise NotImplementedError("Just use Engine")
+		match self.sub_mode:
+			case Sub.process:
+				self._start_subprocess(prefix, **kwargs)
+			case Sub.thread:
+				self._start_subthread(prefix, **kwargs)
+			case Sub.interpreter:
+				self._start_subinterpreter(prefix, **kwargs)
+			case Sub.none:
+				raise NotImplementedError("Just use Engine")
 		if prefix and "prefix" in kwargs:
 			raise TypeError(
 				"Got multiple arguments for prefix", prefix, kwargs["prefix"]
@@ -166,7 +186,12 @@ class EngineProxyManager:
 		self.logger.log(level, msg)
 
 	def shutdown(self):
-		"""Close the engine in the subprocess, then join the subprocess"""
+		"""Close Lisien, then join its subroutine
+
+		We'll join it in the appropriate way for however it's running,
+		whether in a subthread, subprocess, or subinterpreter.
+
+		"""
 		if hasattr(self, "engine_proxy"):
 			if not self.engine_proxy.closed:
 				self.engine_proxy.close()
@@ -715,7 +740,15 @@ class EngineProxyManager:
 		prefix: str | os.PathLike,
 		**kwargs,
 	) -> EngineProxy:
-		"""Load a game from a .lisien archive, start Lisien on it, and return its proxy"""
+		"""Load a game from a .lisien archive in a subroutine
+
+		Once the subroutine is running, it will make an :class:`~.Engine`
+		with :meth:`.Engine.from_archive`.
+		Keyword arguments are the same as :meth:`.Engine.from_archive`.
+
+		:return: A proxy to the :class:`~.Engine` running the loaded game.
+
+		"""
 		if isinstance(archive_path, Path):
 			if not archive_path.name.endswith(".lisien"):
 				raise RuntimeError("Not a .lisien archive")
@@ -736,12 +769,6 @@ class EngineProxyManager:
 					for funk in parsed.body:
 						code[funk.name] = ast.unparse(funk)
 		self._config_logger(kwargs)
-		try:
-			import android
-
-			self._start_osc(prefix, **kwargs)
-		except ModuleNotFoundError:
-			pass
 		match self.sub_mode:
 			case Sub.interpreter:
 				self._start_subinterpreter(prefix, **kwargs)
@@ -805,23 +832,8 @@ class EngineProxyManager:
 		self.engine_proxy._init_pull_from_core()
 		return self.engine_proxy
 
-	def close(self):
-		self.shutdown()
-		if hasattr(self, "_client"):
-			self._client.send_message("127.0.0.1/shutdown")
-			self.logger.debug(
-				"EngineProxyManager: joining input sender thread"
-			)
-			self._input_sender_thread.join()
-			self.logger.debug("EngineProxyManager: joined input sender thread")
-			self.logger.debug("EngineProxyManager: stopping core service")
-			self._core_service.stop()
-			self.logger.debug("EngineProxyManager: stopped core service")
-		if hasattr(self, "logger"):
-			self.logger.debug("EngineProxyManager: closed")
-
 	def __enter__(self):
 		return self
 
 	def __exit__(self, exc_type, exc_val, exc_tb):
-		self.close()
+		self.shutdown()
