@@ -1,0 +1,9 @@
+when:
+  - event: push
+    branch: main
+
+steps:
+  - name: regen-docs
+    image: zacharyspector/elide:latest
+    pull: false
+    entrypoint: ["/bin/bash", "make-docs.sh"]
