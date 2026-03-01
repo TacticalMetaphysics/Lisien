@@ -6,13 +6,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 include-package-data = true
-packages = [
-    "elide",
-    "elide.graph",
-    "elide.grid",
-    "elide.kivygarden.texturestack",
-    "elide.tests",
-]
+
+[tool.setuptools.packages.find]
+include = ["elide*"]
 
 [tool.pytest.ini_options]
 markers = [
