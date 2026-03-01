@@ -37,7 +37,6 @@ isort elide
 ruff format lisien
 ruff format elide
 pyclean --debris=tox .
-PYTHONPATH=$PWD/lisien:$PWD/elide python -m sphinx . pages/docs/
 if [ ! -d lisien_windows ]; then
   mkdir lisien_windows
 fi
