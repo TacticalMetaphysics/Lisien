@@ -5,6 +5,7 @@ steps:
   - name: check_version
     image: zacharyspector/elide:latest
     commands:
+      - bash required_env.sh
       - python check_version.py
     environment:
       CODEBERG_USERNAME:

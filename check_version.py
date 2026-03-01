@@ -7,16 +7,6 @@ import tomllib
 import tomli_w
 
 
-for required_env in [
-	"PYPI_USERNAME",
-	"PYPI_PASSWORD",
-	"CODEBERG_USERNAME",
-	"CODEBERG_PASSWORD",
-	"ITCH_TOKEN",
-	"LISIEN_VERSION",
-]:
-	if required_env not in os.environ:
-		sys.exit(f"Required environment variable not set: {required_env}")
 lisien_version_str = os.environ["LISIEN_VERSION"]
 if not re.match(r"\d+\.\d+\.\d+", lisien_version_str):
 	sys.exit(f"Not a valid semantic version: {lisien_version_str}")
