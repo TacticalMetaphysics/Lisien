@@ -36,6 +36,7 @@ isort lisien
 isort elide
 ruff format lisien
 ruff format elide
+. required_env.sh
 pyclean --debris=tox .
 if [ ! -d lisien_windows ]; then
   mkdir lisien_windows
