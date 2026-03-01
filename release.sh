@@ -26,9 +26,7 @@ if [ -n "${CC+x}" ]; then
 fi
 VERSION=$(python check_version.py)
 export VERSION
-git submodule init
-git submodule update
-if [ ! -e pages/lisien-windows.tar.xz ]; then
+if [ ! -e lisien-windows.tar.xz ]; then
   echo "lisien-windows.tar.xz not found"
   exit 1
 fi
